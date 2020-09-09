@@ -11,13 +11,13 @@ var LoggingLevel = Warning
 
 def warn(f):
    if LoggingLevel >= Warning:
-      print(f())
+      print("WARN: " + f())
 
 def error(f):
    if LoggingLevel >= Error:
-      print(f())
+      print("ERROR: " + f())
 
 def debug(f):
    if LoggingLevel >= Debug:
-      print(f())
+      print("DEBUG: " + f())
 

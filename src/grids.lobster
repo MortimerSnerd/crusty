@@ -2,29 +2,6 @@
 import std
 import algs
 
-// Rectangle with inclusive bounds. +y is considered down
-// as a convention.
-struct Rect:
-  topLeft: xy_i
-  bottomRight: xy_i
-
-def contains(r::Rect, pos: xy_i) -> bool:
-   return (pos.x >= r.topLeft.x and pos.x <= r.bottomRight.y and
-      pos.y >= r.topLeft.y and pos.y <= r.bottomRight.y)
-
-def dims(r::Rect) -> xy_i:
-   return xy_i{1 + bottomRight.x - topLeft.x, 1 + bottomRight.y - topLeft.y}
-
-def area(r::Rect) -> int:
-   let d = r.dims
-   return d.x * d.y
-
-def isDegenerate(r::Rect) -> bool:
-   return r.area <= 0
-
-def mkRectRel(topLeft: xy_i, dims: xy_i) -> Rect:
-   return Rect{topLeft, xy_i{topLeft.x + dims.x - 1, topLeft.y + dims.y - 1}}
-
 let EmptyLocIndex = -1
 
 private struct SGLoc:
@@ -126,8 +103,6 @@ def get(g::SparseGrid, pos: xy_i) -> int:
 
 def grids_tests():
    let rv = SparseGrid{missingVal: 0, dims: xy_i{50, 50}, locs: [], newlocs: []}
-
-   algs_tests()
 
    modifying(rv):
       set(rv, xy_i{23, 11}, 32)

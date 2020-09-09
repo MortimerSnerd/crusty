@@ -1,13 +1,32 @@
+import from "../../../src/crusty/src/"
 import algs
+import bus
 import std
 import color
+import config
+import events
+import gobjs
 import grids
-import vec
 import imgui
+import player
 import texture
 import tileing
+import vec
+
+var tile_size = 16
+var world_view_center = xy_0
+let all_dirs = map(append(cardinal_directions, diagonal_directions)) p: 
+                  xy_f{float(p.x), float(p.y)}
+
+def set_map_projection(center: xy_f, tile_pixel_sz: int, view_area: xy_f) -> Rectf:
+   let hview = view_area*0.5
+   let viewsz = hview / tile_pixel_sz
+   gl_ortho3d(xyz_f{center.x, center.y, 0}, 
+              xyz_f{viewsz.x, viewsz.y, 10})
+   return mkRectfRel(center - hview, view_area)
 
 def go():
+   config_init()
    fatal(gl_window("Eat a crap", 640, 400))
    gl_set_font_name("dist/fonty.ttf")
    gl_set_font_size(12)
@@ -29,9 +48,14 @@ def go():
       else:
          print("unknown argument " + a + ", ignoring.")
 
+   gobjs_init()
+   player_init()
+   
    if do_tests:
       algs_tests()
       grids_tests()
+      events_tests()
+      gobjs_tests()
 
    if txtur == nil:
       print("barf")
@@ -54,20 +78,31 @@ def go():
       let sprites = []
       var spidx = 0
 
+      for(10) i:
+         let idy = gobjs_spawn(ObjectKind_Sword, xy_f{20.0, 20.0} * rnd_float())
+         schedule_callback(idy, float(i) + rnd_float())
+
       while gl_frame():
-         if gl_button("escape") == 1: return
-         gl_window_title("Eat a crap: " + 1/gl_delta_time())
-         gl_clear(color_black)
          let wsz = gl_window_size()
          let fwsz = xy{float(wsz.x), float(wsz.y)}
          let hwsz = wsz/2
+         let now = seconds_elapsed()
+
+         events_begin_frame(now)
+         if gl_button("escape") == 1: return
+
+         process_callbacks(now)
+         gobjs_handle_events(now)
+
+         gl_window_title("Eat a crap: " + 1/gl_delta_time())
+         gl_clear(color_black)
 
          if length(sprites) == 0:
             for(500) i:
                let p = xy_rnd() * fwsz
                push(sprites, xyz{p.x, p.y, 2.0})
 
-         gl_ortho3d(xyz_f{hwsz.x, hwsz.y, 0}, xyz_f{hwsz.x, hwsz.y, 10})
+         let view_rect = set_map_projection(world_view_center, tile_size, fwsz)
          gl_set_shader("textured")
          gl_set_primitive_texture(0, txtur)
          gl_render_mesh(mesh)
@@ -79,7 +114,8 @@ def go():
 
          spidx = (spidx + 1) % 700
          for(sprites) p, i:
-            renderSprite(gtt, spidx + i, p, xy{18.0, 16.0} * float((i % 4) + 1))
+            renderSprite(gtt, spidx + i, p, xy_1 * float((i % 4) + 1))
+         gobjs_draw(now, view_rect)
 
          gl_ortho()
          gl_set_shader("color")
@@ -101,3 +137,5 @@ def go():
 
 
 go()
+print(int(GObjSystem) << 32)
+print(int(GObjSystem) << 32 + 1)

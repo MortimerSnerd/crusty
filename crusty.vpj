@@ -74,6 +74,33 @@
             GUID="{484E623C-5737-431B-9477-251B0CF483C9}"></Folder>
     </CustomFolders>
     <Files AutoFolders="DirectoryView">
+        <Folder Name="../../.slickedit">
+            <Folder Name="25.0.0">
+                <Folder Name="tagfiles">
+                    <F N="../../.slickedit/25.0.0/tagfiles/builtins.lobster"/>
+                </Folder>
+            </Folder>
+        </Folder>
+        <Folder Name="../lobster">
+            <Folder Name="modules">
+                <F
+                    N="../lobster/modules/*.lobster"
+                    Recurse="1"
+                    Excludes=".git/;.idea/"
+                    L="1"/>
+            </Folder>
+        </Folder>
+        <Folder Name="../../progs">
+            <Folder Name="lobster">
+                <Folder Name="modules">
+                    <F
+                        N="../../progs/lobster/modules/*.lobster"
+                        Recurse="1"
+                        Excludes=".git/;.idea/"
+                        L="1"/>
+                </Folder>
+            </Folder>
+        </Folder>
         <F
             N="*.lobster"
             Recurse="1"
