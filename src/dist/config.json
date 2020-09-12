@@ -1,0 +1,14 @@
+{
+    "objtypes": [
+        {
+            kind: Sword, 
+            short_name: "Sword Of Ass", 
+            static_tile: Sword
+        },
+        {
+            kind: Player, 
+            short_name: "Just Some Guy",
+            static_tile: Blondie
+        }
+     ]
+}

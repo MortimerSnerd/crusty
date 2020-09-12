@@ -1,0 +1,24 @@
+enum ObjectKind:short { okInvalid = 0, 
+  Player, 
+  Sword
+}
+
+enum TileName:int32 {
+  None = -1,
+  Sword = 554,
+  Blondie = 905
+}
+
+table ObjectSpec {
+   kind: ObjectKind;
+   short_name: string;
+   static_tile: TileName = None;
+   weight: float;
+} 
+
+table ConfigRoot {
+   objtypes: [ObjectSpec];
+}
+    
+root_type ConfigRoot;
+
