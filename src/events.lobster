@@ -14,8 +14,8 @@ class MoveEvent : BaseEvent
    endPos: xy_f
 
 class TurnEvent : BaseEvent
-   startOrient: int
-   endOrient: int
+   startAngle: float
+   endAngle: float
 
 private var Events: [BaseEvent] = []
 private var EventsUnordered = true
@@ -30,11 +30,11 @@ def move_event(who: ObjId, startTime: float, endTime: float, startPos: xy_f,
    push(Events, MoveEvent{who: who, startT: startTime, endT: endTime, 
         startPos: startPos, endPos: endPos})
 
-def turn_event(who: ObjId, startTime: float, endTime: float, startOrient: int, 
-               endOrient: int):
+def turn_event(who: ObjId, startTime: float, endTime: float, startAngle: float, 
+               endAngle: float):
    update_ordered_flag(startTime)
    push(Events, TurnEvent{who: who, startT: startTime, endT: endTime, 
-        startOrient: startOrient, endOrient: endOrient})
+        startAngle: startAngle, endAngle: endAngle})
 
 def forQueuedEvents(body):
    if EventsUnordered:
@@ -79,6 +79,5 @@ def process_callbacks(destTime: float):
    while length(ThinkCbs) > 0 and ThinkCbs[0].time < destTime:
       let o = heap_pop(ThinkCbs, TMinHeapCmp)
 
-      print("ccyb " + string(o))
       think(o.who, o.time)
 

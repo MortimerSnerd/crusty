@@ -13,6 +13,7 @@ import tileing
 class GOInst:
    kind_idx: int // index into OSpecs for ObjectKind
    loc: LERP<xy_f>
+   angle: AngleLERP
    curTile: int
 
 // For now we just use the flatbuffer instance.  Hooray laziness.
@@ -32,10 +33,11 @@ private def handle_event(now: float, ev: BaseEvent):
 
    if ev is MoveEvent:
       inst.loc = mkLERP(ev.startT, ev.endT, ev.startPos, ev.endPos)
+   elif ev is TurnEvent:
+      inst.angle = mkAngleLERP(ev.startT, ev.endT, ev.startAngle, ev.endAngle)
 
 def gobjs_handle_events(now: float):
   forQueuedEvents() ev: 
-     print("chicken " + string(ev) + " (" + string(gobj_short_name(ev.who)) + ")")
      if ev.startT <= now:
         if ev.who.system == GObjSystem:
            handle_event(now, ev)
@@ -47,7 +49,8 @@ def gobjs_draw(now: float, view: Rectf):
       for(GOInstances) o:
          let p = eval(o.loc, now)
          if contains(view, p):
-            renderSprite(ObjTx, o.curTile, xyz_f{p.x, p.y, 3}, xy_1)
+            let a = eval(o.angle, now)
+            renderSprite(ObjTx, o.curTile, xyz_f{p.x, p.y, 3}, xy_1, sincos(a))
                   
 def gobjs_spawn(okind: ObjectKind, pos: xy_f) -> ObjId:
    let found, ki = binary_search_by_key(OSpecs, int(okind)) a, b:
@@ -57,8 +60,10 @@ def gobjs_spawn(okind: ObjectKind, pos: xy_f) -> ObjId:
       let id = length(GOInstances)
       push(GOInstances, 
            GOInst{loc: mkConstLERP(pos), 
+                  angle: mkConstAngleLERP(0.0),
                   curTile: OSpecs[ki].static_tile, 
                   kind_idx: ki})
+
       return mkObjId(GObjSystem, id)
    else:
       error(): "No OSpec for " + string(okind)
@@ -75,6 +80,13 @@ def pos(ep:: GobjEndpoint, what: ObjId, now: float) -> bool, xy_f:
       return true, eval(GOInstances[what.id].loc, now)
    else:
       return false, xy_0
+
+def angle(ep:: GobjEndpoint, what: ObjId, now: float) -> bool, float:
+   if what.system == GObjSystem:
+      return true, eval(GOInstances[what.id].angle, now)
+   else:
+      return false, 0
+
 
 def forObjectsIntersecting(ep:: GobjEndpoint, now: float, r: Rectf, body):
    for(GOInstances) ob, i:

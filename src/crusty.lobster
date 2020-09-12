@@ -15,8 +15,6 @@ import vec
 
 var tile_size = 16
 var world_view_center = xy_0
-let all_dirs = map(append(cardinal_directions, diagonal_directions)) p: 
-                  xy_f{float(p.x), float(p.y)}
 
 def set_map_projection(center: xy_f, tile_pixel_sz: int, view_area: xy_f) -> Rectf:
    let hview = view_area*0.5
@@ -24,6 +22,24 @@ def set_map_projection(center: xy_f, tile_pixel_sz: int, view_area: xy_f) -> Rec
    gl_ortho3d(xyz_f{center.x, center.y, 0}, 
               xyz_f{viewsz.x, viewsz.y, 10})
    return mkRectfRel(center - hview, view_area)
+
+def draw_game_frame(now: float, windowsz: xy_f, gtt, txtur: resource):
+   let view_rect = set_map_projection(world_view_center, tile_size, windowsz)
+   gl_set_shader("textured")
+   gl_set_primitive_texture(0, txtur)
+   renderSprite(gtt, 500, xyz{100.0, 100.0, 1}, xy{64.0, 64.0}, sincos(gl_delta_time()))
+   renderSprite(gtt, 409, xyz{100.0, 100.0, 2}, xy{64.0, 64.0})
+   gl_translate(xyz_f{132, 132, 0}):
+     gl_rect(xy_f{64, -64})
+
+   gobjs_draw(now, view_rect)
+
+   gl_ortho()
+   gl_set_shader("color")
+   let p = xy_rnd()
+   gl_color(color_white)
+   gl_translate(xy {p.x * windowsz.x, p.y * windowsz.y}):
+      gl_text("Barf")
 
 def go():
    config_init()
@@ -33,9 +49,6 @@ def go():
 
    im_init(false)
    assert im_add_font("data/fonts/Droid_Sans/DroidSans.ttf", 20.0)
-
-   let txtur = gl_load_texture("dist/texty.png", 
-                               texture_format_nearest_mag or texture_format_nearest_min)
 
    var do_debug = false
    var do_tests = false
@@ -57,11 +70,11 @@ def go():
       events_tests()
       gobjs_tests()
 
-   if txtur == nil:
-      print("barf")
-   else:
-      print("texture size " + gl_texture_size(txtur))
-      let gtt = mkGridTiledTexture(txtur, xy_i{16, 16})
+   let test_txtur = gl_load_texture("dist/texty.png", 
+                                    texture_format_nearest_mag or texture_format_nearest_min)
+   if test_txtur:
+      let gtt = mkGridTiledTexture(test_txtur, xy_i{16, 16})
+
       let pts = [xyz{1.0, 0.0, 0.0}, xyz{100.0, 0.0, 0.0}, xyz{100.0, 100.0, 0.0}]
       let tcs = [xy{0.0, 0.0}, xy{1.0, 0.0}, xy{1.0, 1.0}]
       let indices = [0, 1, 2]
@@ -73,11 +86,6 @@ def go():
 
       addTileQuad(gtt, 0, xyz_f{100, 100, 0}, xy_f{50, 50}, pts, indices, tcs)
 
-      let mesh = gl_new_mesh("PT", pts, [], [], tcs, [], indices)
-      var ang = 0.0
-      let sprites = []
-      var spidx = 0
-
       for(10) i:
          let idy = gobjs_spawn(ObjectKind_Sword, xy_f{20.0, 20.0} * rnd_float())
          schedule_callback(idy, float(i) + rnd_float())
@@ -86,56 +94,27 @@ def go():
          let wsz = gl_window_size()
          let fwsz = xy{float(wsz.x), float(wsz.y)}
          let hwsz = wsz/2
-         let now = seconds_elapsed()
+         let now = game_time()
+         let rv = player_handle_input()
+         
+         switch rv:
+            case ExitMainLoop:
+               break
 
-         events_begin_frame(now)
-         if gl_button("escape") == 1: return
+            case Good:
+               gl_window_title("Eat a crap: " + 1/gl_delta_time())
+               gl_clear(color_black)
+               draw_game_frame(now, fwsz, gtt, test_txtur)
 
-         process_callbacks(now)
-         gobjs_handle_events(now)
-
-         gl_window_title("Eat a crap: " + 1/gl_delta_time())
-         gl_clear(color_black)
-
-         if length(sprites) == 0:
-            for(500) i:
-               let p = xy_rnd() * fwsz
-               push(sprites, xyz{p.x, p.y, 2.0})
-
-         let view_rect = set_map_projection(world_view_center, tile_size, fwsz)
-         gl_set_shader("textured")
-         gl_set_primitive_texture(0, txtur)
-         gl_render_mesh(mesh)
-         ang += 20.0 * gl_delta_time()
-         renderSprite(gtt, 500, xyz{100.0, 100.0, 1}, xy{64.0, 64.0}, sincos(ang))
-         renderSprite(gtt, 409, xyz{100.0, 100.0, 2}, xy{64.0, 64.0})
-         gl_translate(xyz_f{132, 132, 0}):
-           gl_rect(xy_f{64, -64})
-
-         spidx = (spidx + 1) % 700
-         for(sprites) p, i:
-            renderSprite(gtt, spidx + i, p, xy_1 * float((i % 4) + 1))
-         gobjs_draw(now, view_rect)
-
-         gl_ortho()
-         gl_set_shader("color")
-         let p = xy_rnd()
-         gl_color(color_white)
-         gl_translate(xy {p.x * float(wsz.x), p.y * float(wsz.y)}):
-            gl_text("Barf")
-
-
-         im_frame():
-            //im_window("Holy craps", im_window_no_titlebar | im_window_always_autoresize):
-            //   im_button("jeebus"): print("saves sinners for valuable cash and prizes.")
-            //   im_button("cronkles"): print("saves sinners for valuable cash and prizes.")
-            //
-            if do_debug:
-               im_window("Realtime Debugger", im_window_always_autoresize):
-                   im_show_engine_stats()
-                   im_show_vars()
+               im_frame():
+                  //im_window("Holy craps", im_window_no_titlebar | im_window_always_autoresize):
+                  //   im_button("jeebus"): print("saves sinners for valuable cash and prizes.")
+                  //   im_button("cronkles"): print("saves sinners for valuable cash and prizes.")
+                  //
+                  if do_debug:
+                     im_window("Realtime Debugger", im_window_always_autoresize):
+                         im_show_engine_stats()
+                         im_show_vars()
 
 
 go()
-print(int(GObjSystem) << 32)
-print(int(GObjSystem) << 32 + 1)

@@ -1,5 +1,44 @@
 import std
+import vec
 
+// We define our own rather than build off cardinal_directions and 
+// diagonal_directions, so they can be in clockwise order rather
+// than interleaved.
+
+// Indexes into all_dirs
+enum Directions:
+   East, SouthEast, South, SouthWest, West, NorthWest, North, NorthEast
+
+// Vectors for all grid directions, in the order of the `Directions` enum.
+let all_dirs = [xy_f{1, 0}, xy_f{1, 1}, xy_f{0, 1}, xy_f{-1, 1}, xy_f{-1, 0}, 
+                xy_f{-1, -1}, xy_f{0, -1}, xy_f{1, -1}]
+
+// Angle in degrees for all directions in all_dirs.
+let dir_angles = map(all_dirs) d: normalize_angle(atan2(d))
+
+// For an array of numbers, returns the index of the entry
+// closest to x.  Returns -1 for an empty array.
+def closest_to(arr, x):
+   var closest = -1
+
+   for(arr) n, i:
+      if closest < 0 or abs(x - n) < abs(x - arr[closest]):
+         closest = i
+
+   return closest
+
+
+// If i ranges from 0..num-1, returns
+// the previous i, cycling around to the 
+// end of the range when i == 0
+def cycle_left(i: int, num: int) -> int:
+   if i <= 0:
+      return num - 1
+   else:
+      return i - 1
+
+
+// Treating arrays as binary heaps.
 private def lchild(i: int) -> int:
    return 2*i + 1
 
@@ -21,29 +60,6 @@ def heap_bubble_up<T>(arr: [T], i: int, cmpfn):
    while pos > 0 and not cmpfn(arr[parent(pos)], arr[pos]):
       heap_swap(arr, parent(pos), pos)
       pos = parent(pos)
-
-//TODO
-//   During a turn, should things coming later in the iterations see events from
-//   things that came earlier in the same turn?
-//
-//   two cases:
-//      during event(), if events are added.
-//          probably not.  this is mostly for events where some property needs
-//          to be updated based on events since the last frame.
-//          if it needs to be supported for some corner case,
-//          it can be handled by the handl_events() doing the special case.
-//
-//
-//      for think functions - yes.  in that case, the think calls are scheduled
-//      in a separate priority queue.  Think calls that need to look at events
-//      can walk through them separately.  (rather than collecting once, and then
-//      passing all the think calls).  So this isn't an issue, don't need to worry
-//      about events being added during an iteration of the event list.'
-//
-//      event list can be left as array that's periodically sorted.  Scheduler for
-//      think calls can either be a priority queue based on abs time, or the
-//      energy system from angband.
-
 
 def heap_bubble_down<T>(arr: [T], i: int, cmpfn):
    var pos = i
@@ -157,6 +173,51 @@ def eval<T>(l::LERP<T>, t: float):
 
    return lerp(start, end, f)
 
+// Specialized LERP for angles.
+class AngleLERP:
+   startT: float
+   endT: float
+   start: float
+   end: float
+
+def normalize_angle(f: float) -> float:
+   var rv = f
+
+   while rv < 0:
+      rv += 360
+
+   while rv > 360:
+      rv -= 360
+
+   return rv % 360.0
+
+// Makes a LERP between angles, following the shortest path.
+// (ie, 10 to 350 only goes 20 degrees.)
+def mkAngleLERP(startTime: float, endTime: float, start: float, end: float) -> AngleLERP:
+   assert endTime > startTime
+
+   let sa = normalize_angle(start)
+   let ea = normalize_angle(end)
+   let plen = abs(ea - sa)
+   let nlen = min(ea, sa) + 360 - max(ea, sa)
+
+   if plen < nlen:
+      return AngleLERP{startT: startTime, endT: endTime, start: sa, end: ea}
+   else:
+      if ea < sa:
+         return AngleLERP{startT: startTime, endT: endTime, start: sa, end: ea + 360}
+      else:
+         return AngleLERP{startT: startTime, endT: endTime, start: sa + 360, end: ea}
+
+
+def eval(l::AngleLERP, t: float):
+   let f = clamp((t - startT) / (endT - startT), 0.0, 1.0)
+
+   return normalize_angle(lerp(start, end, f))
+
+def mkConstAngleLERP<T>(v: T) -> AngleLERP:
+
+   return mkAngleLERP(0.0, 0.1, v, v)
 
 def noop():
    return

@@ -18,6 +18,11 @@ private let Endpoints:[BusEndpoint] = []
 def pos(b:: BusEndpoint, what: ObjId, t: float) -> bool, xy_f:
    return false, xy_0
 
+// Base method for returning the facing angle of an object.
+def angle(b:: BusEndpoint, what: ObjId, t: float) -> bool, float:
+   error(): "Unimplemented angle() call for " + string(b)
+   return false, 0
+
 // Base method. Calls `body(ObjId, obj rectf)` for all objects that intersect
 // rectangle `r`.
 def forObjectsIntersecting(b:: BusEndpoint, now: float, r: Rectf, body):
@@ -57,6 +62,15 @@ def pos(what: ObjId, now: float) -> bool, xy_f:
    else:
       return false, xy_0
 
+def angle(what: ObjId, now: float) -> bool, float:
+   let ep = endpointForSystem(what.system)
+
+   if ep:
+      let found, p = ep.angle(what, now)
+      return found, p
+   else:
+      return false, 0
+
 // Calls `body(ObjId, obj rectf)` for all objects that intersect
 // rectangle `r`.
 def forObjectsIntersecting(now: float, r: Rectf, body):
@@ -73,3 +87,4 @@ def think(who: ObjId, now: float):
       ep.think(who, now)
    else:
       error(): "No endpoint registered for system " + string(who.system) + " " + string(who.id)
+
