@@ -43,7 +43,7 @@ def draw_game_frame(now: float, windowsz: xy_f, gtt, txtur: resource):
 
 def go():
    config_init()
-   fatal(gl_window("Eat a crap", 640, 400))
+   fatal(gl_window("Penalty Box", 640, 400))
    gl_set_font_name("dist/fonty.ttf")
    gl_set_font_size(12)
 
@@ -108,8 +108,8 @@ def go():
 
                im_frame():
                   //im_window("Holy craps", im_window_no_titlebar | im_window_always_autoresize):
-                  //   im_button("jeebus"): print("saves sinners for valuable cash and prizes.")
-                  //   im_button("cronkles"): print("saves sinners for valuable cash and prizes.")
+                  //   im_button("one"): print("one msg")
+                  //   im_button("two"): print("two msg")
                   //
                   if do_debug:
                      im_window("Realtime Debugger", im_window_always_autoresize):
