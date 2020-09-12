@@ -41,9 +41,12 @@ def player_handle_input():
                let f, a = angle(Player, GameTime)
                let diri = cycle_left(dir_angles.closest_to(a), length(dir_angles))
 
-               print("closest to " + string(a) + " is (" + string(diri) + ") " + string(dir_angles[diri]))
-
-               print("diri=" + string(dir_angles))
+               turn_event(Player, GameTime, GameTime + 0.5, a, dir_angles[diri])
+               PlayerState = Stepping
+               EndStepTime = GameTime + 0.5
+            elif gl_button("d") == 1:
+               let f, a = angle(Player, GameTime)
+               let diri = cycle_right(dir_angles.closest_to(a), length(dir_angles))
 
                turn_event(Player, GameTime, GameTime + 0.5, a, dir_angles[diri])
                PlayerState = Stepping

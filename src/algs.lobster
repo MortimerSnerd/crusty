@@ -37,6 +37,14 @@ def cycle_left(i: int, num: int) -> int:
    else:
       return i - 1
 
+// If i ranges from 0..num-1, returns
+// the next i, cycling around to the 
+// end of the range when i == num-1
+def cycle_right(i: int, num: int) -> int:
+   if i >= num-1:
+      return 0
+   else:
+      return i + 1
 
 // Treating arrays as binary heaps.
 private def lchild(i: int) -> int:
