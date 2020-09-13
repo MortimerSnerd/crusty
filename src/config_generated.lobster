@@ -9,6 +9,11 @@ enum ObjectKind:
 enum TileName:
     TileName_None = -1
     TileName_Sword = 554
+    TileName_Blondie = 905
+
+enum ItemFlags:
+    ItemFlags_Living = 1
+    ItemFlags_BlocksLiving = 2
 
 class ObjectSpec
 
@@ -23,13 +28,17 @@ class ObjectSpec : flatbuffers_handle
         return TileName(buf_.flatbuffers_field_int32(pos_, 8, -1))
     def weight():
         return buf_.flatbuffers_field_float32(pos_, 10, 0.0)
+    def flags():
+        return ItemFlags(buf_.flatbuffers_field_int32(pos_, 12, 0))
+    def right_rotation():
+        return buf_.flatbuffers_field_float32(pos_, 14, 0.0)
 
 def GetRootAsObjectSpec(buf:string): return ObjectSpec { buf, buf.flatbuffers_indirect(0) }
 
 struct ObjectSpecBuilder:
     b_:flatbuffers_builder
     def start():
-        b_.StartObject(4)
+        b_.StartObject(6)
         return this
     def add_kind(kind:ObjectKind):
         b_.PrependInt16Slot(0, kind, 0)
@@ -42,6 +51,12 @@ struct ObjectSpecBuilder:
         return this
     def add_weight(weight:float):
         b_.PrependFloat32Slot(3, weight, 0.0)
+        return this
+    def add_flags(flags:ItemFlags):
+        b_.PrependUint32Slot(4, flags, 0)
+        return this
+    def add_right_rotation(right_rotation:float):
+        b_.PrependFloat32Slot(5, right_rotation, 0.0)
         return this
     def end():
         return b_.EndObject()

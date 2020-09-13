@@ -1,4 +1,5 @@
 import from "../../../src/crusty/src/"
+import actions
 import bus
 import gobjs
 import objutils
@@ -17,7 +18,7 @@ def game_time() -> float:
    return GameTime
 
 def player_init():
-   Player = gobjs_spawn(ObjectKind_Player, xy_0)
+   Player = gobjs_spawn(ObjectKind_Player, gridToWorld(xy_i{4, 1}))
 
 enum HandleInputResult:
    Good, ExitMainLoop
@@ -33,24 +34,40 @@ def player_handle_input():
             if gl_button("w") == 1:
                //TODO move_action to check for valid request
                let f, p = pos(Player, GameTime)
+               let f1, a = angle(Player, GameTime)
+               let diri = dir_angles.closest_to(a)
 
-               move_event(Player, GameTime, GameTime + 0.5, p, p + xy_x)
-               PlayerState = Stepping
-               EndStepTime = GameTime + 0.5
+               let r, act = move_action(GameTime, Player, p, p + all_dirs[diri])
+               if act:
+                  execute(act)
+                  PlayerState = Stepping
+                  EndStepTime = GameTime + act.duration
+               else:
+                  warn(): "Can\'t move " + string(r)
+
             elif gl_button("a") == 1:
                let f, a = angle(Player, GameTime)
                let diri = cycle_left(dir_angles.closest_to(a), length(dir_angles))
+               let r, act = turn_action(GameTime, Player, a, dir_angles[diri])
 
-               turn_event(Player, GameTime, GameTime + 0.5, a, dir_angles[diri])
-               PlayerState = Stepping
-               EndStepTime = GameTime + 0.5
+               if act:
+                  execute(act)
+                  PlayerState = Stepping
+                  EndStepTime = GameTime + act.duration
+               else:
+                  warn(): "Can\'t turn: " + string(r)
+
             elif gl_button("d") == 1:
                let f, a = angle(Player, GameTime)
                let diri = cycle_right(dir_angles.closest_to(a), length(dir_angles))
+               let r, act = turn_action(GameTime, Player, a, dir_angles[diri])
 
-               turn_event(Player, GameTime, GameTime + 0.5, a, dir_angles[diri])
-               PlayerState = Stepping
-               EndStepTime = GameTime + 0.5
+               if act:
+                  execute(act)
+                  PlayerState = Stepping
+                  EndStepTime = GameTime + act.duration
+               else:
+                  warn(): "Can\'t turn: " + string(r)
 
 
          case Stepping:

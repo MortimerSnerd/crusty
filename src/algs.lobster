@@ -230,12 +230,6 @@ def mkConstAngleLERP<T>(v: T) -> AngleLERP:
 def noop():
    return
 
-def gridToWorld(p:: xy_i) -> xy_f:
-   return xy_f{x: float(x) + 0.5, y: float(y) + 0.5}
-
-def worldToGrid(p:: xy_f) -> xy_i:
-   return xy_i{x: int(x - 0.5), y: int(y - 0.5)}
-
 // Rectangle with inclusive bounds. +y is considered down
 // as a convention.
 struct Rect:
@@ -318,7 +312,24 @@ def isDegenerate(r::Rectf) -> bool:
    return r.area <= 0
 
 def mkRectfRel(topLeft: xy_f, dims: xy_f) -> Rectf:
-   return Rectf{topLeft, xy_f{topLeft.x + dims.x - 1, topLeft.y + dims.y - 1}}
+   let eps = 2.220446049250313080847e-16
+   return Rectf{topLeft, xy_f{topLeft.x + dims.x - eps, topLeft.y + dims.y - eps}}
+
+def gridToWorld(p:: xy_i) -> xy_f:
+   return xy_f{x: float(x) + 0.5, y: float(y) + 0.5}
+
+def worldToGrid(p:: xy_f) -> xy_i:
+   return xy_i{x: int(x - 0.5), y: int(y - 0.5)}
+
+def gridRect(p:: xy_f) -> Rectf:
+   let gc = worldToGrid(p)
+   return mkRectfRel(xy_f{float(gc.x), float(gc.y)}, xy_1)
+
+def render(r:: Rectf, thickness):
+   gl_line(topLeft, xy_f{bottomRight.x, topLeft.y}, thickness)
+   gl_line(xy_f{bottomRight.x, topLeft.y}, bottomRight, thickness)
+   gl_line(bottomRight, xy_f{topLeft.x, bottomRight.y}, thickness)
+   gl_line(xy_f{topLeft.x, bottomRight.y}, topLeft, thickness)
 
 private def rndcheck():
    for(400) iter:
@@ -345,8 +356,6 @@ def heapcheck():
    for (400) iter:
       let hp = []
       for(1000) i: heap_add(hp, rnd(500), hcmp)
-      if iter == 0:
-         print("HEAPUS " + string(hp))
       let check = copy(hp)
       assert length(hp) == 1000
       qsort_in_place(check) a, b: a < b
@@ -389,5 +398,11 @@ def algs_tests():
    assert eval(ss, 1) == 0
    assert eval(ss, 2) == 100
    assert eval(ss, 1.5) == 50
+
+   let r1 = Rectf{xy_f{1.5, 3.5}, xy_f{2.5, 4.5}}
+   let r2 = Rectf{xy_f{-10.0, -10.0}, xy_f{10.0, 10.0}}
+
+   assert r1.overlaps(r2)
+   assert r2.overlaps(r1)
 
    heapcheck()

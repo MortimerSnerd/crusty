@@ -3,12 +3,15 @@
         {
             kind: Sword, 
             short_name: "Sword Of Ass", 
-            static_tile: Sword
+            static_tile: Sword,
+            flags: BlocksLiving
         },
         {
             kind: Player, 
             short_name: "Just Some Guy",
-            static_tile: Blondie
+            static_tile: Blondie,
+            flags: Living,
+            right_rotation: -45
         }
      ]
 }

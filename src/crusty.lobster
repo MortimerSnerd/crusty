@@ -13,7 +13,7 @@ import texture
 import tileing
 import vec
 
-var tile_size = 16
+var tile_size = 32
 var world_view_center = xy_0
 
 def set_map_projection(center: xy_f, tile_pixel_sz: int, view_area: xy_f) -> Rectf:
@@ -21,11 +21,10 @@ def set_map_projection(center: xy_f, tile_pixel_sz: int, view_area: xy_f) -> Rec
    let viewsz = hview / tile_pixel_sz
    gl_ortho3d(xyz_f{center.x, center.y, 0}, 
               xyz_f{viewsz.x, viewsz.y, 10})
-   return mkRectfRel(center - hview, view_area)
+   return Rectf{center - viewsz*0.5, center + viewsz*0.5}
 
-def draw_game_frame(now: float, windowsz: xy_f, gtt, txtur: resource):
-   let view_rect = set_map_projection(world_view_center, tile_size, windowsz)
-   gl_set_shader("textured")
+def draw_game_frame(now: float, windowsz: xy_f, gtt, txtur: resource, view_rect: Rectf):
+   gl_set_shader("textured_alpha_cut")
    gl_set_primitive_texture(0, txtur)
    renderSprite(gtt, 500, xyz{100.0, 100.0, 1}, xy{64.0, 64.0}, sincos(gl_delta_time()))
    renderSprite(gtt, 409, xyz{100.0, 100.0, 2}, xy{64.0, 64.0})
@@ -34,19 +33,12 @@ def draw_game_frame(now: float, windowsz: xy_f, gtt, txtur: resource):
 
    gobjs_draw(now, view_rect)
 
-   gl_ortho()
-   gl_set_shader("color")
-   let p = xy_rnd()
-   gl_color(color_white)
-   gl_translate(xy {p.x * windowsz.x, p.y * windowsz.y}):
-      gl_text("Barf")
-
 def go():
    config_init()
    fatal(gl_window("Penalty Box", 640, 400))
    gl_set_font_name("dist/fonty.ttf")
    gl_set_font_size(12)
-
+   gl_load_materials("dist/crusty.materials")
    im_init(false)
    assert im_add_font("data/fonts/Droid_Sans/DroidSans.ttf", 20.0)
 
@@ -87,7 +79,7 @@ def go():
       addTileQuad(gtt, 0, xyz_f{100, 100, 0}, xy_f{50, 50}, pts, indices, tcs)
 
       for(10) i:
-         let idy = gobjs_spawn(ObjectKind_Sword, xy_f{20.0, 20.0} * rnd_float())
+         let idy = gobjs_spawn(ObjectKind_Sword, gridToWorld(xy_i{rnd(20) - 10, rnd(20) - 10}))
          schedule_callback(idy, float(i) + rnd_float())
 
       while gl_frame():
@@ -102,9 +94,26 @@ def go():
                break
 
             case Good:
-               gl_window_title("Eat a crap: " + 1/gl_delta_time())
+               //TODO something is wrong with view_rect or tests, does not cover
+               //     entire screen.
+               let view_rect = set_map_projection(world_view_center, tile_size, fwsz)
+               gl_window_title("Penalty Box: " + 1/gl_delta_time())
                gl_clear(color_black)
-               draw_game_frame(now, fwsz, gtt, test_txtur)
+               draw_game_frame(now, fwsz, gtt, test_txtur, view_rect)
+
+               // Debug
+               //gl_set_shader("color")
+               //gl_color(xyzw_f{1.0, 1.0, 1.0, 1.0}):
+               //   forObjectsIntersecting(now, view_rect) o:
+               //      let f, p = pos(o, now)
+               //
+               //      if f:
+               //         let r = gridRect(p)
+               //         render(r, 1.0/tile_size)
+
+
+               gl_ortho()
+               gl_set_shader("color")
 
                im_frame():
                   //im_window("Holy craps", im_window_no_titlebar | im_window_always_autoresize):

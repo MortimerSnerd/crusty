@@ -9,11 +9,20 @@ enum TileName:int32 {
   Blondie = 905
 }
 
+
+enum ItemFlags : uint32 (bit_flags)
+{
+    Living,
+    BlocksLiving
+}
+
 table ObjectSpec {
    kind: ObjectKind;
    short_name: string;
    static_tile: TileName = None;
    weight: float;
+   flags: ItemFlags;
+   right_rotation: float = 0;
 } 
 
 table ConfigRoot {

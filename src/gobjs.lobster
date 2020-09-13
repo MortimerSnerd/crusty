@@ -1,4 +1,5 @@
 import from "../../../src/crusty/src/"
+import actions
 import algs
 import bus
 import config
@@ -46,10 +47,11 @@ def gobjs_handle_events(now: float):
 
 def gobjs_draw(now: float, view: Rectf):
    if ObjTx:
+      gl_blend(blend_alpha)
       for(GOInstances) o:
          let p = eval(o.loc, now)
          if contains(view, p):
-            let a = eval(o.angle, now)
+            let a = eval(o.angle, now) + OSpecs[o.kind_idx].right_rotation
             renderSprite(ObjTx, o.curTile, xyz_f{p.x, p.y, 3}, xy_1, sincos(a))
                   
 def gobjs_spawn(okind: ObjectKind, pos: xy_f) -> ObjId:
@@ -94,19 +96,30 @@ def forObjectsIntersecting(ep:: GobjEndpoint, now: float, r: Rectf, body):
       let bb = mkRectfRel(p - xy_h, xy_1)
 
       if bb.overlaps(r):
-         body(mkObjId(PlayerSystem, i), bb)
+         body(mkObjId(GObjSystem, i), bb)
+
+def blocksLiving(ep:: GobjEndpoint, o: ObjId) -> bool:
+   let k = OSpecs[GOInstances[o.id].kind_idx]
+   
+   return k.flags & (ItemFlags_Living | ItemFlags_BlocksLiving) != 0
 
 def think(ep:: GobjEndpoint, who: ObjId, now: float):
    //DEBUGGERY - just for testing.
    let go = GOInstances[who.id]
 
-   let endT = now + 0.5
    let p = eval(go.loc, now)
    let diff = rnd_pick(cardinal_directions)
    let pT = xy_f{p.x + float(diff.x), p.y + float(diff.y)}
 
-   move_event(who, now, endT, p, pT)
-   schedule_callback(who, endT)
+   let r, act = move_action(now, who, p, pT)
+
+   if act:
+      execute(act)
+      schedule_callback(who, now + act.duration)
+   else:
+      // Try again shortly.
+      schedule_callback(who, now + 0.1)
+
 
 def gobjs_init():
    let txtfile = "dist/texty.png"

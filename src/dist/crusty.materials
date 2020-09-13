@@ -1,0 +1,12 @@
+SHADER textured_alpha_cut
+    VERTEX
+        INPUTS apos:4 atc:2
+        UNIFORMS mvp
+        gl_Position = mvp * apos;
+        itc = atc;
+    PIXEL
+        INPUTS itc:2
+        UNIFORMS tex0 col
+        vec4 c = texture(tex0, itc) * col;
+        if (c.a < 0.5) discard;
+        frag_color = c;

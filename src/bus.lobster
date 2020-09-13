@@ -28,6 +28,13 @@ def angle(b:: BusEndpoint, what: ObjId, t: float) -> bool, float:
 def forObjectsIntersecting(b:: BusEndpoint, now: float, r: Rectf, body):
    noop()
 
+// Base method, returns true if `o` has the ability
+// to block living things from moving to the grid 
+// that o occupies.  
+def blocksLiving(b:: BusEndpoint, o: ObjId) -> bool:
+   error(): "Unimplemented blocksLiving call for " + string(b)
+   return false
+
 // Base method
 // Called to give an object to make an action.  Think calls are
 // scheduled one-shot calls.  If `who` wants to be called again
@@ -88,3 +95,14 @@ def think(who: ObjId, now: float):
    else:
       error(): "No endpoint registered for system " + string(who.system) + " " + string(who.id)
 
+// Returns true if `o` has the ability
+// to block living things from moving to the grid 
+// that o occupies.  
+def blocksLiving(o: ObjId) -> bool:
+   let ep = endpointForSystem(o.system)
+
+   if ep:
+      return ep.blocksLiving(o)
+   else:
+      error(): "No endpoint registered for system " + string(o.system)
+      return false
