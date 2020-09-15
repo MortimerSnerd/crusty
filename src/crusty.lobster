@@ -1,10 +1,10 @@
 import from "../../../src/crusty/src/"
 import algs
 import bus
+import callbacks
 import std
 import color
 import config
-import events
 import gobjs
 import grids
 import imgui
@@ -59,7 +59,6 @@ def go():
    if do_tests:
       algs_tests()
       grids_tests()
-      events_tests()
       gobjs_tests()
 
    let test_txtur = gl_load_texture("dist/texty.png", 

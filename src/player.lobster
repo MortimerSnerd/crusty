@@ -73,10 +73,8 @@ def player_handle_input():
          case Stepping:
             let dT = gl_delta_time() * TimeScaling
 
-            events_begin_frame(GameTime)
             GameTime = min(EndStepTime, GameTime + dT)
             process_callbacks(GameTime)
-            gobjs_handle_events(GameTime)
 
             if GameTime == EndStepTime:
                PlayerState = WaitingForInput

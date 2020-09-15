@@ -20,7 +20,6 @@ def pos(b:: BusEndpoint, what: ObjId, t: float) -> bool, xy_f:
 
 // Base method for returning the facing angle of an object.
 def angle(b:: BusEndpoint, what: ObjId, t: float) -> bool, float:
-   error(): "Unimplemented angle() call for " + string(b)
    return false, 0
 
 // Base method. Calls `body(ObjId, obj rectf)` for all objects that intersect
@@ -32,8 +31,26 @@ def forObjectsIntersecting(b:: BusEndpoint, now: float, r: Rectf, body):
 // to block living things from moving to the grid 
 // that o occupies.  
 def blocksLiving(b:: BusEndpoint, o: ObjId) -> bool:
-   error(): "Unimplemented blocksLiving call for " + string(b)
    return false
+
+// Should be called by actions that move objects, to notify
+// any interested systems.  Gets called for all systems, not
+// just the owner.
+def notify_moving(b:: BusEndpoint, o: ObjId, startT: float, endT: float, wstart: xy_f, wend: xy_f):
+   return
+
+// Should be called by actions that turn/rotate objects, to notify
+// any interested systems.  Gets called for all systems, not just
+// the owner of the object.
+def notify_turning(b:: BusEndpoint, o: ObjId, startT: float, endT: float, startAng: float, endAng: float):
+   return
+
+// Called when an object is spawned.  If parent != InvalidObject, then
+// the spawned object is "contained" in that object.  Otherwise, the 
+// pos field is a world position for the object.  All systems get this
+// notification.
+def notify_spawn(b:: BusEndpoint, o: ObjId, parent: ObjId, wpos: xy_f):
+   return
 
 // Base method
 // Called to give an object to make an action.  Think calls are
@@ -106,3 +123,25 @@ def blocksLiving(o: ObjId) -> bool:
    else:
       error(): "No endpoint registered for system " + string(o.system)
       return false
+
+// Should be called by actions that move objects, to notify
+// any interested systems.  Gets called for all systems, not just
+// the owner of the object.
+def notify_moving(o: ObjId, startT: float, endT: float, wstart: xy_f, wend: xy_f):
+   for(Endpoints) ep:
+      ep.notify_moving(o, startT, endT, wstart, wend)
+
+// Should be called by actions that turn/rotate objects, to notify
+// any interested systems.  Gets called for all systems, not just
+// the owner of the object.
+def notify_turning(o: ObjId, startT: float, endT: float, startAng: float, endAng: float):
+   for(Endpoints) ep:
+      ep.notify_turning(o, startT, endT, startAng, endAng)
+
+// Called when an object is spawned.  If parent != InvalidObject, then
+// the spawned object is "contained" in that object.  Otherwise, the 
+// pos field is a world position for the object.
+def notify_spawn(o: ObjId, parent: ObjId, wpos: xy_f):
+   for(Endpoints) ep:
+      ep.notify_spawn(o, parent, wpos)
+

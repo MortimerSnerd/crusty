@@ -1,7 +1,6 @@
 // Define actions so they can be validated or introspected.
 import from "../../../src/crusty/src/"
 import bus
-import events
 import logging
 import objutils
 
@@ -46,7 +45,7 @@ def move_action(now: float, who: ObjId, start: xy_f, end: xy_f) -> ActionResult,
                                  duration: 0.5}  //TODO calc duration based on stats.
 
 def execute(a:: MoveAction):
-   move_event(who, time, time + duration, start, end)
+   notify_moving(who, time, time + duration, start, end)
 
 class TurnAction : ActionBase
    start: float
@@ -57,5 +56,5 @@ def turn_action(now: float, who: ObjId, start: float, end: float) -> ActionResul
    return GoodResult, TurnAction{who: who, time: now, start: start, end: end, duration: 0.2}
 
 def execute(a:: TurnAction):
-   turn_event(a.who, a.time, a.time + duration, start, end) 
+   notify_turning(who, time, time + duration, start, end)
 

@@ -46,28 +46,6 @@ is up to the module.  For the simplistic gobj module right now, it's just
 an index into an array of instance info.  Users of the ObjId's don't need
 to know.
 
-### The events module
-The events module defines events that are gameplay events, or a little lower
-level.  Any modules that care about events have some module_handle_events()
-function that the code in the player module will will when a turn is being run.
-
- There's currently just a TurnEvent and a MoveEvent, but there are other
-planned events like a ObjDeleted{} event that will let all interested modules
-know a particular ObjId is going away, and that if you have any references to
-that ObjId, you should clean them out in a way that makes sense.  Eventually 
-there will be a SoundEvent that says "this sound happened here at this volume".
-And a future sound module would look at the position relative to the user, and
-how much is between them and calculate perceived volume and play the sound.
-
-The events are also intended to be useful for AI.  If Bob the Pirate sees a 
-sound event that's close enough and loud enough where he detects it, the AI
-can kick him into gear to investigate, etc...
-
-As a more concrete example, when the player moves, the player module creates 
-a MoveEvent saying "move this ObjId from a to b, taking 1/2 second".  The gobj
-module will see the event, and will update the instance state for the player 
-ObjId so the position will lerp.
-
 ## The bus module
 Sometimes you don't just want to react to things going on, but actually make
 a query.  The bus module gives you way to do that.  Modules register a 
@@ -87,11 +65,45 @@ A more interesting but not implemented example would be:
 In that case, there might be a hit from a wall in a playfield module, from another
 living npc or a closed door from gobj, etc...  
 
-# TODO
-- action objects that describe an action, and can tell whether the action
-  is valid or not.  And can be executed(), which queues up events, etc...
-  Keeping actions in objects made it so it was easy to iterate possible actions. 
+Also as mentioned before, there are methods for "events" that different systems
+may be interested in, like notifications an object is moving to a particular
+map grid, etc...  These will start with "notify_" as a convention.
 
+### The (defunct) events module
+
+There used to be an events module, where there were MoveEvents, TurnEvents, 
+and these objects were queued and inspected by module that were interested.  
+(For instance, the gobj module would update sprite LERP state from these events)
+
+It bothered me that there were similarities in fields between the Events and 
+the Action objects that represent possible valid options.  Close enough to be
+irritating, but any attempt to merge the two would end up being a mess, 
+mostly because Actions can trigger multiple events, and there are events that
+don't have corresponding actions.  (ie, a SoundEvent).
+
+There were also going to be some problems in how often the event list needed
+to be re-traversed so module state would be correct in the face of new events 
+created as an object did its think() action.
+
+Instead of merging, I removed events as object, and replaced with with notify_*
+calls in the bus module.  
+
+### Action objects
+
+Action objects represent a valid action.  They can only be constructed through
+functions in the actions module if the move validates.  The action can be
+executed().  
+
+The validity of an action only lasts until the next action is executed.  You 
+don't want to create an action, and squirrel away to execute it at a later turn, 
+that will probably mess up the game state.
+
+Representing actions as objects makes it easy to iterate through valid actions
+for an object.  Helpful for some types of AI.  It can also be handy for context
+sensitive help for the player.  (ie, you're next to a closed safe, so you let
+the player know they can hit 'o' to open the safe)
+
+# TODO
 - For gobjs, there's no indirection for the id, it's just an index into 
   an array. Need to figure out what to do for the delete case.  Before
   an object is deleted, need to send out an event so all systems will know

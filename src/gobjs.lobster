@@ -2,9 +2,9 @@ import from "../../../src/crusty/src/"
 import actions
 import algs
 import bus
+import callbacks
 import config
 import config_generated
-import events
 import logging
 import objutils
 import std
@@ -29,22 +29,6 @@ def gobj_short_name(oid: ObjId) -> string:
    else:
       return "Notta Gobj"
 
-private def handle_event(now: float, ev: BaseEvent):
-   let inst = GOInstances[ev.who.id]
-
-   if ev is MoveEvent:
-      inst.loc = mkLERP(ev.startT, ev.endT, ev.startPos, ev.endPos)
-   elif ev is TurnEvent:
-      inst.angle = mkAngleLERP(ev.startT, ev.endT, ev.startAngle, ev.endAngle)
-
-def gobjs_handle_events(now: float):
-  forQueuedEvents() ev: 
-     if ev.startT <= now:
-        if ev.who.system == GObjSystem:
-           handle_event(now, ev)
-     else:
-        return
-
 def gobjs_draw(now: float, view: Rectf):
    if ObjTx:
       gl_blend(blend_alpha)
@@ -58,6 +42,7 @@ def gobjs_spawn(okind: ObjectKind, pos: xy_f) -> ObjId:
    let found, ki = binary_search_by_key(OSpecs, int(okind)) a, b:
       int(a.kind) - b
 
+   //TODO test to see if it can be placed at pos.
    if found:
       let id = length(GOInstances)
       push(GOInstances, 
@@ -66,7 +51,9 @@ def gobjs_spawn(okind: ObjectKind, pos: xy_f) -> ObjId:
                   curTile: OSpecs[ki].static_tile, 
                   kind_idx: ki})
 
-      return mkObjId(GObjSystem, id)
+      let oid = mkObjId(GObjSystem, id)
+      notify_spawn(oid, InvalidObject, pos)
+      return oid
    else:
       error(): "No OSpec for " + string(okind)
       assert false
@@ -120,6 +107,14 @@ def think(ep:: GobjEndpoint, who: ObjId, now: float):
       // Try again shortly.
       schedule_callback(who, now + 0.1)
 
+
+def notify_moving(ep:: GobjEndpoint, o: ObjId, startT: float, endT: float, wstart: xy_f, wend: xy_f):
+   if o.system == GObjSystem:
+      GOInstances[o.id].loc = mkLERP(startT, endT, wstart, wend)
+
+def notify_turning(ep:: GobjEndpoint, o: ObjId, startT: float, endT: float, startAng: float, endAng: float):
+   if o.system == GObjSystem:
+      GOInstances[o.id].angle = mkAngleLERP(startT, endT, startAng, endAng)
 
 def gobjs_init():
    let txtfile = "dist/texty.png"
