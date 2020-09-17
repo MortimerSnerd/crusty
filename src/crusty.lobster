@@ -8,6 +8,7 @@ import config
 import gobjs
 import grids
 import imgui
+import maps
 import player
 import texture
 import tileing
@@ -55,6 +56,7 @@ def go():
 
    gobjs_init()
    player_init()
+   maps_init()
    
    if do_tests:
       algs_tests()

@@ -3,6 +3,7 @@
 // accidental creation of import cycles.
 import from "../../../src/crusty/src/"
 import algs
+import config_generated
 import logging
 import objutils
 import vec
@@ -24,14 +25,16 @@ def angle(b:: BusEndpoint, what: ObjId, t: float) -> bool, float:
 
 // Base method. Calls `body(ObjId, obj rectf)` for all objects that intersect
 // rectangle `r`.
-def forObjectsIntersecting(b:: BusEndpoint, now: float, r: Rectf, body):
+def for_objects_intersecting(b:: BusEndpoint, now: float, r: Rectf, body):
    noop()
 
-// Base method, returns true if `o` has the ability
-// to block living things from moving to the grid 
-// that o occupies.  
-def blocksLiving(b:: BusEndpoint, o: ObjId) -> bool:
-   return false
+// Returns true, if `o` should be allowed to move to `wdestPos`.
+def move_is_allowed(b:: BusEndpoint, now: float, o: ObjId, wdestPos: xy_f) -> bool:
+   return true
+
+// If there's an ObjectSpect for an object, bodyfn will be executed with it.
+def object_spec(b:: BusEndpoint, o: ObjId) -> ObjectSpec?:
+   return nil
 
 // Should be called by actions that move objects, to notify
 // any interested systems.  Gets called for all systems, not
@@ -69,7 +72,7 @@ private def endpointForSystem(s: ObjectSystem) -> BusEndpoint?:
       return Endpoints[i]
 
 // Should be call for all systems that own ObjId's.  
-def registerBusEndpoint(ep: BusEndpoint):
+def bus_register_endpoint(ep: BusEndpoint):
    assert ep.system != InvalidSystem
    let existing = endpointForSystem(ep.system)
 
@@ -97,9 +100,9 @@ def angle(what: ObjId, now: float) -> bool, float:
 
 // Calls `body(ObjId, obj rectf)` for all objects that intersect
 // rectangle `r`.
-def forObjectsIntersecting(now: float, r: Rectf, body):
+def for_objects_intersecting(now: float, r: Rectf, body):
    for(Endpoints) ep:
-      ep.forObjectsIntersecting(now, r, body)
+      ep.for_objects_intersecting(now, r, body)
 
 // Called to give an object to make an action.  Think calls are
 // scheduled one-shot calls.  If `who` wants to be called again
@@ -111,18 +114,6 @@ def think(who: ObjId, now: float):
       ep.think(who, now)
    else:
       error(): "No endpoint registered for system " + string(who.system) + " " + string(who.id)
-
-// Returns true if `o` has the ability
-// to block living things from moving to the grid 
-// that o occupies.  
-def blocksLiving(o: ObjId) -> bool:
-   let ep = endpointForSystem(o.system)
-
-   if ep:
-      return ep.blocksLiving(o)
-   else:
-      error(): "No endpoint registered for system " + string(o.system)
-      return false
 
 // Should be called by actions that move objects, to notify
 // any interested systems.  Gets called for all systems, not just
@@ -145,3 +136,22 @@ def notify_spawn(o: ObjId, parent: ObjId, wpos: xy_f):
    for(Endpoints) ep:
       ep.notify_spawn(o, parent, wpos)
 
+// Returns true, x if `o` should be allowed to move to `wdestPos`.
+// Returns false, nameOfBlockingSystem if the move should not be allowed.
+def move_is_allowed(now: float, o: ObjId, wdestPos: xy_f) -> bool:
+   for(Endpoints) ep:
+      let allowed = ep.move_is_allowed(now, o, wdestPos)
+
+      if not allowed:
+         return false
+
+   return true
+
+// If there's an ObjectSpect for an object, bodyfn will be executed with it.
+def object_spec(o: ObjId) -> ObjectSpec?:
+   let ep = endpointForSystem(o.system)
+
+   if ep:
+      return ep.object_spec(o)
+   else:
+      return nil

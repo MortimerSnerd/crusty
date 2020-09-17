@@ -77,18 +77,13 @@ def angle(ep:: GobjEndpoint, what: ObjId, now: float) -> bool, float:
       return false, 0
 
 
-def forObjectsIntersecting(ep:: GobjEndpoint, now: float, r: Rectf, body):
+def for_objects_intersecting(ep:: GobjEndpoint, now: float, r: Rectf, body):
    for(GOInstances) ob, i:
       let p = eval(ob.loc, now)
       let bb = mkRectfRel(p - xy_h, xy_1)
 
       if bb.overlaps(r):
          body(mkObjId(GObjSystem, i), bb)
-
-def blocksLiving(ep:: GobjEndpoint, o: ObjId) -> bool:
-   let k = OSpecs[GOInstances[o.id].kind_idx]
-   
-   return k.flags & (ItemFlags_Living | ItemFlags_BlocksLiving) != 0
 
 def think(ep:: GobjEndpoint, who: ObjId, now: float):
    //DEBUGGERY - just for testing.
@@ -116,6 +111,9 @@ def notify_turning(ep:: GobjEndpoint, o: ObjId, startT: float, endT: float, star
    if o.system == GObjSystem:
       GOInstances[o.id].angle = mkAngleLERP(startT, endT, startAng, endAng)
 
+def object_spec(ep:: GobjEndpoint, o: ObjId) -> ObjectSpec?:
+   return OSpecs[GOInstances[o.id].kind_idx]
+   
 def gobjs_init():
    let txtfile = "dist/texty.png"
    let txtur = gl_load_texture(txtfile, 
@@ -130,5 +128,5 @@ def gobjs_init():
       push(OSpecs, cur_config().objtypes(i))
 
    qsort_in_place(OSpecs) a, b: int(a.kind) < int(b.kind)
-   registerBusEndpoint(GobjEndpoint{system: GObjSystem})
+   bus_register_endpoint(GobjEndpoint{system: GObjSystem})
 
