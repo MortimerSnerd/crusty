@@ -1,4 +1,5 @@
 import from "../../../src/crusty/src/"
+import actions
 import algs
 import bus
 import std
@@ -24,9 +25,9 @@ def schedule_callback(who: ObjId, time: float):
 
 // Runs through all of the callbacks until the queue 
 // is empty, or the next entries' time is > destTime
-def process_callbacks(destTime: float):
+def process_callbacks(span: TurnSpan, destTime: float):
    while length(ThinkCbs) > 0 and ThinkCbs[0].time < destTime:
       let o = heap_pop(ThinkCbs, TMinHeapCmp)
 
-      think(o.who, o.time)
+      think(span, o.who, o.time)
 

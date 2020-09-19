@@ -18,6 +18,10 @@ class GOInst:
    angle: AngleLERP
    curTile: int
 
+//TODO make angle anim_angle and separate angle.
+// make any code looking up angle based on the animation angle just use
+// the actual angle.
+
 // For now we just use the flatbuffer instance.  Hooray laziness.
 private let OSpecs : [ObjectSpec] = []
 private var ObjTx : GridTiledTexture? = nil
@@ -93,9 +97,9 @@ def for_objects_intersecting(ep:: GobjEndpoint, now: float, r: Rectf, body):
       if bb.overlaps(r):
          body(mkObjId(GObjSystem, i), bb)
 
-def think(ep:: GobjEndpoint, who: ObjId, now: float):
+def think(ep:: GobjEndpoint, span: TurnSpan, who: ObjId, now: float):
    //DEBUGGERY - just for testing.
-   for_possible_actions(who, now) act:
+   for_possible_actions(span, who, now) act:
       if rnd_float() < 0.10:
          execute(act)
          schedule_callback(who, now + act.duration)

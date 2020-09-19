@@ -373,6 +373,22 @@ def heapcheck():
          assert false
 
 
+// The absolute start and end times of a player turn.
+// Animations are scaled and possibly moved within this
+// duration so at the end of the turn, objects animation positions
+// matches up with the actual positions of the objects on the grid.
+// Without this, you can get into hard to read situations, where a 
+// object moves towards the end of the turn, so visually it appears
+// that they're still in the starting grid, but effectively they're already
+// on grid location over.
+struct TurnSpan:
+   start: float
+   end: float
+
+def mag(t:: TurnSpan) -> float:
+   assert t.end >= t.start
+   return end - start
+
 def algs_tests():
    rndcheck()
 

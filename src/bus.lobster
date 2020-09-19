@@ -63,7 +63,7 @@ def notify_spawn(b:: BusEndpoint, o: ObjId, parent: ObjId, wpos: xy_f):
 // Called to give an object to make an action.  Think calls are
 // scheduled one-shot calls.  If `who` wants to be called again
 // it needs to call schedule_callback() itself.
-def think(b:: BusEndpoint, who: ObjId, now: float):
+def think(b:: BusEndpoint, span: TurnSpan, who: ObjId, now: float):
    error(): "Unimplemented think call for " + string(who)
    noop()
 
@@ -121,11 +121,11 @@ def for_objects_intersecting(now: float, r: Rectf, body):
 // Called to give an object to make an action.  Think calls are
 // scheduled one-shot calls.  If `who` wants to be called again
 // it needs to call schedule_callback() itself.
-def think(who: ObjId, now: float):
+def think(span: TurnSpan, who: ObjId, now: float):
    let ep = endpointForSystem(who.system)
 
    if ep:
-      ep.think(who, now)
+      ep.think(span, who, now)
    else:
       error(): "No endpoint registered for system " + string(who.system) + " " + string(who.id)
 
