@@ -1,5 +1,6 @@
 import from "../../../src/crusty/src/"
 import algs
+import animations
 import bus
 import callbacks
 import std
@@ -14,8 +15,8 @@ import texture
 import tileing
 import vec
 
-var tile_size = 32
-var world_view_center = xy_0
+let tile_size = 32
+let world_view_center = xy_0
 
 def set_map_projection(center: xy_f, tile_pixel_sz: int, view_area: xy_f) -> Rectf:
    let hview = view_area*0.5
@@ -61,6 +62,7 @@ def go():
    gobjs_init()
    player_init()
    maps_init()
+   animations_init()
    
    if do_tests:
       algs_tests()
@@ -84,7 +86,7 @@ def go():
       addTileQuad(gtt, 0, xyz_f{100, 100, 0}, xy_f{50, 50}, pts, indices, tcs)
 
       for(10) i:
-         let idy = gobjs_spawn(ObjectKind_Sword, gridToWorld(xy_i{rnd(20) - 10, rnd(20) - 10}))
+         let idy = gobjs_spawn(ObjectKind_Sword, xy_i{rnd(20) - 10, rnd(20) - 10}, East)
          schedule_callback(idy, float(i) + rnd_float())
 
       while gl_frame():
@@ -112,11 +114,9 @@ def go():
                   gl_color(xyzw_f{1.0, 1.0, 1.0, 1.0}):
                      render(view_rect, 1.0/tile_size)
                      for_objects_intersecting(now, view_rect) o:
-                        let f, p = anim_pos(o, now)
-
-                        if f:
-                           let r = mkRectfRel(p-xy_1*0.5, xy_1)
-                           render(r, 1.0/tile_size)
+                        let p = anim_pos(o, now)
+                        let r = mkRectfRel(p-xy_1*0.5, xy_1)
+                        render(r, 1.0/tile_size)
 
                      map_render_debug(view_rect, 1.0/tile_size)
 

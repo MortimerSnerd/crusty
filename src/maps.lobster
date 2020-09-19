@@ -26,19 +26,18 @@ private let Layers = [mkSparseGrid(0)]
 
 class MapEndpoint : BusEndpoint
 
-def move_is_allowed(ep: MapEndpoint, now: float, o: ObjId, wdestPos: xy_f) -> bool:
+def move_is_allowed(ep: MapEndpoint, now: float, o: ObjId, destPos: xy_i) -> bool:
    let spec = object_spec(o)
 
    if spec:
-      let gdestPos = worldToGrid(wdestPos)
-      if get(Layers[WallLayer], gdestPos) != 0:
+      if get(Layers[WallLayer], destPos) != 0:
          return false
 
-      if spec.flags & ItemFlags_Living and get(Living, gdestPos) != InvalidObject:
+      if spec.flags & ItemFlags_Living and get(Living, destPos) != InvalidObject:
          return false
 
       // If spec.flags & BlocksLiving, make sure there are living at the dest too.
-      for_items_at(Objects, gdestPos) it:
+      for_items_at(Objects, destPos) it:
          let ospec = it.object_spec
 
          if ospec:
@@ -47,34 +46,30 @@ def move_is_allowed(ep: MapEndpoint, now: float, o: ObjId, wdestPos: xy_f) -> bo
 
    return true
 
-def notify_spawn(ep: MapEndpoint, o: ObjId, parent: ObjId, wpos: xy_f):
+def notify_spawn(ep: MapEndpoint, o: ObjId, parent: ObjId, pos: xy_i):
    if parent == InvalidObject:
       // Not contained by another object, so this is on a map.
       let spec = o.object_spec
       
       if spec:
-         let gpos = worldToGrid(wpos)
          if spec.flags & ItemFlags_Living:
-            assert get(Living, gpos) == InvalidObject
-            set(Living, gpos, o)
+            assert get(Living, pos) == InvalidObject
+            set(Living, pos, o)
          else:
-            add(Objects, gpos, o)
+            add(Objects, pos, o)
 
 def notify_moving(ep: MapEndpoint, o: ObjId, startT: float, endT: float, 
-                  wstart: xy_f, wend: xy_f):
+                  start: xy_i, end: xy_i):
    let spec = o.object_spec
 
    if spec:
-      let gstart = worldToGrid(wstart)
-      let gend = worldToGrid(wend)
-
       if spec.flags & ItemFlags_Living:
-         remove_item(Living, gstart, o)
-         assert get(Living, gend) == InvalidObject
-         set(Living, gend, o)
+         remove_item(Living, start, o)
+         assert get(Living, end) == InvalidObject
+         set(Living, end, o)
       else:
-         remove_item(Objects, gstart, o)
-         add(Objects, gend, o)
+         remove_item(Objects, start, o)
+         add(Objects, end, o)
 
 def maps_init():
    bus_register_endpoint(MapEndpoint{system: MapSystem})

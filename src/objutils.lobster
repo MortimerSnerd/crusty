@@ -2,7 +2,7 @@ struct ObjId:
    parts: int  // 32 bit object system + 32 bit index/id
 
 enum ObjectSystem:
-   InvalidSystem, PlayerSystem, GObjSystem, MapSystem
+   InvalidSystem, PlayerSystem, GObjSystem, MapSystem, AnimationSystem
 
 private let IndexMask = 0xFFFFFFFF
 

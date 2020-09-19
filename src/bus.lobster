@@ -15,17 +15,21 @@ class BusEndpoint:
 // Registered busses.
 private let Endpoints:[BusEndpoint] = []
 
-// Base method for returning the center animation position of an object.
-def anim_pos(b:: BusEndpoint, what: ObjId, t: float) -> bool, xy_f:
-   return false, xy_0
-
 // Returns the grid position of `what`.
 def pos(b:: BusEndpoint, what: ObjId) -> bool, xy_i:
    return false, xy_i{0,0}
 
+// Returns the animation position of `what` at time `now`.
+def anim_pos(b:: BusEndpoint, what: ObjId, now: float) -> xy_f:
+   return xy_0
+
+// Returns the animation angle of `what` at time t.
+def anim_angle(b:: BusEndpoint, what: ObjId, now: float) -> float:
+   return 0
+
 // Base method for returning the facing angle of an object.
-def angle(b:: BusEndpoint, what: ObjId, t: float) -> bool, float:
-   return false, 0
+def direction(b:: BusEndpoint, what: ObjId) -> bool, Directions:
+   return false, East
 
 // Base method. Calls `body(ObjId, obj rectf)` for all objects that intersect
 // rectangle `r`.
@@ -33,7 +37,7 @@ def for_objects_intersecting(b:: BusEndpoint, now: float, r: Rectf, body):
    noop()
 
 // Returns true, if `o` should be allowed to move to `wdestPos`.
-def move_is_allowed(b:: BusEndpoint, now: float, o: ObjId, wdestPos: xy_f) -> bool:
+def move_is_allowed(b:: BusEndpoint, now: float, o: ObjId, destPos: xy_i) -> bool:
    return true
 
 // If there's an ObjectSpect for an object, bodyfn will be executed with it.
@@ -43,20 +47,20 @@ def object_spec(b:: BusEndpoint, o: ObjId) -> ObjectSpec?:
 // Should be called by actions that move objects, to notify
 // any interested systems.  Gets called for all systems, not
 // just the owner.
-def notify_moving(b:: BusEndpoint, o: ObjId, startT: float, endT: float, wstart: xy_f, wend: xy_f):
+def notify_moving(b:: BusEndpoint, o: ObjId, startT: float, endT: float, start: xy_i, end: xy_i):
    return
 
 // Should be called by actions that turn/rotate objects, to notify
 // any interested systems.  Gets called for all systems, not just
 // the owner of the object.
-def notify_turning(b:: BusEndpoint, o: ObjId, startT: float, endT: float, startAng: float, endAng: float):
+def notify_turning(b:: BusEndpoint, o: ObjId, startT: float, endT: float, startDir: Directions, endDir: Directions):
    return
 
 // Called when an object is spawned.  If parent != InvalidObject, then
 // the spawned object is "contained" in that object.  Otherwise, the 
 // pos field is a world position for the object.  All systems get this
 // notification.
-def notify_spawn(b:: BusEndpoint, o: ObjId, parent: ObjId, wpos: xy_f):
+def notify_spawn(b:: BusEndpoint, o: ObjId, parent: ObjId, pos: xy_i):
    return
 
 // Base method
@@ -83,34 +87,24 @@ def bus_register_endpoint(ep: BusEndpoint):
    assert not existing
    push(Endpoints, ep)
 
-// Returns the animation position of the given object.
-def anim_pos(what: ObjId, now: float) -> bool, xy_f:
-   let ep = endpointForSystem(what.system)
-
-   if ep:
-      let found, p = ep.anim_pos(what, now)
-      return found, p
-   else:
-      return false, xy_0
-
 // Returns the grid position of the given object.
-def pos(what: ObjId) -> bool, xy_f:
+def pos(what: ObjId) -> bool, xy_i:
    let ep = endpointForSystem(what.system)
 
    if ep:
       let found, p = ep.pos(what)
       return found, p
    else:
-      return false, xy_0
+      return false, xy_i{0,0}
 
-def angle(what: ObjId, now: float) -> bool, float:
+def direction(what: ObjId) -> bool, Directions:
    let ep = endpointForSystem(what.system)
 
    if ep:
-      let found, p = ep.angle(what, now)
+      let found, p = ep.direction(what)
       return found, p
    else:
-      return false, 0
+      return false, East
 
 // Calls `body(ObjId, obj rectf)` for all objects that intersect
 // rectangle `r`.
@@ -132,29 +126,29 @@ def think(span: TurnSpan, who: ObjId, now: float):
 // Should be called by actions that move objects, to notify
 // any interested systems.  Gets called for all systems, not just
 // the owner of the object.
-def notify_moving(o: ObjId, startT: float, endT: float, wstart: xy_f, wend: xy_f):
+def notify_moving(o: ObjId, startT: float, endT: float, start: xy_i, end: xy_i):
    for(Endpoints) ep:
-      ep.notify_moving(o, startT, endT, wstart, wend)
+      ep.notify_moving(o, startT, endT, start, end)
 
 // Should be called by actions that turn/rotate objects, to notify
 // any interested systems.  Gets called for all systems, not just
 // the owner of the object.
-def notify_turning(o: ObjId, startT: float, endT: float, startAng: float, endAng: float):
+def notify_turning(o: ObjId, startT: float, endT: float, startDir: Directions, endDir: Directions):
    for(Endpoints) ep:
-      ep.notify_turning(o, startT, endT, startAng, endAng)
+      ep.notify_turning(o, startT, endT, startDir, endDir)
 
 // Called when an object is spawned.  If parent != InvalidObject, then
 // the spawned object is "contained" in that object.  Otherwise, the 
 // pos field is a world position for the object.
-def notify_spawn(o: ObjId, parent: ObjId, wpos: xy_f):
+def notify_spawn(o: ObjId, parent: ObjId, pos: xy_i):
    for(Endpoints) ep:
-      ep.notify_spawn(o, parent, wpos)
+      ep.notify_spawn(o, parent, pos)
 
-// Returns true, x if `o` should be allowed to move to `wdestPos`.
+// Returns true, x if `o` should be allowed to move to `destPos`.
 // Returns false, nameOfBlockingSystem if the move should not be allowed.
-def move_is_allowed(now: float, o: ObjId, wdestPos: xy_f) -> bool:
+def move_is_allowed(now: float, o: ObjId, destPos: xy_i) -> bool:
    for(Endpoints) ep:
-      let allowed = ep.move_is_allowed(now, o, wdestPos)
+      let allowed = ep.move_is_allowed(now, o, destPos)
 
       if not allowed:
          return false
@@ -169,3 +163,21 @@ def object_spec(o: ObjId) -> ObjectSpec?:
       return ep.object_spec(o)
    else:
       return nil
+
+// Returns the animation position of `what` at time `now`.
+def anim_pos(what: ObjId, now: float) -> xy_f:
+   let ep = endpointForSystem(AnimationSystem)
+
+   if ep:
+      return ep.anim_pos(what, now)
+   else:
+      return xy_0
+
+// Returns the animation position of `what` at time `now`.
+def anim_angle(what: ObjId, now: float) -> float:
+   let ep = endpointForSystem(AnimationSystem)
+
+   if ep:
+      return ep.anim_angle(what, now)
+   else:
+      return 0

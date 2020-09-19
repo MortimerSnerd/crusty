@@ -10,11 +10,11 @@ enum Directions:
    East, SouthEast, South, SouthWest, West, NorthWest, North, NorthEast
 
 // Vectors for all grid directions, in the order of the `Directions` enum.
-let all_dirs = [xy_f{1, 0}, xy_f{1, 1}, xy_f{0, 1}, xy_f{-1, 1}, xy_f{-1, 0}, 
-                xy_f{-1, -1}, xy_f{0, -1}, xy_f{1, -1}]
+let all_dirs = [xy_i{1, 0}, xy_i{1, 1}, xy_i{0, 1}, xy_i{-1, 1}, xy_i{-1, 0}, 
+                xy_i{-1, -1}, xy_i{0, -1}, xy_i{1, -1}]
 
 // Angle in degrees for all directions in all_dirs.
-let dir_angles = map(all_dirs) d: normalize_angle(atan2(d))
+let dir_angles = map(all_dirs) d: normalize_angle(atan2(xy_f{float(d.x), float(d.y)}))
 
 // For an array of numbers, returns the index of the entry
 // closest to x.  Returns -1 for an empty array.
@@ -321,9 +321,14 @@ def gridToWorld(p:: xy_i) -> xy_f:
 def worldToGrid(p:: xy_f) -> xy_i:
    return xy_i{x: int(x - 0.5), y: int(y - 0.5)}
 
-def gridRect(p:: xy_f) -> Rectf:
+def gridRect(p: xy_f) -> Rectf:
    let gc = worldToGrid(p)
    return mkRectfRel(xy_f{float(gc.x), float(gc.y)}, xy_1)
+
+def gridRect(p: xy_i) -> Rectf:
+   let gc = worldToGrid(xy_f{p.x, p.y})
+   return mkRectfRel(xy_f{float(gc.x), float(gc.y)}, xy_1)
+
 
 // Converts a world rect to a grid rect.
 def worldToGrid(r: Rectf) -> Rect:

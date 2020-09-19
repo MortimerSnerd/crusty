@@ -19,7 +19,7 @@ def game_time() -> float:
    return GameTime
 
 def player_init():
-   Player = gobjs_spawn(ObjectKind_Player, gridToWorld(xy_i{4, 1}))
+   Player = gobjs_spawn(ObjectKind_Player, xy_i{4, 1}, East)
 
 enum HandleInputResult:
    Good, ExitMainLoop
@@ -39,9 +39,8 @@ def player_handle_input():
          case WaitingForInput:
             if gl_button("w") == 1:
                //TODO move_action to check for valid request
-               let f, p = anim_pos(Player, GameTime)
-               let f1, a = angle(Player, GameTime)
-               let diri = dir_angles.closest_to(a)
+               let f, p = pos(Player)
+               let f1, diri = direction(Player)
 
                let r, act = move_action(FakeTurnSpan, GameTime, Player, p, p + all_dirs[diri])
                if act:
@@ -52,9 +51,9 @@ def player_handle_input():
                   warn(): "Can\'t move " + string(r)
 
             elif gl_button("a") == 1:
-               let f, a = angle(Player, GameTime)
-               let diri = cycle_left(dir_angles.closest_to(a), length(dir_angles))
-               let r, act = turn_action(FakeTurnSpan, GameTime, Player, a, dir_angles[diri])
+               let f, dir = direction(Player)
+               let diri = Directions(cycle_left(dir, length(dir_angles)))
+               let r, act = turn_action(FakeTurnSpan, GameTime, Player, dir, diri)
 
                if act:
                   execute(act)
@@ -64,9 +63,9 @@ def player_handle_input():
                   warn(): "Can\'t turn: " + string(r)
 
             elif gl_button("d") == 1:
-               let f, a = angle(Player, GameTime)
-               let diri = cycle_right(dir_angles.closest_to(a), length(dir_angles))
-               let r, act = turn_action(FakeTurnSpan, GameTime, Player, a, dir_angles[diri])
+               let f, a = direction(Player)
+               let diri = Directions(cycle_right(a, length(dir_angles)))
+               let r, act = turn_action(FakeTurnSpan, GameTime, Player, a, diri)
 
                if act:
                   execute(act)
@@ -77,7 +76,7 @@ def player_handle_input():
 
 
          case Stepping:
-            let dT = gl_delta_time() * TimeScaling
+            let dT = gl_delta_time() * animations_time_scale()
 
             GameTime = min(TurnTime.end, GameTime + dT)
             process_callbacks(TurnTime, GameTime)
