@@ -46,12 +46,15 @@ def go():
 
    var do_debug = false
    var do_tests = false
+   var do_debug_rects = false
 
    for(command_line_arguments()) a:
       if a == "--test":
          do_tests = true
       elif a == "--debug":
          do_debug = true
+      elif a == "--debug-rects":
+         do_debug_rects = true
       else:
          print("unknown argument " + a + ", ignoring.")
 
@@ -96,28 +99,27 @@ def go():
                break
 
             case Good:
-               //TODO something is wrong with view_rect or tests, does not cover
-               //     entire screen.
                let view_rect = set_map_projection(world_view_center, tile_size, fwsz)
                gl_window_title("Penalty Box: " + 1/gl_delta_time())
                gl_clear(color_black)
                draw_game_frame(now, fwsz, gtt, test_txtur, view_rect)
 
-               // Debug
-               //gl_set_shader("color")
-               //gl_color(xyzw_f{1.0, 1.0, 1.0, 1.0}):
-               //   forObjectsIntersecting(now, view_rect) o:
-               //      let f, p = pos(o, now)
-               //
-               //      if f:
-               //         let r = gridRect(p)
-               //         render(r, 1.0/tile_size)
 
 
                gl_set_shader("color")
 
-               if do_debug:
-                  render(view_rect, 1.0/tile_size)
+               if do_debug_rects:
+                  gl_color(xyzw_f{1.0, 1.0, 1.0, 1.0}):
+                     render(view_rect, 1.0/tile_size)
+                     for_objects_intersecting(now, view_rect) o:
+                        let f, p = pos(o, now)
+
+                        if f:
+                           let r = mkRectfRel(p-xy_1*0.5, xy_1)
+                           render(r, 1.0/tile_size)
+
+                     map_render_debug(view_rect, 1.0/tile_size)
+
 
                gl_ortho()
                im_frame():

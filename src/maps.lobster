@@ -11,18 +11,18 @@ import tileing
 
 // Sparse grid of living object positions on the map.
 // For now, no two objects at the same position.
-private var Living = mkSparseGrid(InvalidObject)
+private let Living = mkSparseGrid(InvalidObject)
 
 // Sparse grid of objects on the map.  There can be
 // more than one item at a given position, as long
 // as other game rules allow it.
-private var Objects = mkSparseGrid(InvalidObject)
+private let Objects = mkSparseGrid(InvalidObject)
 
 enum LayerName:
    WallLayer
 
 // Grids for layers, one for each LayerName
-private var Layers = [mkSparseGrid(0)]
+private let Layers = [mkSparseGrid(0)]
 
 class MapEndpoint : BusEndpoint
 
@@ -108,5 +108,24 @@ def map_render(gtt: GridTiledTexture, wview: Rectf):
       gl_translate(fpos):
          withTexCoords(gtt, ti) t0, t1, t2, t3:
             gl_rect_tc_col(xy_f{1.0, -1.0}, t0, t2-t0, [])
+
+// Assumes the shader is already set to color.
+def map_render_debug(wview: Rectf, thickness: float):
+   def ex(p: xy_i):
+      let pf = xy_f{p.x, p.y}
+      gl_line(pf, pf + xy_1, thickness)
+      gl_line(xy_f{pf.x + 1, pf.y}, xy_f{pf.x, pf.y + 1}, thickness)
+
+   end_changes(Living)
+   end_changes(Objects)
+
+   let gview = worldToGrid(wview)
+   gl_color(xyzw_f{0.0, 0.0, 1.0, 1.0}):
+      for_items_within(Living, gview) pos, x:
+         ex(pos)
+
+   gl_color(xyzw_f{0.0, 1.0, 0.0, 1.0}):
+      for_items_within(Objects, gview) pos, x:
+         ex(pos)
 
 //notify_moving

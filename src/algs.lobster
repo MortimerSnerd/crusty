@@ -325,6 +325,10 @@ def gridRect(p:: xy_f) -> Rectf:
    let gc = worldToGrid(p)
    return mkRectfRel(xy_f{float(gc.x), float(gc.y)}, xy_1)
 
+// Converts a world rect to a grid rect.
+def worldToGrid(r: Rectf) -> Rect:
+   return Rect{worldToGrid(r.topLeft), worldToGrid(r.bottomRight)}
+
 def render(r:: Rectf, thickness):
    gl_line(topLeft, xy_f{bottomRight.x, topLeft.y}, thickness)
    gl_line(xy_f{bottomRight.x, topLeft.y}, bottomRight, thickness)
