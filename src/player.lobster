@@ -2,6 +2,7 @@ import from "../../../src/crusty/src/"
 import actions
 import bus
 import gobjs
+import maps
 import objutils
 
 private var Player = InvalidObject
@@ -26,6 +27,7 @@ enum HandleInputResult:
 def player_handle_input():
    var rv = Good
 
+   maps_frame()
    if gl_button("escape") == 1:
       rv = ExitMainLoop
    else:

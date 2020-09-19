@@ -15,8 +15,7 @@ class MoveAction : ActionBase
 
 enum ActionResultKinds:
    arOk, 
-   arBlockedByWall, 
-   arBlockedByObject
+   arBlocked 
 
 struct ActionResult:
    kind: ActionResultKinds
@@ -37,12 +36,8 @@ def move_action(now: float, who: ObjId, start: xy_f, end: xy_f) -> ActionResult,
    //TODO this is also not right, objects could end up in same destination.
    //     will only be right once there's a map that immediately occupies
    //     a grid once a move has been executed.
-   for_objects_intersecting(now, gridRect(end)) o:
-      if o != who:
-         let allowed = move_is_allowed(now, who, end) 
-
-         if not allowed:
-            return ActionResult{kind: arBlockedByObject, other: o}, nil
+   if not move_is_allowed(now, who, end):
+      return ActionResult{kind: arBlocked, other: InvalidObject}, nil
 
    return GoodResult, MoveAction{who: who, time: now, start: start, end: end, 
                                  duration: 0.5}  //TODO calc duration based on stats.

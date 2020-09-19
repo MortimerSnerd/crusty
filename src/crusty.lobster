@@ -33,6 +33,7 @@ def draw_game_frame(now: float, windowsz: xy_f, gtt, txtur: resource, view_rect:
      gl_rect(xy_f{64, -64})
 
    gobjs_draw(now, view_rect)
+   map_render(gtt, view_rect) 
 
 def go():
    config_init()

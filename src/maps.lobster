@@ -6,6 +6,8 @@ import config_generated
 import grids
 import objutils
 import std
+import texture
+import tileing
 
 // Sparse grid of living object positions on the map.
 // For now, no two objects at the same position.
@@ -16,6 +18,12 @@ private var Living = mkSparseGrid(InvalidObject)
 // as other game rules allow it.
 private var Objects = mkSparseGrid(InvalidObject)
 
+enum LayerName:
+   WallLayer
+
+// Grids for layers, one for each LayerName
+private var Layers = [mkSparseGrid(0)]
+
 class MapEndpoint : BusEndpoint
 
 def move_is_allowed(ep: MapEndpoint, now: float, o: ObjId, wdestPos: xy_f) -> bool:
@@ -23,6 +31,9 @@ def move_is_allowed(ep: MapEndpoint, now: float, o: ObjId, wdestPos: xy_f) -> bo
 
    if spec:
       let gdestPos = worldToGrid(wdestPos)
+      if get(Layers[WallLayer], gdestPos) != 0:
+         return false
+
       if spec.flags & ItemFlags_Living and get(Living, gdestPos) != InvalidObject:
          return false
 
@@ -67,5 +78,35 @@ def notify_moving(ep: MapEndpoint, o: ObjId, startT: float, endT: float,
 
 def maps_init():
    bus_register_endpoint(MapEndpoint{system: MapSystem})
+   // debuggery
+   modifying(Layers[WallLayer]):
+      for(50) i:
+         set(Layers[WallLayer], worldToGrid(xy_rnd() * 30) - xy_i{15, 15}, TileName_Wally)
+
+// Called once per frame.
+def maps_frame():
+   // Cleanup and reindex our changing grids if needed.
+   end_changes(Living)
+   end_changes(Objects)
+
+// Assumes projection is already set.
+def map_render(gtt: GridTiledTexture, wview: Rectf):
+   gl_set_shader("textured_alpha_cut")
+   gl_blend(blend_alpha)
+
+   //TODO for static layers, we'll generate a mesh and just
+   // render it rather than doing N draw calls here.
+   // This is just for testing and debugging.
+   let gtl = worldToGrid(wview.topLeft - xy_1)
+   let gbr = worldToGrid(wview.bottomRight + xy_1)
+   let grect = Rect{topLeft: gtl, bottomRight: gbr}
+
+   for_items_within(Layers[WallLayer], grect) pos, ti:
+      // Reminder - we don't use gridToWorld here, because that adds
+      // an offset so sprites/etc are centered on the grid when pos = (1, 1).
+      let fpos = xy_f{float(pos.x), float(pos.y) + 1.0}
+      gl_translate(fpos):
+         withTexCoords(gtt, ti) t0, t1, t2, t3:
+            gl_rect_tc_col(xy_f{1.0, -1.0}, t0, t2-t0, [])
 
 //notify_moving
