@@ -22,7 +22,7 @@ def set_map_projection(center: xy_f, tile_pixel_sz: int, view_area: xy_f) -> Rec
    let viewsz = hview / tile_pixel_sz
    gl_ortho3d(xyz_f{center.x, center.y, 0}, 
               xyz_f{viewsz.x, viewsz.y, 10})
-   return Rectf{center - viewsz*0.5, center + viewsz*0.5}
+   return Rectf{center - viewsz, center + viewsz}
 
 def draw_game_frame(now: float, windowsz: xy_f, gtt, txtur: resource, view_rect: Rectf):
    gl_set_shader("textured_alpha_cut")
@@ -114,9 +114,12 @@ def go():
                //         render(r, 1.0/tile_size)
 
 
-               gl_ortho()
                gl_set_shader("color")
 
+               if do_debug:
+                  render(view_rect, 1.0/tile_size)
+
+               gl_ortho()
                im_frame():
                   //im_window("Holy craps", im_window_no_titlebar | im_window_always_autoresize):
                   //   im_button("one"): print("one msg")

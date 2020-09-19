@@ -33,9 +33,6 @@ def move_action(now: float, who: ObjId, start: xy_f, end: xy_f) -> ActionResult,
    //TODO for now, there's not a lot that can block a movement, since 
    // there's no map.
    let gr = gridRect(end)
-   //TODO this is also not right, objects could end up in same destination.
-   //     will only be right once there's a map that immediately occupies
-   //     a grid once a move has been executed.
    if not move_is_allowed(now, who, end):
       return ActionResult{kind: arBlocked, other: InvalidObject}, nil
 
