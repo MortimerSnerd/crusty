@@ -112,7 +112,7 @@ def go():
                   gl_color(xyzw_f{1.0, 1.0, 1.0, 1.0}):
                      render(view_rect, 1.0/tile_size)
                      for_objects_intersecting(now, view_rect) o:
-                        let f, p = pos(o, now)
+                        let f, p = anim_pos(o, now)
 
                         if f:
                            let r = mkRectfRel(p-xy_1*0.5, xy_1)

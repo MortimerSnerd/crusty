@@ -15,9 +15,13 @@ class BusEndpoint:
 // Registered busses.
 private let Endpoints:[BusEndpoint] = []
 
-// Base method for returning the center position of an object.
-def pos(b:: BusEndpoint, what: ObjId, t: float) -> bool, xy_f:
+// Base method for returning the center animation position of an object.
+def anim_pos(b:: BusEndpoint, what: ObjId, t: float) -> bool, xy_f:
    return false, xy_0
+
+// Returns the grid position of `what`.
+def pos(b:: BusEndpoint, what: ObjId) -> bool, xy_i:
+   return false, xy_i{0,0}
 
 // Base method for returning the facing angle of an object.
 def angle(b:: BusEndpoint, what: ObjId, t: float) -> bool, float:
@@ -79,12 +83,22 @@ def bus_register_endpoint(ep: BusEndpoint):
    assert not existing
    push(Endpoints, ep)
 
-// Returns the position of the given object.
-def pos(what: ObjId, now: float) -> bool, xy_f:
+// Returns the animation position of the given object.
+def anim_pos(what: ObjId, now: float) -> bool, xy_f:
    let ep = endpointForSystem(what.system)
 
    if ep:
-      let found, p = ep.pos(what, now)
+      let found, p = ep.anim_pos(what, now)
+      return found, p
+   else:
+      return false, xy_0
+
+// Returns the grid position of the given object.
+def pos(what: ObjId) -> bool, xy_f:
+   let ep = endpointForSystem(what.system)
+
+   if ep:
+      let found, p = ep.pos(what)
       return found, p
    else:
       return false, xy_0

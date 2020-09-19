@@ -35,7 +35,7 @@ def player_handle_input():
          case WaitingForInput:
             if gl_button("w") == 1:
                //TODO move_action to check for valid request
-               let f, p = pos(Player, GameTime)
+               let f, p = anim_pos(Player, GameTime)
                let f1, a = angle(Player, GameTime)
                let diri = dir_angles.closest_to(a)
 

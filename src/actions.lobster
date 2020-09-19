@@ -59,7 +59,7 @@ def for_possible_actions(who: ObjId, now: float, bodyfn):
    let spec = who.object_spec
 
    if spec:
-      let found_pos, wpos = pos(who, now)
+      let found_pos, wpos = anim_pos(who, now)
       let found_ang, ang = angle(who, now)
 
       // Can we turn?

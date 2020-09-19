@@ -13,7 +13,8 @@ import tileing
 
 class GOInst:
    kind_idx: int // index into OSpecs for ObjectKind
-   loc: LERP<xy_f>
+   anim_pos: LERP<xy_f>
+   pos: xy_i // Grid position.
    angle: AngleLERP
    curTile: int
 
@@ -33,7 +34,7 @@ def gobjs_draw(now: float, view: Rectf):
    if ObjTx:
       gl_blend(blend_alpha)
       for(GOInstances) o:
-         let p = eval(o.loc, now)
+         let p = eval(o.anim_pos, now)
          if contains(view, p):
             let a = eval(o.angle, now) + OSpecs[o.kind_idx].right_rotation
             renderSprite(ObjTx, o.curTile, xyz_f{p.x, p.y, 3}, xy_1, sincos(a))
@@ -46,7 +47,8 @@ def gobjs_spawn(okind: ObjectKind, pos: xy_f) -> ObjId:
    if found:
       let id = length(GOInstances)
       push(GOInstances, 
-           GOInst{loc: mkConstLERP(pos), 
+           GOInst{anim_pos: mkConstLERP(pos), 
+                  pos: worldToGrid(pos),
                   angle: mkConstAngleLERP(0.0),
                   curTile: OSpecs[ki].static_tile, 
                   kind_idx: ki})
@@ -64,9 +66,16 @@ def gobjs_tests():
 // Bus endpoint implementation.
 class GobjEndpoint : BusEndpoint
 
-def pos(ep:: GobjEndpoint, what: ObjId, now: float) -> bool, xy_f:
+// Returns the animation position of the given object.
+def anim_pos(ep: GobjEndpoint, what: ObjId, now: float) -> bool, xy_f:
    if what.system == GObjSystem:
-      return true, eval(GOInstances[what.id].loc, now)
+      return true, eval(GOInstances[what.id].anim_pos, now)
+   else:
+      return false, xy_0
+
+def pos(ep:: GobjEndpoint, what: ObjId) -> bool, xy_i:
+   if what.system == GObjSystem:
+      return true, GOInstances[what.id].pos
    else:
       return false, xy_0
 
@@ -76,10 +85,9 @@ def angle(ep:: GobjEndpoint, what: ObjId, now: float) -> bool, float:
    else:
       return false, 0
 
-
 def for_objects_intersecting(ep:: GobjEndpoint, now: float, r: Rectf, body):
    for(GOInstances) ob, i:
-      let p = eval(ob.loc, now)
+      let p = gridToWorld(ob.pos)
       let bb = mkRectfRel(p - xy_h, xy_1)
 
       if bb.overlaps(r):
@@ -99,7 +107,8 @@ def think(ep:: GobjEndpoint, who: ObjId, now: float):
 
 def notify_moving(ep:: GobjEndpoint, o: ObjId, startT: float, endT: float, wstart: xy_f, wend: xy_f):
    if o.system == GObjSystem:
-      GOInstances[o.id].loc = mkLERP(startT, endT, wstart, wend)
+      GOInstances[o.id].anim_pos = mkLERP(startT, endT, wstart, wend)
+      GOInstances[o.id].pos = worldToGrid(wend)
 
 def notify_turning(ep:: GobjEndpoint, o: ObjId, startT: float, endT: float, startAng: float, endAng: float):
    if o.system == GObjSystem:
