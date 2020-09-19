@@ -4,7 +4,7 @@
             kind: Sword, 
             short_name: "Sword Of Ass", 
             static_tile: Sword,
-            flags: BlocksLiving
+            flags: Living
         },
         {
             kind: Player, 

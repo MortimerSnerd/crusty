@@ -87,20 +87,14 @@ def for_objects_intersecting(ep:: GobjEndpoint, now: float, r: Rectf, body):
 
 def think(ep:: GobjEndpoint, who: ObjId, now: float):
    //DEBUGGERY - just for testing.
-   let go = GOInstances[who.id]
+   for_possible_actions(who, now) act:
+      if rnd_float() < 0.10:
+         execute(act)
+         schedule_callback(who, now + act.duration)
+         return
 
-   let p = eval(go.loc, now)
-   let diff = rnd_pick(cardinal_directions)
-   let pT = xy_f{p.x + float(diff.x), p.y + float(diff.y)}
-
-   let r, act = move_action(now, who, p, pT)
-
-   if act:
-      execute(act)
-      schedule_callback(who, now + act.duration)
-   else:
-      // Try again shortly.
-      schedule_callback(who, now + 0.1)
+   // Try again shortly.
+   schedule_callback(who, now + 0.1)
 
 
 def notify_moving(ep:: GobjEndpoint, o: ObjId, startT: float, endT: float, wstart: xy_f, wend: xy_f):

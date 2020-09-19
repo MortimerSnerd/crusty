@@ -5,7 +5,7 @@ enum ObjectKind:short { okInvalid = 0,
 
 enum TileName:int32 {
   None = -1,
-  Wally = 200,
+  Wally = 225,
   Sword = 554,
   Blondie = 905
 }

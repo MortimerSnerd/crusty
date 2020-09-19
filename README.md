@@ -108,3 +108,5 @@ the player know they can hit 'o' to open the safe)
   an array. Need to figure out what to do for the delete case.  Before
   an object is deleted, need to send out an event so all systems will know
   to scrub any references to that ObjId before it gets deleted.
+- Fix Rect and Rectf and assoc fns to use exclusive bounds. I think some usage of those
+  already use it that way out of habit.

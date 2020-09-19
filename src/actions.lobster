@@ -21,7 +21,7 @@ struct ActionResult:
    kind: ActionResultKinds
    other: ObjId
 
-private let GoodResult = ActionResult{kind: arOk, other: InvalidObject}
+let GoodResult = ActionResult{kind: arOk, other: InvalidObject}
 
 def execute(a:: ActionBase):
    error(): "exectute no implemented for " + string(a)
@@ -52,4 +52,37 @@ def turn_action(now: float, who: ObjId, start: float, end: float) -> ActionResul
 
 def execute(a:: TurnAction):
    notify_turning(who, time, time + duration, start, end)
+
+// Calls bodyfn() for each legal action that can currently be
+// performed by `who`.
+def for_possible_actions(who: ObjId, now: float, bodyfn):
+   let spec = who.object_spec
+
+   if spec:
+      let found_pos, wpos = pos(who, now)
+      let found_ang, ang = angle(who, now)
+
+      // Can we turn?
+      if found_ang:
+         let dir_left = cycle_left(dir_angles.closest_to(ang), length(dir_angles))
+         let rl, lact = turn_action(now, who, ang, dir_angles[dir_left])
+
+         if rl.kind == arOk:
+            bodyfn(lact)
+
+         let dir_right = cycle_right(dir_angles.closest_to(ang), length(dir_angles))
+         let rr, ract = turn_action(now, who, ang, dir_angles[dir_right])
+
+         if rr.kind == arOk:
+            bodyfn(ract)
+
+      if found_pos:
+         // Movement.
+         let gpos = worldToGrid(wpos)
+         for(all_dirs) d:
+            let targ = gridToWorld(gpos + xy_i{int(d.x), int(d.y)})
+            let rl, act = move_action(now, who, wpos, targ)
+
+            if act:
+               bodyfn(act)
 

@@ -8,7 +8,7 @@ enum ObjectKind:
 
 enum TileName:
     TileName_None = -1
-    TileName_Wally = 200
+    TileName_Wally = 225
     TileName_Sword = 554
     TileName_Blondie = 905
 
