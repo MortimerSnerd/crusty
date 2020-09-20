@@ -9,6 +9,8 @@ import std
 import texture
 import tileing
 
+//TODO: port over lighting and shadowing calcs.
+
 // Sparse grid of living object positions on the map.
 // For now, no two objects at the same position.
 private let Living = mkSparseGrid(InvalidObject)

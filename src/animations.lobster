@@ -8,6 +8,8 @@ private var Turn = TurnSpan{0,0}
 enum AnimKind:
    anMove, anTurn
 
+//TODO: add optional trails that shows the path an object moved through.
+
 // Represents a single animation for an object.
 // Multiple animations for a single object can not
 // overlap, they must be sequential.
