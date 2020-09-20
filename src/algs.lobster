@@ -37,6 +37,12 @@ def cycle_left(i: int, num: int) -> int:
    else:
       return i - 1
 
+def turned_left(d: Directions) -> Directions:
+   return Directions(cycle_left(d, length(all_dirs)))
+
+def turned_right(d: Directions) -> Directions:
+   return Directions(cycle_right(d, length(all_dirs)))
+
 // If i ranges from 0..num-1, returns
 // the next i, cycling around to the 
 // end of the range when i == num-1

@@ -59,14 +59,14 @@ def player_handle_input():
 
             elif gl_button("a") == 1:
                let f, dir = direction(Player)
-               let diri = Directions(cycle_left(dir, length(dir_angles)))
+               let diri = turned_left(dir)
                let r, act = turn_action(FakeTurnSpan, GameTime, Player, dir, diri)
 
                perform_action(r, act)
 
             elif gl_button("d") == 1:
                let f, a = direction(Player)
-               let diri = Directions(cycle_right(a, length(dir_angles)))
+               let diri = turned_right(a)
                let r, act = turn_action(FakeTurnSpan, GameTime, Player, a, diri)
 
                perform_action(r, act)

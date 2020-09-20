@@ -64,13 +64,13 @@ def for_possible_actions(span: TurnSpan, who: ObjId, now: float, bodyfn):
 
       // Can we turn?
       if found_dir:
-         let dir_left = Directions(cycle_left(dir, length(dir_angles)))
+         let dir_left = turned_left(dir)
          let rl, lact = turn_action(span, now, who, dir, dir_left)
 
          if rl.kind == arOk:
             bodyfn(lact)
 
-         let dir_right = Directions(cycle_right(dir, length(dir_angles)))
+         let dir_right = turned_right(dir)
          let rr, ract = turn_action(span, now, who, dir, dir_right)
 
          if rr.kind == arOk:
