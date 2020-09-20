@@ -35,16 +35,21 @@ def move_is_allowed(ep: MapEndpoint, now: float, o: ObjId, destPos: xy_i) -> boo
       if get(Layers[WallLayer], destPos) != 0:
          return false
 
-      if spec.flags & ItemFlags_Living and get(Living, destPos) != InvalidObject:
-         return false
+      let liv = get(Living, destPos)
 
-      // If spec.flags & BlocksLiving, make sure there are living at the dest too.
-      for_items_at(Objects, destPos) it:
-         let ospec = it.object_spec
+      if spec.flags & ItemFlags_Living:
+         if liv != InvalidObject:
+            return false
 
-         if ospec:
-            if ospec.flags & ItemFlags_BlocksLiving:
-               return false
+         let blocked = any_items_at(Objects, destPos) it: 
+            let ispec = it.object_spec
+            ispec and ispec.flags & ItemFlags_BlocksLiving
+
+         if blocked:
+            return false
+      elif spec.flags & ItemFlags_BlocksLiving:
+         if liv != InvalidObject:
+            return false
 
    return true
 

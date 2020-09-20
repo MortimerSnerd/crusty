@@ -173,4 +173,4 @@ def animations_init():
   bus_register_endpoint(AnimEndpoint{system: AnimationSystem})
 
 def animations_time_scale() -> float:
-   return 1
+   return 2

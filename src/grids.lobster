@@ -118,6 +118,13 @@ def for_items_at<T>(g::SparseGrid<T>, pos: xy_i, bodyfn):
    withPosLoc(g, pos) arr, ix:
       bodyfn(arr[ix].loc)
 
+def any_items_at<T>(g::SparseGrid<T>, pos: xy_i, predfn) -> bool:
+   withPosLoc(g, pos) arr, ix:
+      if predfn(arr[ix].loc):
+         return true
+
+   return false
+
 // Adds a item at the given position, in a way that allows
 // multiple items at the same position.  See for_items_at to get 
 // at the added entries.

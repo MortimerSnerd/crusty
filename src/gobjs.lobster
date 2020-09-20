@@ -17,10 +17,6 @@ class GOInst:
    dir: Directions
    curTile: int
 
-//TODO make angle anim_angle and separate angle.
-// make any code looking up angle based on the animation angle just use
-// the actual angle.
-
 // For now we just use the flatbuffer instance.  Hooray laziness.
 private let OSpecs : [ObjectSpec] = []
 private var ObjTx : GridTiledTexture? = nil
