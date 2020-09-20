@@ -94,7 +94,7 @@ def think(ep:: GobjEndpoint, span: TurnSpan, who: ObjId, now: float):
    for_possible_actions(span, who, now) act:
       if rnd_float() < 0.10:
          execute(act)
-         schedule_callback(who, now + act.duration)
+         schedule_callback(who, now + act.duration/2)
          return
 
    // Try again shortly.

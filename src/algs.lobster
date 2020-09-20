@@ -169,6 +169,10 @@ class LERP<T>:
    start: T
    end: T
 
+def scale_time(l, f: float):
+   l.startT *= f
+   l.endT *= f
+
 def mkLERP<T>(startTime: float, endTime: float, start: T, end: T) -> LERP<T>:
    assert endTime > startTime
    return LERP<T>{startT: startTime, endT: endTime, start: start, end: end}

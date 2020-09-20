@@ -1,5 +1,6 @@
 import from "../../../src/crusty/src/"
 import actions
+import animations
 import bus
 import gobjs
 import maps
@@ -20,6 +21,7 @@ def game_time() -> float:
 
 def player_init():
    Player = gobjs_spawn(ObjectKind_Player, xy_i{4, 1}, East)
+   animations_turn_begin()
 
 enum HandleInputResult:
    Good, ExitMainLoop
@@ -44,9 +46,11 @@ def player_handle_input():
 
                let r, act = move_action(FakeTurnSpan, GameTime, Player, p, p + all_dirs[diri])
                if act:
+                  TurnTime = TurnSpan{GameTime, GameTime + act.duration}
                   execute(act)
                   PlayerState = Stepping
-                  TurnTime = TurnSpan{GameTime, GameTime + act.duration}
+                  process_callbacks(TurnTime, TurnTime.end)
+                  animations_turn_finalize(TurnTime)
                else:
                   warn(): "Can\'t move " + string(r)
 
@@ -56,9 +60,11 @@ def player_handle_input():
                let r, act = turn_action(FakeTurnSpan, GameTime, Player, dir, diri)
 
                if act:
+                  TurnTime = TurnSpan{GameTime, GameTime + act.duration}
                   execute(act)
                   PlayerState = Stepping
-                  TurnTime = TurnSpan{GameTime, GameTime + act.duration}
+                  process_callbacks(TurnTime, TurnTime.end)
+                  animations_turn_finalize(TurnTime)
                else:
                   warn(): "Can\'t turn: " + string(r)
 
@@ -68,9 +74,11 @@ def player_handle_input():
                let r, act = turn_action(FakeTurnSpan, GameTime, Player, a, diri)
 
                if act:
+                  TurnTime = TurnSpan{GameTime, GameTime + act.duration}
                   execute(act)
                   PlayerState = Stepping
-                  TurnTime = TurnSpan{GameTime, GameTime + act.duration}
+                  process_callbacks(TurnTime, TurnTime.end)
+                  animations_turn_finalize(TurnTime)
                else:
                   warn(): "Can\'t turn: " + string(r)
 
@@ -79,10 +87,10 @@ def player_handle_input():
             let dT = gl_delta_time() * animations_time_scale()
 
             GameTime = min(TurnTime.end, GameTime + dT)
-            process_callbacks(TurnTime, GameTime)
 
             if GameTime == TurnTime.end:
                PlayerState = WaitingForInput
+               animations_turn_begin()
 
 
         // process_callbacks(now)
