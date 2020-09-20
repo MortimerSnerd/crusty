@@ -67,23 +67,21 @@ private def withPosLoc<T>(g::SparseGrid<T>, pos: xy_i, bodyfn):
 
    for(new_ents) l, i:
       if l.pos == pos:
-         found = true
          bodyfn(new_ents, i)
 
-   if not found:
-      let bsfound, ix = binary_search_by_key(ents, pos.y) sgl, k: k = sgl.pos.y - k
-      
-      if bsfound:
-         var p = ix
+   let bsfound, ix = binary_search_by_key(ents, pos.y) sgl, k: k = sgl.pos.y - k
+   
+   if bsfound:
+      var p = ix
 
-         while p < length(ents) and ents[p].pos.y == pos.y and ents[p].pos.x != pos.x:
-            ++p
+      while p < length(ents) and ents[p].pos.y == pos.y and ents[p].pos.x != pos.x:
+         ++p
 
-         while p < length(ents) and ents[p].pos.y == pos.y:
-            if ents[p].pos == pos:
-               found = true
-               bodyfn(ents, p)
-            ++p
+      while p < length(ents) and ents[p].pos.y == pos.y:
+         if ents[p].pos == pos:
+            found = true
+            bodyfn(ents, p)
+         ++p
                
    return found
 
