@@ -14,7 +14,6 @@ enum PlayStates:
 private var PlayerState = WaitingForInput
 private var TurnTime = TurnSpan{0.0, 0.0} // Valid when PlayerState == Stepping
 private var GameTime : float = 0    // Abs game time.  (ie, total time stepping, not waiting for input)
-private var TimeScaling = 2.0
 
 def game_time() -> float:
    return GameTime
@@ -33,6 +32,17 @@ private let FakeTurnSpan = TurnSpan{0.0, 999999999990.0}
 def player_handle_input():
    var rv = Good
 
+   def perform_action(r, act):
+      if act:
+         TurnTime = TurnSpan{GameTime, GameTime + act.duration}
+         execute(act)
+         PlayerState = Stepping
+         process_callbacks(TurnTime, TurnTime.end)
+         animations_turn_finalize(TurnTime)
+      else:
+         warn(): "Can\'t move " + string(r)
+
+
    maps_frame()
    if gl_button("escape") == 1:
       rv = ExitMainLoop
@@ -40,47 +50,26 @@ def player_handle_input():
       switch PlayerState:
          case WaitingForInput:
             if gl_button("w") == 1:
-               //TODO move_action to check for valid request
                let f, p = pos(Player)
                let f1, diri = direction(Player)
 
                let r, act = move_action(FakeTurnSpan, GameTime, Player, p, p + all_dirs[diri])
-               if act:
-                  TurnTime = TurnSpan{GameTime, GameTime + act.duration}
-                  execute(act)
-                  PlayerState = Stepping
-                  process_callbacks(TurnTime, TurnTime.end)
-                  animations_turn_finalize(TurnTime)
-               else:
-                  warn(): "Can\'t move " + string(r)
+
+               perform_action(r, act)
 
             elif gl_button("a") == 1:
                let f, dir = direction(Player)
                let diri = Directions(cycle_left(dir, length(dir_angles)))
                let r, act = turn_action(FakeTurnSpan, GameTime, Player, dir, diri)
 
-               if act:
-                  TurnTime = TurnSpan{GameTime, GameTime + act.duration}
-                  execute(act)
-                  PlayerState = Stepping
-                  process_callbacks(TurnTime, TurnTime.end)
-                  animations_turn_finalize(TurnTime)
-               else:
-                  warn(): "Can\'t turn: " + string(r)
+               perform_action(r, act)
 
             elif gl_button("d") == 1:
                let f, a = direction(Player)
                let diri = Directions(cycle_right(a, length(dir_angles)))
                let r, act = turn_action(FakeTurnSpan, GameTime, Player, a, diri)
 
-               if act:
-                  TurnTime = TurnSpan{GameTime, GameTime + act.duration}
-                  execute(act)
-                  PlayerState = Stepping
-                  process_callbacks(TurnTime, TurnTime.end)
-                  animations_turn_finalize(TurnTime)
-               else:
-                  warn(): "Can\'t turn: " + string(r)
+               perform_action(r, act)
 
 
          case Stepping:
