@@ -43,6 +43,15 @@ def turned_left(d: Directions) -> Directions:
 def turned_right(d: Directions) -> Directions:
    return Directions(cycle_right(d, length(all_dirs)))
 
+def turned_right_90deg(v: xy_i) -> xy_i:
+   return xy_i{-v.y, v.x} 
+
+def turned_left_90deg(v: xy_i) -> xy_i:
+   return xy_i{v.y, -v.x}
+
+def is_diagonal(v: xy_i) -> bool:
+   return v.x != 0 and v.y != 0
+
 // If i ranges from 0..num-1, returns
 // the next i, cycling around to the 
 // end of the range when i == num-1

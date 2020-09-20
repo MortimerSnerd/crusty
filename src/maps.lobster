@@ -28,11 +28,35 @@ private let Layers = [mkSparseGrid(0)]
 
 class MapEndpoint : BusEndpoint
 
+// Returns true if moving start -> end cuts across a wall
+// diagonally.  Assumes start and end are only one step away.
+def crosses_wall_diagonal(start: xy_i, end: xy_i) -> bool:
+   let v = end - start
+   let di = find(all_dirs) x: x == v
+   let dir = Directions(di)
+   
+   if is_diagonal(v):
+      let vr = all_dirs[turned_right(dir)]
+      let vl = all_dirs[turned_left(dir)]
+
+      if get(Layers[WallLayer], start + vr) != 0:
+         return true
+      
+      if get(Layers[WallLayer], start + vl) != 0:
+         return true
+
+   return false
+
 def move_is_allowed(ep: MapEndpoint, now: float, o: ObjId, destPos: xy_i) -> bool:
    let spec = object_spec(o)
 
    if spec:
       if get(Layers[WallLayer], destPos) != 0:
+         return false
+
+      let found, cpos = pos(o)
+
+      if found and crosses_wall_diagonal(cpos, destPos):
          return false
 
       let liv = get(Living, destPos)
