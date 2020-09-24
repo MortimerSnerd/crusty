@@ -36,6 +36,11 @@ def direction(b:: BusEndpoint, what: ObjId) -> bool, Directions:
 def for_objects_intersecting(b:: BusEndpoint, now: float, r: Rectf, body):
    noop()
 
+// Base method. Calls `body(ObjId, obj rectf)` for all objects that are at
+// `p`.
+def for_objects_at(b:: BusEndpoint, p: xy_i, body):
+   return
+
 // Returns true, if `o` should be allowed to move to `wdestPos`.
 def move_is_allowed(b:: BusEndpoint, now: float, o: ObjId, destPos: xy_i) -> bool:
    return true
@@ -56,11 +61,21 @@ def notify_moving(b:: BusEndpoint, o: ObjId, startT: float, endT: float, start: 
 def notify_turning(b:: BusEndpoint, o: ObjId, startT: float, endT: float, startDir: Directions, endDir: Directions):
    return
 
+// Changes the tile of an object.
+def change_tile(b:: BusEndpoint, o: ObjId, tile: TileName):
+   return
+
 // Called when an object is spawned.  If parent != InvalidObject, then
 // the spawned object is "contained" in that object.  Otherwise, the 
 // pos field is a world position for the object.  All systems get this
 // notification.
 def notify_spawn(b:: BusEndpoint, o: ObjId, parent: ObjId, pos: xy_i):
+   return
+
+// Called when `who` takes `what` off the map.
+// It's assumed that who is on top of or adjacent to 
+// `what`.
+def notify_take(b:: BusEndpoint, who: ObjId, what: ObjId):
    return
 
 // Base method
@@ -126,14 +141,14 @@ def think(span: TurnSpan, who: ObjId, now: float):
 // Should be called by actions that move objects, to notify
 // any interested systems.  Gets called for all systems, not just
 // the owner of the object.
-def notify_moving(o: ObjId, startT: float, endT: float, start: xy_i, end: xy_i):
+def notify_moving(o: ObjId, startT: float, endT: float, start: xy_i, end: xy_i) -> void:
    for(Endpoints) ep:
       ep.notify_moving(o, startT, endT, start, end)
 
 // Should be called by actions that turn/rotate objects, to notify
 // any interested systems.  Gets called for all systems, not just
 // the owner of the object.
-def notify_turning(o: ObjId, startT: float, endT: float, startDir: Directions, endDir: Directions):
+def notify_turning(o: ObjId, startT: float, endT: float, startDir: Directions, endDir: Directions) -> void:
    for(Endpoints) ep:
       ep.notify_turning(o, startT, endT, startDir, endDir)
 
@@ -143,6 +158,13 @@ def notify_turning(o: ObjId, startT: float, endT: float, startDir: Directions, e
 def notify_spawn(o: ObjId, parent: ObjId, pos: xy_i):
    for(Endpoints) ep:
       ep.notify_spawn(o, parent, pos)
+
+// Called when `who` takes `what` off the map.
+// It's assumed that who is on top of or adjacent to 
+// `what`.
+def notify_take(who: ObjId, what: ObjId):
+   for(Endpoints) ep:
+      ep.notify_take(who, what)
 
 // Returns true, x if `o` should be allowed to move to `destPos`.
 // Returns false, nameOfBlockingSystem if the move should not be allowed.
@@ -181,3 +203,16 @@ def anim_angle(what: ObjId, now: float) -> float:
       return ep.anim_angle(what, now)
    else:
       return 0
+
+// Base method. Calls `body(ObjId, obj rectf)` for all objects that intersect
+// rectangle `r`.
+def for_objects_at(p: xy_i, body):
+   for(Endpoints) ep:
+      ep.for_objects_at(p, body)
+
+def change_tile(o: ObjId, tile: TileName):
+   let ep = endpointForSystem(o.system)
+
+   if ep:
+      ep.change_tile(o, tile)
+

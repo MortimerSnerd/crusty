@@ -2,7 +2,10 @@ struct ObjId:
    parts: int  // 32 bit object system + 32 bit index/id
 
 enum ObjectSystem:
-   InvalidSystem, PlayerSystem, GObjSystem, MapSystem, AnimationSystem
+   InvalidSystem, PlayerSystem, GObjSystem, MapSystem, AnimationSystem, 
+   // Systems for use in game specific code.  Provided with generic names so
+   // in theory this file doesn't need to be changed.
+   UserSystem1, UserSystem2, UserSystem3
 
 private let IndexMask = 0xFFFFFFFF
 

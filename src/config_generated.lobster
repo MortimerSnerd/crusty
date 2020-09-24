@@ -5,12 +5,15 @@ enum ObjectKind:
     ObjectKind_okInvalid = 0
     ObjectKind_Player = 1
     ObjectKind_Sword = 2
+    ObjectKind_Groundhog = 3
 
 enum TileName:
-    TileName_None = -1
-    TileName_Wally = 225
-    TileName_Sword = 554
-    TileName_Blondie = 905
+    TileName_None = 0
+    TileName_Sword = 1
+    TileName_Fish = 2
+    TileName_Groundhog = 3
+    TileName_Wally = 4
+    TileName_DeadGroundhog = 5
 
 enum ItemFlags:
     ItemFlags_Living = 1
@@ -26,7 +29,7 @@ class ObjectSpec : flatbuffers_handle
     def short_name():
         return buf_.flatbuffers_field_string(pos_, 6)
     def static_tile():
-        return TileName(buf_.flatbuffers_field_int32(pos_, 8, -1))
+        return TileName(buf_.flatbuffers_field_int32(pos_, 8, 0))
     def weight():
         return buf_.flatbuffers_field_float32(pos_, 10, 0.0)
     def flags():
@@ -48,7 +51,7 @@ struct ObjectSpecBuilder:
         b_.PrependUOffsetTRelativeSlot(1, short_name)
         return this
     def add_static_tile(static_tile:TileName):
-        b_.PrependInt32Slot(2, static_tile, -1)
+        b_.PrependInt32Slot(2, static_tile, 0)
         return this
     def add_weight(weight:float):
         b_.PrependFloat32Slot(3, weight, 0.0)

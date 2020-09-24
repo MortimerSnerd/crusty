@@ -110,3 +110,8 @@ the player know they can hit 'o' to open the safe)
   to scrub any references to that ObjId before it gets deleted.
 - Fix Rect and Rectf and assoc fns to use exclusive bounds. I think some usage of those
   already use it that way out of habit.
+
+- demo
+   tiles with sword, groundhog, fish
+   grab sword
+   sounds

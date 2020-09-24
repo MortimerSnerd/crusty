@@ -53,9 +53,16 @@ def turn_action(span: TurnSpan, now: float, who: ObjId, start: Directions, end: 
 def execute(a:: TurnAction):
    notify_turning(who, time, time + duration, start, end)
 
+
+enum_flags ActionCategory:
+   acTurn, acMoveFwd, acMoveBkwd, acStrafe
+
+let AllCategories = acTurn | acMoveFwd | acMoveBkwd | acStrafe
+
 // Calls bodyfn() for each legal action that can currently be
 // performed by `who`.
-def for_possible_actions(span: TurnSpan, who: ObjId, now: float, bodyfn):
+def for_possible_actions(span: TurnSpan, who: ObjId, now: float, 
+                         cats: ActionCategory, bodyfn):
    let spec = who.object_spec
 
    if spec:
@@ -63,7 +70,7 @@ def for_possible_actions(span: TurnSpan, who: ObjId, now: float, bodyfn):
       let found_dir, dir = direction(who)
 
       // Can we turn?
-      if found_dir:
+      if found_dir and cats & acTurn:
          let dir_left = turned_left(dir)
          let rl, lact = turn_action(span, now, who, dir, dir_left)
 
@@ -76,13 +83,31 @@ def for_possible_actions(span: TurnSpan, who: ObjId, now: float, bodyfn):
          if rr.kind == arOk:
             bodyfn(ract)
 
-      if found_pos:
+      if found_pos and found_dir:
          // Movement.
          let wpos = gridToWorld(gpos)
+         let curdir = all_dirs[dir]
+          
          for(all_dirs) d:
             let targ = gpos + xy_i{int(d.x), int(d.y)}
-            let rl, act = move_action(span, now, who, gpos, targ)
+            let is_fwd_dir = d == curdir
+            let is_back_dir = d == curdir*-1
 
-            if act:
-               bodyfn(act)
+            if cats & acMoveFwd and is_fwd_dir:
+               let rl, act = move_action(span, now, who, gpos, targ)
+
+               if act:
+                  bodyfn(act)
+
+            elif cats & acMoveBkwd and is_back_dir:
+               let rl, act = move_action(span, now, who, gpos, targ)
+
+               if act:
+                  bodyfn(act)
+
+            elif cats & acStrafe:
+               let rl, act = move_action(span, now, who, gpos, targ)
+
+               if act:
+                  bodyfn(act)
 

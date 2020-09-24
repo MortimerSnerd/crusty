@@ -47,7 +47,7 @@
                 RunFromDir="%rw"
                 CaptureOutputWith="ProcessBuffer"
                 ClearProcessBuffer="1">
-                <Exec CmdLine="lobster %rwsrc/crusty.lobster -- --debug --debug-rects"/>
+                <Exec CmdLine="lobster %rwsrc/crusty.lobster -- --debug "/>
             </Target>
         </Menu>
     </Config>
@@ -107,4 +107,6 @@
             Excludes=".git/;.idea/"
             L="1"/>
     </Files>
+    <List Name="RTE">
+    </List>
 </Project>

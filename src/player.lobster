@@ -6,7 +6,7 @@ import gobjs
 import maps
 import objutils
 
-private var Player = InvalidObject
+var Player = InvalidObject
 
 enum PlayStates:
    WaitingForInput, Stepping

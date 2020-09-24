@@ -3,15 +3,20 @@
         {
             kind: Sword, 
             short_name: "Sword Of Ass", 
-            static_tile: Sword,
-            flags: BlocksLiving
+            static_tile: Sword
         },
         {
             kind: Player, 
             short_name: "Just Some Guy",
-            static_tile: Blondie,
+            static_tile: Fish,
             flags: Living,
-            right_rotation: -45
+            right_rotation: 0
+        }, 
+        {
+            kind: Groundhog, 
+            short_name: "Phuxatawny Phil",
+            static_tile: Groundhog, 
+            flags: Living
         }
      ]
 }

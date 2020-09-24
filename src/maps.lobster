@@ -77,6 +77,17 @@ def move_is_allowed(ep: MapEndpoint, now: float, o: ObjId, destPos: xy_i) -> boo
 
    return true
 
+def notify_take(b: MapEndpoint, who: ObjId, what: ObjId):
+   let wf, wpos = pos(who)
+   let r = Rectf{gridToWorld(wpos - xy_i{1,1}), gridToWorld(wpos + xy_i{1,1})}
+
+   for_items_within(Objects, r) p, oid:
+      if oid == what:
+         remove_item(Objects, p, oid)
+         return
+
+   assert "could not find object to take" == ""
+
 def notify_spawn(ep: MapEndpoint, o: ObjId, parent: ObjId, pos: xy_i):
    if parent == InvalidObject:
       // Not contained by another object, so this is on a map.
@@ -101,6 +112,14 @@ def notify_moving(ep: MapEndpoint, o: ObjId, startT: float, endT: float,
       else:
          remove_item(Objects, start, o)
          add(Objects, end, o)
+
+def for_objects_at(b:: MapEndpoint, p: xy_i, body):
+   for_items_at(Objects, p) o:
+      body(o)
+
+   let lv = get(Living, p)
+   if lv != InvalidObject:
+      body(lv)
 
 def maps_init():
    bus_register_endpoint(MapEndpoint{system: MapSystem})
@@ -153,5 +172,6 @@ def map_render_debug(wview: Rectf, thickness: float):
    gl_color(xyzw_f{0.0, 1.0, 0.0, 1.0}):
       for_items_within(Objects, gview) pos, x:
          ex(pos)
+
 
 //notify_moving

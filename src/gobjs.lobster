@@ -16,6 +16,7 @@ class GOInst:
    pos: xy_i // Grid position.
    dir: Directions
    curTile: int
+   parent: ObjId
 
 // For now we just use the flatbuffer instance.  Hooray laziness.
 private let OSpecs : [ObjectSpec] = []
@@ -33,11 +34,12 @@ def gobjs_draw(now: float, view: Rectf):
    if ObjTx:
       gl_blend(blend_alpha)
       for(GOInstances) o, idx:
-         let id = mkObjId(GObjSystem, idx)
-         let p = anim_pos(id, now)
-         if contains(view, p):
-            let a = anim_angle(id, now) + OSpecs[o.kind_idx].right_rotation
-            renderSprite(ObjTx, o.curTile, xyz_f{p.x, p.y, 3}, xy_1, sincos(a))
+         if o.parent == InvalidObject:
+            let id = mkObjId(GObjSystem, idx)
+            let p = anim_pos(id, now)
+            if contains(view, p):
+               let a = anim_angle(id, now) + OSpecs[o.kind_idx].right_rotation
+               renderSprite(ObjTx, o.curTile, xyz_f{p.x, p.y, 3}, xy_1, sincos(a))
                   
 def gobjs_spawn(okind: ObjectKind, pos: xy_i, dir: Directions) -> ObjId:
    let found, ki = binary_search_by_key(OSpecs, int(okind)) a, b:
@@ -50,7 +52,8 @@ def gobjs_spawn(okind: ObjectKind, pos: xy_i, dir: Directions) -> ObjId:
            GOInst{pos: pos,
                   dir: dir, 
                   curTile: OSpecs[ki].static_tile, 
-                  kind_idx: ki})
+                  kind_idx: ki, 
+                  parent: InvalidObject})
 
       let oid = mkObjId(GObjSystem, id)
       notify_spawn(oid, InvalidObject, pos)
@@ -64,6 +67,9 @@ def gobjs_tests():
 
 // Bus endpoint implementation.
 class GobjEndpoint : BusEndpoint
+
+def change_tile(b:: GobjEndpoint, o: ObjId, tile: TileName):
+   GOInstances[o.id].curTile = tile
 
 def pos(ep:: GobjEndpoint, what: ObjId) -> bool, xy_i:
    if what.system == GObjSystem:
@@ -86,16 +92,8 @@ def for_objects_intersecting(ep:: GobjEndpoint, now: float, r: Rectf, body):
          body(mkObjId(GObjSystem, i), bb)
 
 def think(ep:: GobjEndpoint, span: TurnSpan, who: ObjId, now: float):
-   //DEBUGGERY - just for testing.
-   for_possible_actions(span, who, now) act:
-      if rnd_float() < 0.10:
-         execute(act)
-         schedule_callback(who, now + act.duration/2)
-         return
-
-   // Try again shortly.
-   schedule_callback(who, now + 0.1)
-
+   // We should't have any calls scheduled.
+   return
 
 def notify_moving(ep:: GobjEndpoint, o: ObjId, startT: float, endT: float, start: xy_i, end: xy_i):
    if o.system == GObjSystem:
@@ -105,16 +103,20 @@ def notify_turning(ep:: GobjEndpoint, o: ObjId, startT: float, endT: float, star
    if o.system == GObjSystem:
       GOInstances[o.id].dir = endDir
 
+def notify_take(ep: GobjEndpoint, who: ObjId, what: ObjId):
+   if what.system == GObjSystem:
+      GOInstances[what.id].parent = who
+
 def object_spec(ep:: GobjEndpoint, o: ObjId) -> ObjectSpec?:
    return OSpecs[GOInstances[o.id].kind_idx]
    
 def gobjs_init():
-   let txtfile = "dist/texty.png"
+   let txtfile = "dist/tiles.png"
    let txtur = gl_load_texture(txtfile, 
                                texture_format_nearest_mag or texture_format_nearest_min)
 
    if txtur:
-      ObjTx = mkGridTiledTexture(txtur, xy_i{16,16})
+      ObjTx = mkGridTiledTexture(txtur, xy_i{32,32})
    else:
       error(): "Could not load gobjs texture " + txtfile
 
