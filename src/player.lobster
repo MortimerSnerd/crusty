@@ -57,6 +57,14 @@ def player_handle_input():
 
                perform_action(r, act)
 
+            if gl_button("s") == 1:
+               let f, p = pos(Player)
+               let f1, diri = direction(Player)
+
+               let r, act = move_action(FakeTurnSpan, GameTime, Player, p, p + all_dirs[diri]*-1)
+
+               perform_action(r, act)
+
             elif gl_button("a") == 1:
                let f, dir = direction(Player)
                let diri = turned_left(dir)

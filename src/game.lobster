@@ -78,7 +78,30 @@ def notify_turning(s: SwerdFeesh, o: ObjId, startT: float, endT: float, startDir
 
 def move_is_allowed(s: SwerdFeesh, now: float, o: ObjId, destPos: xy_i) -> bool:
    // Keep everyone in an invisible playfield.
-   return destPos.x >= 0 and destPos.x <= 20 and destPos.y >=0 and destPos.y < 20
+   if not (destPos.x >= 0 and destPos.x <= 20 and destPos.y >=0 and destPos.y < 20):
+      return false
+
+   if o == Player and Carrying != InvalidObject:
+      // Don't allow sword to go through walls
+      let pf, pdir = direction(Player)
+
+      let sword_dest = destPos + all_dirs[pdir]
+
+      return move_is_allowed(now, Carrying, sword_dest)
+
+   return true
+
+def turn_is_allowed(s: SwerdFeesh, now: float, o: ObjId, destDir: Directions) -> bool:
+   if o == Player:
+      if Carrying == InvalidObject:
+         return true
+      else:
+         let pf, ppos = pos(Player)
+         let sword_dest = ppos + all_dirs[destDir]
+
+         return move_is_allowed(now, Carrying, sword_dest)
+   else:
+      return true
    
 def think(sf: SwerdFeesh, span: TurnSpan, who: ObjId, now: float):
    // Wander aimlessly.

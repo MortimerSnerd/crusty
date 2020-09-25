@@ -46,9 +46,11 @@ class TurnAction : ActionBase
    start: Directions
    end: Directions
 
-def turn_action(span: TurnSpan, now: float, who: ObjId, start: Directions, end: Directions) -> ActionResult, TurnAction:
-   // Not anything that can stop a turn for now.
-   return GoodResult, TurnAction{who: who, time: now, start: start, end: end, duration: 0.2}
+def turn_action(span: TurnSpan, now: float, who: ObjId, start: Directions, end: Directions) -> ActionResult, TurnAction?:
+   if not turn_is_allowed(now, who, end):
+      return ActionResult{kind: arBlocked, other: InvalidObject}, nil
+   else:
+      return GoodResult, TurnAction{who: who, time: now, start: start, end: end, duration: 0.2}
 
 def execute(a:: TurnAction):
    notify_turning(who, time, time + duration, start, end)
@@ -74,13 +76,13 @@ def for_possible_actions(span: TurnSpan, who: ObjId, now: float,
          let dir_left = turned_left(dir)
          let rl, lact = turn_action(span, now, who, dir, dir_left)
 
-         if rl.kind == arOk:
+         if lact:
             bodyfn(lact)
 
          let dir_right = turned_right(dir)
          let rr, ract = turn_action(span, now, who, dir, dir_right)
 
-         if rr.kind == arOk:
+         if ract:
             bodyfn(ract)
 
       if found_pos and found_dir:

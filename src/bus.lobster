@@ -45,6 +45,10 @@ def for_objects_at(b:: BusEndpoint, p: xy_i, body):
 def move_is_allowed(b:: BusEndpoint, now: float, o: ObjId, destPos: xy_i) -> bool:
    return true
 
+// Returns false to block a turn from being made.
+def turn_is_allowed(b:: BusEndpoint, now: float, o: ObjId, destDir: Directions) -> bool:
+   return true
+
 // If there's an ObjectSpect for an object, bodyfn will be executed with it.
 def object_spec(b:: BusEndpoint, o: ObjId) -> ObjectSpec?:
    return nil
@@ -216,3 +220,10 @@ def change_tile(o: ObjId, tile: TileName):
    if ep:
       ep.change_tile(o, tile)
 
+// Returns false to block a turn from being made.
+def turn_is_allowed(now: float, o: ObjId, destDir: Directions) -> bool:
+   for(Endpoints) ep:
+      if not ep.turn_is_allowed(now, o, destDir):
+         return false
+
+   return true
