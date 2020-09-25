@@ -45,7 +45,7 @@ private def maybe_sword_groundhog(gh: ObjId, p: xy_i):
       let cc, cpos = pos(Carrying)
 
       if cpos == p:
-         play_wav(rnd_pick(["dist/ouch1.wav", "dist/ouch2.wav"]))
+         play_wav(rnd_pick(["dist/ouch1.wav", "dist/ouch2.wav", "dist/ouch3.wav"]))
          Groundhogs[gh.id].dead = true
          change_tile(Groundhogs[gh.id].graphic, TileName_DeadGroundhog)
 
