@@ -15,6 +15,8 @@ import vec
 
 let tile_size = 64
 
+var Player = InvalidObject
+
 class GroundhogRec:
    graphic: ObjId
    dead: bool
@@ -152,12 +154,14 @@ def game_init():
                                     dead: false})
       schedule_callback(gid, 0.0)
 
-   gobjs_spawn(ObjectKind_Sword, xy_rndi(30), East)
+   gobjs_spawn(ObjectKind_Sword, xy_i{4,2}, North)
 
    let test_txtur = gl_load_texture("dist/tiles.png", 
                                     texture_format_nearest_mag or texture_format_nearest_min)
    if test_txtur:
       MapTexture = mkGridTiledTexture(test_txtur, xy_i{32, 32})
+
+   Player = gobjs_spawn(ObjectKind_Player, xy_i{4, 1}, East)
 
    //play_wav("dist/ouch1.wav")
 
@@ -173,7 +177,7 @@ def game_frame(do_debug) -> bool, Rectf:
    let fwsz = xy{float(wsz.x), float(wsz.y)}
    let hwsz = wsz/2
    let now = game_time()
-   let rv = player_handle_input()
+   let rv = player_handle_input(Player)
    let view_rect = set_map_projection(anim_pos(Player, now), tile_size, fwsz)
    
    //TODO player needs to be split too? Or part of the game module?

@@ -6,7 +6,6 @@ import gobjs
 import maps
 import objutils
 
-var Player = InvalidObject
 
 enum PlayStates:
    WaitingForInput, Stepping
@@ -18,8 +17,11 @@ private var GameTime : float = 0    // Abs game time.  (ie, total time stepping,
 def game_time() -> float:
    return GameTime
 
+//TODO player object pieces should go in game module.  
+//     code for dealing with turns should stay.  And input
+//     mapping here?
+
 def player_init():
-   Player = gobjs_spawn(ObjectKind_Player, xy_i{4, 1}, East)
    animations_turn_begin()
 
 enum HandleInputResult:
@@ -29,7 +31,7 @@ enum HandleInputResult:
 // action will be the span that all other actions will need to scale to.
 private let FakeTurnSpan = TurnSpan{0.0, 999999999990.0}
 
-def player_handle_input():
+def player_handle_input(player: ObjId):
    var rv = Good
 
    def perform_action(r, act):
@@ -50,32 +52,35 @@ def player_handle_input():
       switch PlayerState:
          case WaitingForInput:
             if gl_button("w") == 1:
-               let f, p = pos(Player)
-               let f1, diri = direction(Player)
+               let f, p = pos(player)
+               let f1, diri = direction(player)
 
-               let r, act = move_action(FakeTurnSpan, GameTime, Player, p, p + all_dirs[diri])
+               let r, act = move_action(FakeTurnSpan, GameTime, player, p, p + all_dirs[diri])
 
                perform_action(r, act)
 
-            if gl_button("s") == 1:
-               let f, p = pos(Player)
-               let f1, diri = direction(Player)
+            if gl_button("q") == 1:
+               play_wav("dist/ouch3.wav")
 
-               let r, act = move_action(FakeTurnSpan, GameTime, Player, p, p + all_dirs[diri]*-1)
+            if gl_button("s") == 1:
+               let f, p = pos(player)
+               let f1, diri = direction(player)
+
+               let r, act = move_action(FakeTurnSpan, GameTime, player, p, p + all_dirs[diri]*-1)
 
                perform_action(r, act)
 
             elif gl_button("a") == 1:
-               let f, dir = direction(Player)
+               let f, dir = direction(player)
                let diri = turned_left(dir)
-               let r, act = turn_action(FakeTurnSpan, GameTime, Player, dir, diri)
+               let r, act = turn_action(FakeTurnSpan, GameTime, player, dir, diri)
 
                perform_action(r, act)
 
             elif gl_button("d") == 1:
-               let f, a = direction(Player)
+               let f, a = direction(player)
                let diri = turned_right(a)
-               let r, act = turn_action(FakeTurnSpan, GameTime, Player, a, diri)
+               let r, act = turn_action(FakeTurnSpan, GameTime, player, a, diri)
 
                perform_action(r, act)
 
