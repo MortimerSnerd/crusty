@@ -32,7 +32,6 @@ private def maybe_pickup_sword(now: float):
       let pf, ppos = pos(Player)
       let po, pdir = direction(Player)
 
-      print("heeb")
       for_objects_at(ppos) oid:
          let spec = oid.object_spec
 
@@ -76,6 +75,10 @@ def notify_turning(s: SwerdFeesh, o: ObjId, startT: float, endT: float, startDir
          notify_moving(Carrying, startT, endT, ppos + all_dirs[startDir], ppos + all_dirs[endDir])
          notify_turning(Carrying, startT, endT, startDir, endDir)
          maybe_sword_groundhog()
+
+def move_is_allowed(s: SwerdFeesh, now: float, o: ObjId, destPos: xy_i) -> bool:
+   // Keep everyone in an invisible playfield.
+   return destPos.x >= 0 and destPos.x <= 20 and destPos.y >=0 and destPos.y < 20
    
 def think(sf: SwerdFeesh, span: TurnSpan, who: ObjId, now: float):
    // Wander aimlessly.

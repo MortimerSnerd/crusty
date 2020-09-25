@@ -167,7 +167,7 @@ def notify_take(who: ObjId, what: ObjId):
       ep.notify_take(who, what)
 
 // Returns true, x if `o` should be allowed to move to `destPos`.
-// Returns false, nameOfBlockingSystem if the move should not be allowed.
+// Returns false if one of the systems says the move should not be allowed.
 def move_is_allowed(now: float, o: ObjId, destPos: xy_i) -> bool:
    for(Endpoints) ep:
       let allowed = ep.move_is_allowed(now, o, destPos)
