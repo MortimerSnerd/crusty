@@ -34,6 +34,7 @@ def go():
          do_tests = true
       elif a == "--debug":
          do_debug = true
+         LoggingLevel = Debug
       elif a == "--debug-rects":
          do_debug_rects = true
       else:

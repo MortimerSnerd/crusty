@@ -17,6 +17,11 @@
             short_name: "Phuxatawny Phil",
             static_tile: Groundhog, 
             flags: Living
+        },
+        {
+            kind: Bullet, 
+            short_name: "Ugly Bullet",
+            static_tile: Bullet
         }
      ]
 }

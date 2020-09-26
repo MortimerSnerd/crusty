@@ -141,6 +141,10 @@ def anim_pos(ep: AnimEndpoint, what: ObjId, now: float) -> xy_f:
      else:
        return xy_0
 
+def notify_deleting(ep: AnimEndpoint, o: ObjId):
+   debug(): "animations removing " + to_string(o)
+   Lanes = filter(Lanes) x: x.who != o
+
 def anim_angle(ep: AnimEndpoint, what: ObjId, now: float) -> float:
    let i = find_obj_lane(what, anTurn, now)
 

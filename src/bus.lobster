@@ -65,6 +65,10 @@ def notify_moving(b:: BusEndpoint, o: ObjId, startT: float, endT: float, start: 
 def notify_turning(b:: BusEndpoint, o: ObjId, startT: float, endT: float, startDir: Directions, endDir: Directions):
    return
 
+// Notifys that `o` is going away on the next frame.
+def notify_deleting(b:: BusEndpoint, o: ObjId) -> void:
+   return
+
 // Changes the tile of an object.
 def change_tile(b:: BusEndpoint, o: ObjId, tile: TileName):
    return
@@ -138,6 +142,7 @@ def think(span: TurnSpan, who: ObjId, now: float):
    let ep = endpointForSystem(who.system)
 
    if ep:
+      debug(): "think " + to_string(who) + "@" + string(now)
       ep.think(span, who, now)
    else:
       error(): "No endpoint registered for system " + string(who.system) + " " + string(who.id)
@@ -227,3 +232,8 @@ def turn_is_allowed(now: float, o: ObjId, destDir: Directions) -> bool:
          return false
 
    return true
+
+// Notifys that `o` is going away on the next frame.
+def notify_deleting(o: ObjId) -> void:
+   for(Endpoints) ep:
+      ep.notify_deleting(o)

@@ -1,7 +1,8 @@
 enum ObjectKind:short { okInvalid = 0, 
   Player, 
   Sword,
-  Groundhog
+  Groundhog, 
+  Bullet
 }
 
 enum TileName:int32 {
@@ -10,7 +11,8 @@ enum TileName:int32 {
   Fish = 2,
   Groundhog = 3,
   Wally = 4,
-  DeadGroundhog = 5
+  DeadGroundhog = 5, 
+  Bullet = 6
 }
 
 

@@ -13,6 +13,9 @@ enum Directions:
 let all_dirs = [xy_i{1, 0}, xy_i{1, 1}, xy_i{0, 1}, xy_i{-1, 1}, xy_i{-1, 0}, 
                 xy_i{-1, -1}, xy_i{0, -1}, xy_i{1, -1}]
 
+let opposite_dir = [West, NorthWest, North, NorthEast, East, SouthEast, 
+                    South, SouthWest]
+
 // Angle in degrees for all directions in all_dirs.
 let dir_angles = map(all_dirs) d: normalize_angle(atan2(xy_f{float(d.x), float(d.y)}))
 

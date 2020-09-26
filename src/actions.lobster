@@ -30,8 +30,6 @@ def execute(a:: ActionBase):
 // If the move validates, returns an action that can execute the move.
 // Otherwise, the ActionResult has the reason for the action failing.
 def move_action(span: TurnSpan, now: float, who: ObjId, start: xy_i, end: xy_i) -> ActionResult, ActionBase?:
-   //TODO for now, there's not a lot that can block a movement, since 
-   // there's no map.
    let gr = gridRect(end)
    if not move_is_allowed(now, who, end):
       return ActionResult{kind: arBlocked, other: InvalidObject}, nil

@@ -25,3 +25,7 @@ def id(oid:: ObjId):
 let InvalidObject = mkObjId(InvalidSystem, 0)
 
 def isValid(oid:: ObjId) -> bool: return oid.system != InvalidSystem
+
+def to_string(o: ObjId) -> string:
+   return "{" + string(o.system) + ":" + string(o.id) + "}"
+

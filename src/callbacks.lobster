@@ -16,11 +16,12 @@ struct ThinkCallback:
 // increasing in time - if the last min entry was time=5, everything 
 // after that has to be time >= 5.  Otherwise, events could be scheduled
 // in the past, which would make for some interesting events.
-private let ThinkCbs : [ThinkCallback] = []
+private var ThinkCbs : [ThinkCallback] = []
 private let TMinHeapCmp = fn(a: ThinkCallback, b: ThinkCallback) -> bool:
    a.time <= b.time
 
 def schedule_callback(who: ObjId, time: float):
+   debug(): "schedule " + to_string(who) + " for " + string(time)
    heap_add(ThinkCbs, ThinkCallback{time: time, who: who}, TMinHeapCmp)
 
 // Runs through all of the callbacks until the queue 
@@ -31,3 +32,13 @@ def process_callbacks(span: TurnSpan, destTime: float):
 
       think(span, o.who, o.time)
 
+def remove_callbacks_for(who: ObjId):
+   let x = []
+
+   while length(ThinkCbs) > 0:
+      let i = heap_pop(ThinkCbs, TMinHeapCmp)
+      if i.who != who:
+         heap_add(x, i, TMinHeapCmp)
+
+   ThinkCbs = x
+   //ThinkCbs = filter(ThinkCbs) x: x.who != who

@@ -110,6 +110,11 @@ def get<T>(g::SparseGrid<T>, pos: xy_i) -> T:
 
    return missingVal
 
+// Discards any items where predfn(i) == true.
+def discard<T>(g:: SparseGrid<T>, predfn):
+   new_ents = filter(new_ents) x: not predfn(x.loc)
+   ents = filter(ents) x: not predfn(x.loc)
+
 // If you support multiple items at a single position, this function
 // allows you to call bodyfn(T) with them all
 def for_items_at<T>(g::SparseGrid<T>, pos: xy_i, bodyfn):

@@ -6,6 +6,7 @@ enum ObjectKind:
     ObjectKind_Player = 1
     ObjectKind_Sword = 2
     ObjectKind_Groundhog = 3
+    ObjectKind_Bullet = 4
 
 enum TileName:
     TileName_None = 0
@@ -14,6 +15,7 @@ enum TileName:
     TileName_Groundhog = 3
     TileName_Wally = 4
     TileName_DeadGroundhog = 5
+    TileName_Bullet = 6
 
 enum ItemFlags:
     ItemFlags_Living = 1

@@ -4,6 +4,7 @@ import algs
 import bus
 import config_generated
 import grids
+import logging
 import objutils
 import std
 import texture
@@ -76,6 +77,14 @@ def move_is_allowed(ep: MapEndpoint, now: float, o: ObjId, destPos: xy_i) -> boo
             return false
 
    return true
+
+def notify_deleting(b: MapEndpoint, what: ObjId):
+   // Calling pos() won't necessarily work at this point, 
+   // so discard the items directly from our grids.
+   debug(): "Maps: removing " + to_string(what)
+   discard(Objects) x: x == what
+   discard(Living) x: x == what
+
 
 def notify_take(b: MapEndpoint, who: ObjId, what: ObjId):
    let wf, wpos = pos(who)

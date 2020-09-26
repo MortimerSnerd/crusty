@@ -21,6 +21,12 @@ class GroundhogRec:
    graphic: ObjId
    dead: bool
 
+struct Bullet:
+   name: ObjId
+   graphic: ObjId
+
+var Bullets: [Bullet] = []
+
 let Groundhogs: [GroundhogRec] = []
 var MapTexture : GridTiledTexture? = nil
 var Carrying = InvalidObject
@@ -57,6 +63,26 @@ private def maybe_sword_groundhog():
          if not gh.dead:
             let f, gpos = pos(gh.graphic)
             maybe_sword_groundhog(mkObjId(SwerdFeeshSystem, i), gpos)
+
+private def find_bullet(o: ObjId) -> int:
+   return find(Bullets) x: x.name == o
+
+def notify_deleting(s: SwerdFeesh, o: ObjId) -> void:
+   debug(): "SwerdFeesh: removing " + to_string(o)
+   if o.system == GObjSystem:
+      let bi = find(Bullets) x: x.graphic == o
+
+      if bi >= 0:
+         // Delete associated bullet object.
+         remove(Bullets, bi)
+
+   elif o.system == SwerdFeeshSystem:
+      let bi = find_bullet(o)
+
+      if bi >= 0:
+         // Delegate to the arm above that cleans up bullets whose
+         // graphics have disappeared.
+         notify_deleting(Bullets[bi].graphic)
 
 def notify_moving(s: SwerdFeesh, o: ObjId, startT: float, endT: float, start: xy_i, end: xy_i) -> void:
    if o == Player:
@@ -104,13 +130,49 @@ def turn_is_allowed(s: SwerdFeesh, now: float, o: ObjId, destDir: Directions) ->
          return move_is_allowed(now, Carrying, sword_dest)
    else:
       return true
+
+private var BulletCount = 0
+let BulletIdOffset = 100
+def make_bullet(now: float, bpos: xy_i, dir: Directions): 
+   let oid = mkObjId(SwerdFeeshSystem, BulletIdOffset + BulletCount)
+   let graphic = gobjs_spawn(ObjectKind_Bullet, bpos, dir)
+
+   ++BulletCount
+   push(Bullets, Bullet{name: oid, graphic: graphic})
+   schedule_callback(oid, now)
    
 def think(sf: SwerdFeesh, span: TurnSpan, who: ObjId, now: float):
    // Wander aimlessly.
-   if Groundhogs[who.id].dead:
+   let bi = find_bullet(who)
+
+   if bi < 0 and who.id >= BulletIdOffset:
+      debug(): "Lost a bullet? " + to_string(who)
+   if bi >= 0:
+      // this is a bullet.
+      let df, dir = direction(Bullets[bi].graphic)
+      let pf, bpos = pos(Bullets[bi].graphic)
+
+      let ar, act = move_action(span, now, Bullets[bi].graphic, bpos, bpos + all_dirs[dir])
+      if act:
+         execute(act)
+         schedule_callback(who, now + act.duration)
+         return
+      else:
+         notify_deleting(who)
+         return
+   
+   elif who.id < length(Groundhogs) and Groundhogs[who.id].dead:
       // If we're dead, don't re-schedule callbacks.
       noop()
-   else:
+   elif who.id < length(Groundhogs):
+      if rnd_float() < 0.05 and length(Bullets) < 20:
+         let pf, ppos = pos(Groundhogs[who.id].graphic)
+         let df, dir = direction(Groundhogs[who.id].graphic)
+
+         make_bullet(now, ppos, opposite_dir[dir])
+         schedule_callback(who, now + 1.0)
+         return
+
       if rnd_float() < 0.45:
          for_possible_actions(span, Groundhogs[who.id].graphic, now, acMoveFwd) act:
             act.duration *= 0.5
@@ -194,6 +256,9 @@ def game_frame(do_debug) -> bool, Rectf:
 
          gl_ortho()
          im_frame():
+            im_window("HARARRRRRR", im_window_no_titlebar | im_window_no_move):
+               im_edit_anything(Groundhogs, "Free Cheese")
+
             if do_debug:
                im_window("Realtime Debugger", im_window_always_autoresize):
                    im_show_engine_stats()

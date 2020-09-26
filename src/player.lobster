@@ -36,6 +36,7 @@ def player_handle_input(player: ObjId):
 
    def perform_action(r, act):
       if act:
+         debug(): "Player turn execute"
          TurnTime = TurnSpan{GameTime, GameTime + act.duration}
          execute(act)
          PlayerState = Stepping
