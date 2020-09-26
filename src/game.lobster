@@ -16,6 +16,7 @@ import vec
 let tile_size = 64
 
 var Player = InvalidObject
+var PlayerDead = false
 
 class GroundhogRec:
    graphic: ObjId
@@ -151,10 +152,18 @@ def think(sf: SwerdFeesh, span: TurnSpan, who: ObjId, now: float):
       // this is a bullet.
       let df, dir = direction(Bullets[bi].graphic)
       let pf, bpos = pos(Bullets[bi].graphic)
+      let pp, player_pos = pos(Player) 
+      
+      if bpos == player_pos:
+         PlayerDead = true
+         play_wav("dist/pdead.wav")
 
       let ar, act = move_action(span, now, Bullets[bi].graphic, bpos, bpos + all_dirs[dir])
       if act:
          execute(act)
+         if bpos + all_dirs[dir] == player_pos:
+            PlayerDead = true
+            play_wav("dist/pdead.wav")
          schedule_callback(who, now + act.duration)
          return
       else:
@@ -202,8 +211,6 @@ def set_map_projection(center: xy_f, tile_pixel_sz: int, view_area: xy_f) -> Rec
    return Rectf{center - viewsz, center + viewsz}
 
 def game_init():
-   gl_set_font_name("dist/fonty.ttf")
-   gl_set_font_size(12)
    gl_load_materials("dist/crusty.materials")
    im_init(false)
    assert im_add_font("data/fonts/Droid_Sans/DroidSans.ttf", 20.0)
@@ -225,6 +232,7 @@ def game_init():
 
    Player = gobjs_spawn(ObjectKind_Player, xy_i{4, 1}, East)
 
+
    //play_wav("dist/ouch1.wav")
 
 def draw_game_frame(now: float, windowsz: xy_f, view_rect: Rectf):
@@ -239,7 +247,7 @@ def game_frame(do_debug) -> bool, Rectf:
    let fwsz = xy{float(wsz.x), float(wsz.y)}
    let hwsz = wsz/2
    let now = game_time()
-   let rv = player_handle_input(Player)
+   let rv = if PlayerDead: Good else: player_handle_input(Player)
    let view_rect = set_map_projection(anim_pos(Player, now), tile_size, fwsz)
    
    //TODO player needs to be split too? Or part of the game module?
@@ -256,8 +264,8 @@ def game_frame(do_debug) -> bool, Rectf:
 
          gl_ortho()
          im_frame():
-            im_window("HARARRRRRR", im_window_no_titlebar | im_window_no_move):
-               im_edit_anything(Groundhogs, "Free Cheese")
+            //im_window("HARARRRRRR", im_window_no_titlebar | im_window_no_move):
+            //   im_edit_anything(Groundhogs, "Free Cheese")
 
             if do_debug:
                im_window("Realtime Debugger", im_window_always_autoresize):
@@ -267,6 +275,21 @@ def game_frame(do_debug) -> bool, Rectf:
             //   im_button("one"): print("one msg")
             //   im_button("two"): print("two msg")
             //
+
+         if PlayerDead:
+            gl_set_font_name("dist/fonty.ttf")
+            gl_set_font_size(24)
+
+            let msg = "Thou Art Dead"
+            let msgsz = gl_text_size(msg)
+
+            gl_color(color_red):
+               gl_translate(fwsz*0.5 - xy_f{float(msgsz.x), float(msgsz).y}*0.5):
+                  gl_text(msg)
+
+            if gl_button("escape") == 1:
+               return false, view_rect
+               
    return true, view_rect
 
 
