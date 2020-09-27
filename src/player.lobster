@@ -31,21 +31,36 @@ enum HandleInputResult:
 // action will be the span that all other actions will need to scale to.
 private let FakeTurnSpan = TurnSpan{0.0, 999999999990.0}
 
+private def perform_action(r, act):
+   if act:
+      debug(): "Player turn execute"
+      TurnTime = TurnSpan{GameTime, GameTime + act.duration}
+      execute(act)
+      PlayerState = Stepping
+      process_callbacks(TurnTime, TurnTime.end)
+      animations_turn_finalize(TurnTime)
+   else:
+      warn(): "Can\'t move " + string(r)
+
+def PlayerAction(player: ObjId, now: float) -> void
+
+class Binding:
+   key: string
+   afn: PlayerAction
+
+private let pl_fwd_action = fn(player: ObjId, now: float) -> void:
+   let f, p = pos(player)
+   let f1, diri = direction(player)
+
+   let r, act = move_action(FakeTurnSpan, GameTime, player, p, p + all_dirs[diri])
+
+   perform_action(r, act)
+
+// Commenting out the next line will allow the program to run.
+//let XYZ = Binding{key: "w", afn: pl_fwd_action}
+
 def player_handle_input(player: ObjId):
    var rv = Good
-
-   def perform_action(r, act):
-      if act:
-         debug(): "Player turn execute"
-         TurnTime = TurnSpan{GameTime, GameTime + act.duration}
-         execute(act)
-         PlayerState = Stepping
-         process_callbacks(TurnTime, TurnTime.end)
-         animations_turn_finalize(TurnTime)
-      else:
-         warn(): "Can\'t move " + string(r)
-
-
    maps_frame()
    if gl_button("escape") == 1:
       rv = ExitMainLoop

@@ -277,8 +277,8 @@ def game_frame(do_debug) -> bool, Rectf:
             //
 
          if PlayerDead:
-            gl_set_font_name("dist/fonty.ttf")
-            gl_set_font_size(24)
+            gl_set_font_name("data/fonts/Zapato/greensboro.ttf")
+            gl_set_font_size(48)
 
             let msg = "Thou Art Dead"
             let msgsz = gl_text_size(msg)
