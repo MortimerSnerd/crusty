@@ -362,6 +362,18 @@ def render(r:: Rectf, thickness):
    gl_line(bottomRight, xy_f{topLeft.x, bottomRight.y}, thickness)
    gl_line(xy_f{topLeft.x, bottomRight.y}, topLeft, thickness)
 
+// Removes an item by swapping in the last item, rather
+// than shifting the array.  If the array was ordered before, 
+// it probably isn't now.
+def unordered_remove(xs, i):
+   let lasti = length(xs) - 1
+
+   if i == lasti:
+      pop(xs)
+   else:
+      xs[i] = xs[lasti]
+      pop(xs)
+
 private def rndcheck():
    for(400) iter:
       let nums = []
