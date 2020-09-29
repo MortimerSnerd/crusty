@@ -20,18 +20,11 @@ def game_time() -> float:
 //TODO player object pieces should go in game module.  
 //     code for dealing with turns should stay.  And input
 //     mapping here?
-
-def player_init():
-   animations_turn_begin()
-
-enum HandleInputResult:
-   Good, ExitMainLoop
-
 // For player actions, don't scale the time of the action - the time of the
 // action will be the span that all other actions will need to scale to.
-private let FakeTurnSpan = TurnSpan{0.0, 999999999990.0}
+let FakeTurnSpan = TurnSpan{0.0, 999999999990.0}
 
-private def perform_action(r, act):
+private def perform_action(act):
    if act:
       debug(): "Player turn execute"
       TurnTime = TurnSpan{GameTime, GameTime + act.duration}
@@ -40,24 +33,71 @@ private def perform_action(r, act):
       process_callbacks(TurnTime, TurnTime.end)
       animations_turn_finalize(TurnTime)
    else:
-      warn(): "Can\'t move " + string(r)
+      warn(): "Can\'t move "
 
-def PlayerAction(player: ObjId, now: float) -> void
+// Commenting out the next line will allow the program to run.
+
+def PlayerAction(player: ObjId, now: float) -> ActionBase?
 
 class Binding:
    key: string
+   desc: string
    afn: PlayerAction
 
-private let pl_fwd_action = fn(player: ObjId, now: float) -> void:
+private let Bindings: [Binding] = []
+
+private let pl_fwd_action = fn(player: ObjId, now: float) -> ActionBase?:
    let f, p = pos(player)
    let f1, diri = direction(player)
 
    let r, act = move_action(FakeTurnSpan, GameTime, player, p, p + all_dirs[diri])
+   act
 
-   perform_action(r, act)
+def bind(key, desc, afn): push(Bindings, Binding{key: key, desc: desc, afn: afn})
 
-// Commenting out the next line will allow the program to run.
-//let XYZ = Binding{key: "w", afn: pl_fwd_action}
+def player_init():
+   bind("w", "Move forward") player, now:
+      let f, p = pos(player)
+      let f1, diri = direction(player)
+      let r, act = move_action(FakeTurnSpan, GameTime, player, p, p + all_dirs[diri])
+      act
+
+   bind("s", "Move back") player, now:
+      let f, p = pos(player)
+      let f1, diri = direction(player)
+      let r, act = move_action(FakeTurnSpan, GameTime, player, p, p + all_dirs[diri]*-1)
+      act
+
+   bind("a", "Turn left") player, now:
+      let f, dir = direction(player)
+      let diri = turned_left(dir)
+      let r, act = turn_action(FakeTurnSpan, GameTime, player, dir, diri)
+      act
+
+   bind("d", "Turn right") player, now:
+      let f, dir = direction(player)
+      let diri = turned_right(dir)
+      let r, act = turn_action(FakeTurnSpan, GameTime, player, dir, diri)
+      act
+
+   animations_turn_begin()
+
+// Iterates through possible player actions.
+// Not based on the actions.for_possible_actions,
+// because that requires more logic to get from an 
+// action to the possible key bindings.  (esp since
+// the actions are subclasses of ActionBase rather than
+// being a case object like in previous Nim impl.
+def for_player_actions(player: ObjId, now: float, body):
+   for(Bindings) b:
+      let ff = b.afn
+      let act = ff(player, now)
+
+      if act:
+         body(b.key, b.desc)
+
+enum HandleInputResult:
+   Good, ExitMainLoop
 
 def player_handle_input(player: ObjId):
    var rv = Good
@@ -67,39 +107,15 @@ def player_handle_input(player: ObjId):
    else:
       switch PlayerState:
          case WaitingForInput:
-            if gl_button("w") == 1:
-               let f, p = pos(player)
-               let f1, diri = direction(player)
-
-               let r, act = move_action(FakeTurnSpan, GameTime, player, p, p + all_dirs[diri])
-
-               perform_action(r, act)
+            for(Bindings) b:
+               if gl_button(b.key) == 1:
+                  let mkact = b.afn
+                  let act = mkact(player, GameTime)
+                  perform_action(act)
+                  break
 
             if gl_button("q") == 1:
                play_wav("dist/ouch3.wav")
-
-            if gl_button("s") == 1:
-               let f, p = pos(player)
-               let f1, diri = direction(player)
-
-               let r, act = move_action(FakeTurnSpan, GameTime, player, p, p + all_dirs[diri]*-1)
-
-               perform_action(r, act)
-
-            elif gl_button("a") == 1:
-               let f, dir = direction(player)
-               let diri = turned_left(dir)
-               let r, act = turn_action(FakeTurnSpan, GameTime, player, dir, diri)
-
-               perform_action(r, act)
-
-            elif gl_button("d") == 1:
-               let f, a = direction(player)
-               let diri = turned_right(a)
-               let r, act = turn_action(FakeTurnSpan, GameTime, player, a, diri)
-
-               perform_action(r, act)
-
 
          case Stepping:
             let dT = gl_delta_time() * animations_time_scale()

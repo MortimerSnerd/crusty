@@ -2,6 +2,7 @@
 // Put in a separate module to minimise game specific changes to the 
 // base systems.
 import from "../../../src/crusty/src/"
+import actions
 import algs
 import bus
 import callbacks
@@ -17,6 +18,14 @@ let tile_size = 64
 
 var Player = InvalidObject
 var PlayerDead = false
+
+class DecomposeAction : ActionBase
+
+def decompose_action(span: TurnSpan, now: float, who: ObjId) -> ActionResult, ActionBase?:
+   if who == Player and PlayerDead:
+      return GoodResult, DecomposeAction{who: who, time: now, duration: 1.0}
+   else:
+      return ActionResult{kind: arBlocked, other: InvalidObject}, nil
 
 class GroundhogRec:
    graphic: ObjId
@@ -174,7 +183,7 @@ def think(sf: SwerdFeesh, span: TurnSpan, who: ObjId, now: float):
       // If we're dead, don't re-schedule callbacks.
       noop()
    elif who.id < length(Groundhogs):
-      if rnd_float() < 0.05 and length(Bullets) < 20:
+      if rnd_float() < 0.05 and length(Bullets) < 100:
          let pf, ppos = pos(Groundhogs[who.id].graphic)
          let df, dir = direction(Groundhogs[who.id].graphic)
 
@@ -213,15 +222,8 @@ def set_map_projection(center: xy_f, tile_pixel_sz: int, view_area: xy_f) -> Rec
 def game_init():
    gl_load_materials("dist/crusty.materials")
    im_init(false)
-   assert im_add_font("data/fonts/Droid_Sans/DroidSans.ttf", 20.0)
+   assert im_add_font("data/fonts/Droid_Sans/DroidSans.ttf", 12.0)
    bus_register_endpoint(SwerdFeesh{system: SwerdFeeshSystem})
-
-   for(12) i:
-      let gid = mkObjId(SwerdFeeshSystem, length(Groundhogs))
-      push(Groundhogs, GroundhogRec{graphic: gobjs_spawn(ObjectKind_Groundhog, 
-                                                         xy_rndi(10), East),
-                                    dead: false})
-      schedule_callback(gid, 0.0)
 
    gobjs_spawn(ObjectKind_Sword, xy_i{4,2}, North)
 
@@ -232,6 +234,9 @@ def game_init():
 
    Player = gobjs_spawn(ObjectKind_Player, xy_i{4, 1}, East)
 
+   bind("space", "Decompose gracefully") player, now: 
+      let r, act = decompose_action(FakeTurnSpan, now, player)
+      act
 
    //play_wav("dist/ouch1.wav")
 
@@ -241,6 +246,17 @@ def draw_game_frame(now: float, windowsz: xy_f, view_rect: Rectf):
       gl_set_primitive_texture(0, MapTexture.texture)
       gobjs_draw(now, view_rect)
       map_render(MapTexture, view_rect) 
+
+def num_live_groundhogs() -> int:
+   return length(filter(Groundhogs) g: not g.dead)
+
+def living_at(p: xy_i) -> bool:
+   for_objects_at(p) o:
+      let spec = o.object_spec
+      
+      if spec and spec.flags & ItemFlags_Living:
+         return true
+   return false
 
 def game_frame(do_debug) -> bool, Rectf:
    let wsz = gl_window_size()
@@ -256,6 +272,17 @@ def game_frame(do_debug) -> bool, Rectf:
          return false, view_rect
 
       case Good:
+         if num_live_groundhogs() == 0:
+            play_wav("dist/yoink.wav")
+            for(12) i:
+               let pos = xy_rndi(10)
+               if not living_at(pos):
+                  let gid = mkObjId(SwerdFeeshSystem, length(Groundhogs))
+                  push(Groundhogs, GroundhogRec{graphic: gobjs_spawn(ObjectKind_Groundhog, 
+                                                                     pos, East),
+                                                dead: false})
+                  schedule_callback(gid, now)
+
          gl_window_title("Penalty Box: " + 1/gl_delta_time())
          gl_clear(color_black)
          draw_game_frame(now, fwsz, view_rect)
@@ -264,8 +291,12 @@ def game_frame(do_debug) -> bool, Rectf:
 
          gl_ortho()
          im_frame():
-            //im_window("HARARRRRRR", im_window_no_titlebar | im_window_no_move):
-            //   im_edit_anything(Groundhogs, "Free Cheese")
+            im_window("HARARRRRRR", im_window_no_titlebar):
+              im_text(string(num_live_groundhogs()) + " Groundhogs Left")
+              im_treenode("Possible Moves"):
+                 for_player_actions(Player, now) key, desc:
+                    im_text(key + " - " + desc)
+
 
             if do_debug:
                im_window("Realtime Debugger", im_window_always_autoresize):
