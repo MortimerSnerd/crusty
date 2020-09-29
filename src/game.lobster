@@ -275,7 +275,7 @@ def game_frame(do_debug) -> bool, Rectf:
          if num_live_groundhogs() == 0:
             play_wav("dist/yoink.wav")
             for(12) i:
-               let pos = xy_rndi(10)
+               let pos = xy_rndi(20)
                if not living_at(pos):
                   let gid = mkObjId(SwerdFeeshSystem, length(Groundhogs))
                   push(Groundhogs, GroundhogRec{graphic: gobjs_spawn(ObjectKind_Groundhog, 
@@ -289,10 +289,17 @@ def game_frame(do_debug) -> bool, Rectf:
 
          gl_set_shader("color")
 
+         let playfield = Rectf{topLeft:xy_0, bottomRight:xy_f{21.0, 21.0}}
+
+         gl_color(color_white):
+            render(playfield, 1.0/32.0)
+
          gl_ortho()
          im_frame():
+            let num_live = num_live_groundhogs()
             im_window("HARARRRRRR", im_window_no_titlebar):
-              im_text(string(num_live_groundhogs()) + " Groundhogs Left")
+              im_text("# left in wave: " + string(num_live))
+              im_text("# groundhogs stabbed: " + string(length(Groundhogs) - num_live))
               im_treenode("Possible Moves"):
                  for_player_actions(Player, now) key, desc:
                     im_text(key + " - " + desc)
