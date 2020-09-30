@@ -437,9 +437,7 @@ def qsort_in_place(keys, vals, lt):
             rec(s, sp)
             rec(ep, e)
 
-    print("BEFORE " + keys + "  ||| " + vals)
     rec(0, keys.length)
-    print("AFTA " + keys + "  ||| " + vals)
 
 // The absolute start and end times of a player turn.
 // Animations are scaled and possibly moved within this

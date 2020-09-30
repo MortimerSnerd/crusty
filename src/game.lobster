@@ -276,7 +276,7 @@ def game_frame(do_debug) -> bool, Rectf:
       case Good:
          if num_live_groundhogs() == 0:
             play_wav("dist/yoink.wav")
-            for(165) i:
+            for(12) i:
                let pos = xy_rndi(20)
                if not living_at(pos):
                   let gid = mkObjId(SwerdFeeshSystem, length(Groundhogs.vals))

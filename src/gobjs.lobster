@@ -23,17 +23,17 @@ class GOInst:
 private let OSpecs : [ObjectSpec] = []
 private var ObjTx : GridTiledTexture? = nil
 
-private let GOInstances: [GOInst] = []
+private let GOInstances = mk_objid_map<GOInst>()
 
 def find_obj(name: ObjId):
-   return find(GOInstances) x: x.name == name
+   return find(GOInstances, name)
 
 def gobj_short_name(oid: ObjId) -> string:
    if oid.system == GObjSystem:
       let i = find_obj(oid)
 
       if i >= 0:
-         return OSpecs[GOInstances[i].kind_idx].short_name
+         return OSpecs[GOInstances.vals[i].kind_idx].short_name
       else:
          return "Wot"
    else:
@@ -42,7 +42,7 @@ def gobj_short_name(oid: ObjId) -> string:
 def gobjs_draw(now: float, view: Rectf):
    if ObjTx:
       gl_blend(blend_alpha)
-      for(GOInstances) o, idx:
+      for(GOInstances.vals) o:
          if o.parent == InvalidObject:
             let p = anim_pos(o.name, now)
             if contains(view, p):
@@ -61,13 +61,14 @@ def gobjs_spawn(okind: ObjectKind, pos: xy_i, dir: Directions) -> ObjId:
       let oid = mkObjId(GObjSystem, id)
 
       ++GoId
-      push(GOInstances, 
-           GOInst{name: oid, 
-                  pos: pos,
-                  dir: dir, 
-                  curTile: OSpecs[ki].static_tile, 
-                  kind_idx: ki, 
-                  parent: InvalidObject})
+      add_item(GOInstances, 
+               oid, 
+               GOInst{name: oid, 
+                      pos: pos,
+                      dir: dir, 
+                      curTile: OSpecs[ki].static_tile, 
+                      kind_idx: ki, 
+                      parent: InvalidObject})
 
       notify_spawn(oid, InvalidObject, pos)
       return oid
@@ -85,14 +86,14 @@ def change_tile(b:: GobjEndpoint, o: ObjId, tile: TileName):
    let i = find_obj(o)
 
    if i >= 0:
-      GOInstances[i].curTile = tile
+      GOInstances.vals[i].curTile = tile
 
 def pos(ep:: GobjEndpoint, what: ObjId) -> bool, xy_i:
    if what.system == GObjSystem:
       let i = find_obj(what)
 
       if i >= 0:
-         return true, GOInstances[i].pos
+         return true, GOInstances.vals[i].pos
       else:
          return false, xy_i{0,0}
    else:
@@ -102,19 +103,19 @@ def direction(ep:: GobjEndpoint, what: ObjId) -> bool, Directions:
    if what.system == GObjSystem:
       let i = find_obj(what)
       if i >= 0:
-         return true, GOInstances[i].dir
+         return true, GOInstances.vals[i].dir
       else:
          return false, East
    else:
       return false, East
 
 def for_objects_intersecting(ep:: GobjEndpoint, now: float, r: Rectf, body):
-   for(GOInstances) ob, i:
+   for(GOInstances.vals) ob, i:
       let p = gridToWorld(ob.pos)
       let bb = mkRectfRel(p - xy_h, xy_1)
 
       if bb.overlaps(r):
-         body(mkObjId(GObjSystem, i), bb)
+         body(GOInstances.keys[i], bb)
 
 def think(ep:: GobjEndpoint, span: TurnSpan, who: ObjId, now: float):
    // We should't have any calls scheduled.
@@ -125,15 +126,12 @@ def notify_moving(ep:: GobjEndpoint, o: ObjId, startT: float, endT: float, start
       let i = find_obj(o)
 
       if i >= 0:
-         GOInstances[i].pos = end
+         GOInstances.vals[i].pos = end
 
 def notify_deleting(ep: GobjEndpoint, o: ObjId):
    if o.system == GObjSystem:
       debug(): "GObjSystem removing " + to_string(o)
-      let i = find_obj(o)
-      
-      if i >= 0:
-         remove(GOInstances, i) 
+      remove_item(GOInstances, o) 
 
    remove_callbacks_for(o)
 
@@ -142,20 +140,20 @@ def notify_turning(ep:: GobjEndpoint, o: ObjId, startT: float, endT: float, star
       let i = find_obj(o)
 
       if i >= 0:
-         GOInstances[i].dir = endDir
+         GOInstances.vals[i].dir = endDir
 
 def notify_take(ep: GobjEndpoint, who: ObjId, what: ObjId):
    if what.system == GObjSystem:
       let i = find_obj(who)
 
       if i >= 0:
-         GOInstances[i].parent = who
+         GOInstances.vals[i].parent = who
 
 def object_spec(ep:: GobjEndpoint, o: ObjId) -> ObjectSpec?:
    let i = find_obj(o)
 
    if i >= 0:
-      return OSpecs[GOInstances[i].kind_idx]
+      return OSpecs[GOInstances.vals[i].kind_idx]
    else:
       return nil
    
