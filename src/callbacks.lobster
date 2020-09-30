@@ -21,7 +21,7 @@ private let TMinHeapCmp = fn(a: ThinkCallback, b: ThinkCallback) -> bool:
    a.time <= b.time
 
 def schedule_callback(who: ObjId, time: float):
-   debug(): "schedule " + to_string(who) + " for " + string(time)
+   debug(): "schedule " + to_string(who) + " for " + time
    heap_add(ThinkCbs, ThinkCallback{time: time, who: who}, TMinHeapCmp)
 
 // Runs through all of the callbacks until the queue 

@@ -91,7 +91,7 @@ def notify_take(b:: BusEndpoint, who: ObjId, what: ObjId):
 // scheduled one-shot calls.  If `who` wants to be called again
 // it needs to call schedule_callback() itself.
 def think(b:: BusEndpoint, span: TurnSpan, who: ObjId, now: float):
-   error(): "Unimplemented think call for " + string(who)
+   error(): "Unimplemented think call for " + to_string(who)
    noop()
 
 private def endpointForSystem(s: ObjectSystem) -> BusEndpoint?:
@@ -145,7 +145,7 @@ def think(span: TurnSpan, who: ObjId, now: float):
       debug(): "think " + to_string(who) + "@" + string(now)
       ep.think(span, who, now)
    else:
-      error(): "No endpoint registered for system " + string(who.system) + " " + string(who.id)
+      error(): "No endpoint registered for system " + who.system + " " + who.id
 
 // Should be called by actions that move objects, to notify
 // any interested systems.  Gets called for all systems, not just

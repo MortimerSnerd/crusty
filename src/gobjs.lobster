@@ -73,7 +73,7 @@ def gobjs_spawn(okind: ObjectKind, pos: xy_i, dir: Directions) -> ObjId:
       notify_spawn(oid, InvalidObject, pos)
       return oid
    else:
-      error(): "No OSpec for " + string(okind)
+      error(): "No OSpec for " + okind
       assert false
                             
 def gobjs_tests():

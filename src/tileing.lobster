@@ -35,7 +35,7 @@ def mkGridTiledTexture(txt: resource, tileDims: xy_i):
 
    if tx_sz.x % tileDims.x != 0 or tx_sz.y % tileDims.y != 0:
       warn(): "Texture size not evenly divided by grid size: " + 
-              string(tx_sz) + " vs " + string(tileDims)
+              tx_sz + " vs " + tileDims
 
    let nx = tx_sz.x / tileDims.x 
    let ny = tx_sz.y / tileDims.y

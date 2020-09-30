@@ -300,8 +300,8 @@ def game_frame(do_debug) -> bool, Rectf:
          im_frame():
             let num_live = num_live_groundhogs()
             im_window("HARARRRRRR", im_window_no_titlebar):
-              im_text("# left in wave: " + string(num_live))
-              im_text("# groundhogs stabbed: " + string(length(Groundhogs.vals) - num_live))
+              im_text("# left in wave: " + num_live)
+              im_text("# groundhogs stabbed: " + (length(Groundhogs.vals) - num_live))
               im_treenode("Possible Moves"):
                  for_player_actions(Player, now) key, desc:
                     im_text(key + " - " + desc)
