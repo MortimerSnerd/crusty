@@ -35,9 +35,10 @@ struct Bullet:
    name: ObjId
    graphic: ObjId
 
-var Bullets: [Bullet] = []
+let Bullets = mk_objid_map<Bullet>()
 
-let Groundhogs: [GroundhogRec] = []
+let Groundhogs = mk_objid_map<GroundhogRec>()
+
 var MapTexture : GridTiledTexture? = nil
 var Carrying = InvalidObject
 
@@ -59,40 +60,40 @@ private def maybe_pickup_sword(now: float):
             return
 
 private def maybe_sword_groundhog(gh: ObjId, p: xy_i):
-   if Carrying != InvalidObject and not Groundhogs[gh.id].dead:
+   let gi = find(Groundhogs, gh)
+
+   if Carrying != InvalidObject and gi >= 0 and not Groundhogs.vals[gi].dead:
       let cc, cpos = pos(Carrying)
 
       if cpos == p:
          play_wav(rnd_pick(["dist/ouch1.wav", "dist/ouch2.wav", "dist/ouch3.wav"]))
-         Groundhogs[gh.id].dead = true
-         change_tile(Groundhogs[gh.id].graphic, TileName_DeadGroundhog)
+         Groundhogs.vals[gi].dead = true
+         change_tile(Groundhogs.vals[gi].graphic, TileName_DeadGroundhog)
 
 private def maybe_sword_groundhog():
    if Carrying != InvalidObject:
-      for(Groundhogs) gh, i:
+      for(Groundhogs.vals) gh, i:
          if not gh.dead:
             let f, gpos = pos(gh.graphic)
-            maybe_sword_groundhog(mkObjId(SwerdFeeshSystem, i), gpos)
-
-private def find_bullet(o: ObjId) -> int:
-   return find(Bullets) x: x.name == o
+            maybe_sword_groundhog(Groundhogs.keys[i], gpos)
 
 def notify_deleting(s: SwerdFeesh, o: ObjId) -> void:
    debug(): "SwerdFeesh: removing " + to_string(o)
    if o.system == GObjSystem:
-      let bi = find(Bullets) x: x.graphic == o
+      let bi = find(Bullets.vals) x: x.graphic == o
 
       if bi >= 0:
          // Delete associated bullet object.
-         remove(Bullets, bi)
+         remove_index(Bullets, bi)
 
    elif o.system == SwerdFeeshSystem:
-      let bi = find_bullet(o)
+      let bi = find(Bullets, o)
 
       if bi >= 0:
          // Delegate to the arm above that cleans up bullets whose
          // graphics have disappeared.
-         notify_deleting(Bullets[bi].graphic)
+         let bul = Bullets.vals[bi]
+         notify_deleting(bul.graphic)
 
 def notify_moving(s: SwerdFeesh, o: ObjId, startT: float, endT: float, start: xy_i, end: xy_i) -> void:
    if o == Player:
@@ -148,26 +149,25 @@ def make_bullet(now: float, bpos: xy_i, dir: Directions):
    let graphic = gobjs_spawn(ObjectKind_Bullet, bpos, dir)
 
    ++BulletCount
-   push(Bullets, Bullet{name: oid, graphic: graphic})
+   add_item(Bullets, oid, Bullet{name: oid, graphic: graphic})
    schedule_callback(oid, now)
    
 def think(sf: SwerdFeesh, span: TurnSpan, who: ObjId, now: float):
    // Wander aimlessly.
-   let bi = find_bullet(who)
+   let bi = find(Bullets, who)
 
-   if bi < 0 and who.id >= BulletIdOffset:
-      debug(): "Lost a bullet? " + to_string(who)
    if bi >= 0:
       // this is a bullet.
-      let df, dir = direction(Bullets[bi].graphic)
-      let pf, bpos = pos(Bullets[bi].graphic)
+      let bul = Bullets.vals[bi]
+      let df, dir = direction(bul.graphic)
+      let pf, bpos = pos(bul.graphic)
       let pp, player_pos = pos(Player) 
       
       if bpos == player_pos:
          PlayerDead = true
          play_wav("dist/pdead.wav")
 
-      let ar, act = move_action(span, now, Bullets[bi].graphic, bpos, bpos + all_dirs[dir])
+      let ar, act = move_action(span, now, bul.graphic, bpos, bpos + all_dirs[dir])
       if act:
          execute(act)
          if bpos + all_dirs[dir] == player_pos:
@@ -179,35 +179,35 @@ def think(sf: SwerdFeesh, span: TurnSpan, who: ObjId, now: float):
          notify_deleting(who)
          return
    
-   elif who.id < length(Groundhogs) and Groundhogs[who.id].dead:
-      // If we're dead, don't re-schedule callbacks.
-      noop()
-   elif who.id < length(Groundhogs):
-      if rnd_float() < 0.05 and length(Bullets) < 100:
-         let pf, ppos = pos(Groundhogs[who.id].graphic)
-         let df, dir = direction(Groundhogs[who.id].graphic)
+   else:
+      let gi = find(Groundhogs, who)
 
-         make_bullet(now, ppos, opposite_dir[dir])
-         schedule_callback(who, now + 1.0)
-         return
+      if gi >= 0 and not Groundhogs.vals[gi].dead:
+         if rnd_float() < 0.05 and num_items(Bullets) < 100:
+            let pf, ppos = pos(Groundhogs.vals[gi].graphic)
+            let df, dir = direction(Groundhogs.vals[gi].graphic)
 
-      if rnd_float() < 0.45:
-         for_possible_actions(span, Groundhogs[who.id].graphic, now, acMoveFwd) act:
-            act.duration *= 0.5
-            execute(act)
-            schedule_callback(who, now + act.duration)
+            make_bullet(now, ppos, opposite_dir[dir])
+            schedule_callback(who, now + 1.0)
             return
 
-      // Can't or didn't go forward, try turns, backward.
-      for_possible_actions(span, Groundhogs[who.id].graphic, now, acMoveFwd | acMoveBkwd | acTurn) act:
-         if rnd_float() < 0.10:
-            act.duration *= 0.5
-            execute(act)
-            schedule_callback(who, now + act.duration)
-            return
+         if rnd_float() < 0.45:
+            for_possible_actions(span, Groundhogs.vals[gi].graphic, now, acMoveFwd) act:
+               act.duration *= 0.5
+               execute(act)
+               schedule_callback(who, now + act.duration)
+               return
 
-      // Maybe try back later.
-      schedule_callback(who, now + 0.2)
+         // Can't or didn't go forward, try turns, backward.
+         for_possible_actions(span, Groundhogs.vals[gi].graphic, now, acMoveFwd | acMoveBkwd | acTurn) act:
+            if rnd_float() < 0.10:
+               act.duration *= 0.5
+               execute(act)
+               schedule_callback(who, now + act.duration)
+               return
+
+         // Maybe try back later.
+         schedule_callback(who, now + 0.2)
 
 def game_create_window():
    fatal(gl_window("Penalty Box", 640, 400))
@@ -238,6 +238,8 @@ def game_init():
       let r, act = decompose_action(FakeTurnSpan, now, player)
       act
 
+   rnd_seed(product(date_time()))
+
    //play_wav("dist/ouch1.wav")
 
 def draw_game_frame(now: float, windowsz: xy_f, view_rect: Rectf):
@@ -248,7 +250,7 @@ def draw_game_frame(now: float, windowsz: xy_f, view_rect: Rectf):
       map_render(MapTexture, view_rect) 
 
 def num_live_groundhogs() -> int:
-   return length(filter(Groundhogs) g: not g.dead)
+   return length(filter(Groundhogs.vals) g: not g.dead)
 
 def living_at(p: xy_i) -> bool:
    for_objects_at(p) o:
@@ -274,13 +276,13 @@ def game_frame(do_debug) -> bool, Rectf:
       case Good:
          if num_live_groundhogs() == 0:
             play_wav("dist/yoink.wav")
-            for(12) i:
+            for(165) i:
                let pos = xy_rndi(20)
                if not living_at(pos):
-                  let gid = mkObjId(SwerdFeeshSystem, length(Groundhogs))
-                  push(Groundhogs, GroundhogRec{graphic: gobjs_spawn(ObjectKind_Groundhog, 
+                  let gid = mkObjId(SwerdFeeshSystem, length(Groundhogs.vals))
+                  add_item(Groundhogs, gid, GroundhogRec{graphic: gobjs_spawn(ObjectKind_Groundhog, 
                                                                      pos, East),
-                                                dead: false})
+                                                         dead: false})
                   schedule_callback(gid, now)
 
          gl_window_title("Penalty Box: " + 1/gl_delta_time())
@@ -299,7 +301,7 @@ def game_frame(do_debug) -> bool, Rectf:
             let num_live = num_live_groundhogs()
             im_window("HARARRRRRR", im_window_no_titlebar):
               im_text("# left in wave: " + string(num_live))
-              im_text("# groundhogs stabbed: " + string(length(Groundhogs) - num_live))
+              im_text("# groundhogs stabbed: " + string(length(Groundhogs.vals) - num_live))
               im_treenode("Possible Moves"):
                  for_player_actions(Player, now) key, desc:
                     im_text(key + " - " + desc)

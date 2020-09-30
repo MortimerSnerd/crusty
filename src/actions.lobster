@@ -24,7 +24,7 @@ struct ActionResult:
 let GoodResult = ActionResult{kind: arOk, other: InvalidObject}
 
 def execute(a:: ActionBase):
-   error(): "exectute no implemented for " + string(a)
+   error(): "exectute no implemented for " + a
    assert false
 
 // If the move validates, returns an action that can execute the move.

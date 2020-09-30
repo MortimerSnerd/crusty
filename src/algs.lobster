@@ -389,7 +389,7 @@ private def rndcheck():
 
          if not found:
             print(sorted)
-            print("could not find " + string(x) + ", should go to " + string(i))
+            print("could not find " + x + ", should go to " + i)
             break
 
 def heapcheck():
@@ -407,10 +407,39 @@ def heapcheck():
          push(hsorted, heap_pop(hp, hcmp))
 
       if not equal(hsorted, check):
-         print("HSORTED " + string(hsorted))
-         print("CHECK   " + string(check))
+         print("HSORTED " + hsorted)
+         print("CHECK   " + check)
          assert false
 
+def qsort_in_place(keys, vals, lt):
+    def rec(s, e) -> void:
+        let l = e - s
+        if l > 1:
+            let pivot = keys[s]
+            let pivotval = vals[s]
+            var sp = s + 1
+            var ep = e
+            while sp < ep:
+                let c = keys[sp]
+                if lt(c, pivot):
+                    keys[sp - 1] = keys[sp]
+                    vals[sp - 1] = vals[sp]
+                    sp++
+                else:
+                    let v = vals[sp]
+                    keys[sp] = keys[--ep]
+                    vals[sp] = vals[ep]
+                    keys[ep] = c
+                    vals[ep] = v
+            
+            keys[--sp] = pivot
+            vals[sp] = pivotval
+            rec(s, sp)
+            rec(ep, e)
+
+    print("BEFORE " + keys + "  ||| " + vals)
+    rec(0, keys.length)
+    print("AFTA " + keys + "  ||| " + vals)
 
 // The absolute start and end times of a player turn.
 // Animations are scaled and possibly moved within this
