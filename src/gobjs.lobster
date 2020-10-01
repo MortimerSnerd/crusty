@@ -11,67 +11,55 @@ import std
 import texture
 import tileing
 
-class GOInst:
-   name: ObjId
+class GOInst : ObjId
    kind_idx: int // index into OSpecs for ObjectKind
    pos: xy_i // Grid position.
    dir: Directions
    curTile: int
-   parent: ObjId
+   parent: ObjId?
 
 // For now we just use the flatbuffer instance.  Hooray laziness.
 private let OSpecs : [ObjectSpec] = []
 private var ObjTx : GridTiledTexture? = nil
 
-private let GOInstances = mk_objid_map<GOInst>()
+private let GOInstances = EmbeddedCircList<GOInst>{head: nil}
 
-def find_obj(name: ObjId):
-   return find(GOInstances, name)
-
-def gobj_short_name(oid: ObjId) -> string:
-   if oid.system == GObjSystem:
-      let i = find_obj(oid)
-
-      if i >= 0:
-         return OSpecs[GOInstances.vals[i].kind_idx].short_name
-      else:
-         return "Wot"
+def gobj_short_name(o: GOInst?) -> string:
+   if o:
+      return OSpecs[o.kind_idx].short_name
    else:
-      return "Notta Gobj"
+      return "Wot"
 
 def gobjs_draw(now: float, view: Rectf):
    if ObjTx:
       gl_blend(blend_alpha)
-      for(GOInstances.vals) o:
-         if o.parent == InvalidObject:
-            let p = anim_pos(o.name, now)
+      dl_foreach(GOInstances) o:
+         if not o.parent:
+            let p = anim_pos(o, now)
             if contains(view, p):
-               let a = anim_angle(o.name, now) + OSpecs[o.kind_idx].right_rotation
+               let a = anim_angle(o, now) + OSpecs[o.kind_idx].right_rotation
                renderSprite(ObjTx, o.curTile, xyz_f{p.x, p.y, 3}, xy_1, sincos(a))
-                  
-private var GoId = 1
 
+private var IdCounter = 1
+                  
 def gobjs_spawn(okind: ObjectKind, pos: xy_i, dir: Directions) -> ObjId:
    let found, ki = binary_search_by_key(OSpecs, int(okind)) a, b:
       int(a.kind) - b
 
    //TODO test to see if it can be placed at pos.
    if found:
-      let id = GoId
-      let oid = mkObjId(GObjSystem, id)
-
-      ++GoId
-      add_item(GOInstances, 
-               oid, 
-               GOInst{name: oid, 
+      let rv = GOInst{system: GObjSystem,
+                      id: IdCounter,
                       pos: pos,
                       dir: dir, 
                       curTile: OSpecs[ki].static_tile, 
                       kind_idx: ki, 
-                      parent: InvalidObject})
+                      parent: nil}
+      ++IdCounter
+      dl_add(GOInstances, rv)
+      xnotify_spawn(rv, rv, pos)
 
-      notify_spawn(oid, InvalidObject, pos)
-      return oid
+      return rv
    else:
       error(): "No OSpec for " + okind
       assert false
@@ -83,77 +71,55 @@ def gobjs_tests():
 class GobjEndpoint : BusEndpoint
 
 def change_tile(b:: GobjEndpoint, o: ObjId, tile: TileName):
-   let i = find_obj(o)
-
-   if i >= 0:
-      GOInstances.vals[i].curTile = tile
+   if o is GOInst:
+      o.curTile = tile
 
 def pos(ep:: GobjEndpoint, what: ObjId) -> bool, xy_i:
-   if what.system == GObjSystem:
-      let i = find_obj(what)
-
-      if i >= 0:
-         return true, GOInstances.vals[i].pos
-      else:
-         return false, xy_i{0,0}
+   if what is GOInst:
+      return true, what.pos
    else:
       return false, xy_i{0,0}
 
 def direction(ep:: GobjEndpoint, what: ObjId) -> bool, Directions:
-   if what.system == GObjSystem:
-      let i = find_obj(what)
-      if i >= 0:
-         return true, GOInstances.vals[i].dir
-      else:
-         return false, East
+   if what is GOInst:
+      return true, what.dir
    else:
       return false, East
 
 def for_objects_intersecting(ep:: GobjEndpoint, now: float, r: Rectf, body):
-   for(GOInstances.vals) ob, i:
+   dl_foreach(GOInstances) ob:
       let p = gridToWorld(ob.pos)
       let bb = mkRectfRel(p - xy_h, xy_1)
 
       if bb.overlaps(r):
-         body(GOInstances.keys[i], bb)
+         body(ob, bb)
 
 def think(ep:: GobjEndpoint, span: TurnSpan, who: ObjId, now: float):
    // We should't have any calls scheduled.
    return
 
 def notify_moving(ep:: GobjEndpoint, o: ObjId, startT: float, endT: float, start: xy_i, end: xy_i):
-   if o.system == GObjSystem:
-      let i = find_obj(o)
-
-      if i >= 0:
-         GOInstances.vals[i].pos = end
+   if o is GOInst:
+      o.pos = end
 
 def notify_deleting(ep: GobjEndpoint, o: ObjId):
-   if o.system == GObjSystem:
+   if o and o is GOInst:
       debug(): "GObjSystem removing " + to_string(o)
-      remove_item(GOInstances, o) 
+      dl_remove(GOInstances, o) 
 
    remove_callbacks_for(o)
 
 def notify_turning(ep:: GobjEndpoint, o: ObjId, startT: float, endT: float, startDir: Directions, endDir: Directions):
-   if o.system == GObjSystem:
-      let i = find_obj(o)
-
-      if i >= 0:
-         GOInstances.vals[i].dir = endDir
+   if o is GOInst:
+      o.dir = endDir
 
 def notify_take(ep: GobjEndpoint, who: ObjId, what: ObjId):
-   if what.system == GObjSystem:
-      let i = find_obj(who)
-
-      if i >= 0:
-         GOInstances.vals[i].parent = who
+   if what is GOInst:
+      what.parent = who
 
 def object_spec(ep:: GobjEndpoint, o: ObjId) -> ObjectSpec?:
-   let i = find_obj(o)
-
-   if i >= 0:
-      return OSpecs[GOInstances.vals[i].kind_idx]
+   if o is GOInst:
+      return OSpecs[o.kind_idx]
    else:
       return nil
    

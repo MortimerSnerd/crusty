@@ -67,8 +67,11 @@ def move_is_allowed(ep: MapEndpoint, now: float, o: ObjId, destPos: xy_i) -> boo
             return false
 
          let blocked = any_items_at(Objects, destPos) it: 
-            let ispec = it.object_spec
-            ispec and ispec.flags & ItemFlags_BlocksLiving
+            if it:
+               let ispec = it.object_spec
+               ispec and ispec.flags & ItemFlags_BlocksLiving
+            else:
+               false
 
          if blocked:
             return false
@@ -97,7 +100,7 @@ def notify_take(b: MapEndpoint, who: ObjId, what: ObjId):
 
    assert "could not find object to take" == ""
 
-def notify_spawn(ep: MapEndpoint, o: ObjId, parent: ObjId, pos: xy_i):
+def notify_spawn(ep: MapEndpoint, o: ObjId, parent: ObjId?, pos: xy_i):
    if parent == InvalidObject:
       // Not contained by another object, so this is on a map.
       let spec = o.object_spec

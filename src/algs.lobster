@@ -455,6 +455,85 @@ def mag(t:: TurnSpan) -> float:
    assert t.end >= t.start
    return end - start
 
+// Embedded links class to inherit from.
+class EmbeddedDLinks<T>:
+   dl_next: T? = nil
+   dl_prev: T? = nil
+
+// Reference to a circular doubly linked list.
+class EmbeddedCircList<T>:
+   head: T?
+   count: int = 0
+
+// Adds an item to the list.  Not valid if the
+// item is already in a list.
+def dl_add<T>(list: EmbeddedCircList<T>, item: T):
+   assert item.dl_next == nil
+   assert item.dl_prev == nil
+
+   if list.head:
+      item.dl_next = list.head
+      item.dl_prev = list.head.dl_prev
+      if item.dl_prev:
+         item.dl_prev.dl_next = item
+      item.dl_next.dl_prev = item
+   else:
+      item.dl_next = item
+      item.dl_prev = item
+      list.head = item
+
+   ++list.count
+
+// Removes an item from a doubly linked circular list.
+def dl_remove<T>(list: EmbeddedCircList<T>, item: T):
+   if item.dl_prev:
+      item.dl_prev.dl_next = item.dl_next
+   if item.dl_next:
+      item.dl_next.dl_prev = item.dl_prev
+
+   if list.head and list.head == item:
+      if item.dl_next == item:
+         // last item in circular list.
+         list.head = nil
+      else:
+         list.head = item.dl_next
+
+   item.dl_next = nil
+   item.dl_prev = nil
+   --list.count
+
+// repeat() until type of loop.
+//     repeat():
+//       print('hi')
+//       --x
+//     fn():
+//       x > 0
+// Probably not useful, just verifying I can do it
+// and seeing how it works out.
+def repeat(body, whilecond):
+   body()
+
+   while whilecond():
+      body()
+
+def dl_foreach<T>(list: EmbeddedCircList<T>, body):
+   if list.head:
+      var o = list.head.dl_next
+
+      repeat():
+         if o:  // Should always be true, but we must check.
+            body(o)
+            o = o.dl_next
+      fn():
+         o != list.head
+
+def dl_find<T>(list: EmbeddedCircList<T>, predfn) -> T?:
+   dl_foreach(list) i:
+      if predfn(i):
+         return i
+
+   return nil
+
 def algs_tests():
    rndcheck()
 

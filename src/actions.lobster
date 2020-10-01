@@ -17,9 +17,9 @@ enum ActionResultKinds:
    arOk, 
    arBlocked 
 
-struct ActionResult:
+class ActionResult:
    kind: ActionResultKinds
-   other: ObjId
+   other: ObjId?
 
 let GoodResult = ActionResult{kind: arOk, other: InvalidObject}
 

@@ -3,7 +3,7 @@ import from "../../../src/crusty/src/"
 import std
 import algs
 
-private struct SGEnt<T>:
+private class SGEnt<T>:
    pos: xy_i
    loc: T
 

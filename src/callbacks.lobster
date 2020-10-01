@@ -5,7 +5,7 @@ import bus
 import std
 import objutils
 
-struct ThinkCallback:
+class ThinkCallback:
    time: float
    who: ObjId
 

@@ -27,17 +27,15 @@ def decompose_action(span: TurnSpan, now: float, who: ObjId) -> ActionResult, Ac
    else:
       return ActionResult{kind: arBlocked, other: InvalidObject}, nil
 
-class GroundhogRec:
+class GroundhogRec : ObjId
    graphic: ObjId
    dead: bool
 
-struct Bullet:
-   name: ObjId
+class Bullet : ObjId
    graphic: ObjId
 
-let Bullets = mk_objid_map<Bullet>()
-
-let Groundhogs = mk_objid_map<GroundhogRec>()
+let Bullets = EmbeddedCircList<Bullet>{head: nil}
+let Groundhogs = EmbeddedCircList<GroundhogRec>{head: nil}
 
 var MapTexture : GridTiledTexture? = nil
 var Carrying = InvalidObject
@@ -52,62 +50,58 @@ private def maybe_pickup_sword(now: float):
       let po, pdir = direction(Player)
 
       for_objects_at(ppos) oid:
-         let spec = oid.object_spec
+         if oid:
+            let spec = oid.object_spec
 
-         if spec and spec.kind == ObjectKind_Sword:
-            Carrying = oid
-            play_wav("dist/yoink.wav")
-            return
+            if spec and spec.kind == ObjectKind_Sword:
+               Carrying = oid
+               play_wav("dist/yoink.wav")
+               return
 
 private def maybe_sword_groundhog(gh: ObjId, p: xy_i):
-   let gi = find(Groundhogs, gh)
+   if gh is GroundhogRec:
+      if Carrying != InvalidObject and not gh.dead:
+         let cc, cpos = pos(Carrying)
 
-   if Carrying != InvalidObject and gi >= 0 and not Groundhogs.vals[gi].dead:
-      let cc, cpos = pos(Carrying)
-
-      if cpos == p:
-         play_wav(rnd_pick(["dist/ouch1.wav", "dist/ouch2.wav", "dist/ouch3.wav"]))
-         Groundhogs.vals[gi].dead = true
-         change_tile(Groundhogs.vals[gi].graphic, TileName_DeadGroundhog)
+         if cpos == p:
+            play_wav(rnd_pick(["dist/ouch1.wav", "dist/ouch2.wav", "dist/ouch3.wav"]))
+            gh.dead = true
+            change_tile(gh.graphic, TileName_DeadGroundhog)
 
 private def maybe_sword_groundhog():
    if Carrying != InvalidObject:
-      for(Groundhogs.vals) gh, i:
+      dl_foreach(Groundhogs) gh:
          if not gh.dead:
             let f, gpos = pos(gh.graphic)
-            maybe_sword_groundhog(Groundhogs.keys[i], gpos)
+            maybe_sword_groundhog(gh, gpos)
 
 def notify_deleting(s: SwerdFeesh, o: ObjId) -> void:
    debug(): "SwerdFeesh: removing " + to_string(o)
    if o.system == GObjSystem:
-      let bi = find(Bullets.vals) x: x.graphic == o
+      let bi = dl_find(Bullets) x: x.graphic == o
 
-      if bi >= 0:
+      if bi:
          // Delete associated bullet object.
-         remove_index(Bullets, bi)
+         dl_remove(Bullets, bi)
 
-   elif o.system == SwerdFeeshSystem:
-      let bi = find(Bullets, o)
-
-      if bi >= 0:
-         // Delegate to the arm above that cleans up bullets whose
-         // graphics have disappeared.
-         let bul = Bullets.vals[bi]
-         notify_deleting(bul.graphic)
+   elif o is Bullet:
+      // Delegate to the arm above that cleans up bullets whose
+      // graphics have disappeared.
+      notify_deleting(o.graphic)
 
 def notify_moving(s: SwerdFeesh, o: ObjId, startT: float, endT: float, start: xy_i, end: xy_i) -> void:
-   if o == Player:
+   if Player and o == Player:
       let pdf, pdir = direction(Player)
 
       maybe_pickup_sword(startT)
-      if Carrying != InvalidObject:
+      if Carrying:
          let op, opos = pos(Carrying)
          notify_moving(Carrying, startT, endT, opos, end + all_dirs[pdir])
          maybe_sword_groundhog()
 
 def notify_turning(s: SwerdFeesh, o: ObjId, startT: float, endT: float, startDir: Directions, endDir: Directions):
    if o == Player:
-      if Carrying != InvalidObject:
+      if Carrying and Player:
          let pf, ppos = pos(Player)
 
          maybe_pickup_sword(startT)
@@ -120,7 +114,7 @@ def move_is_allowed(s: SwerdFeesh, now: float, o: ObjId, destPos: xy_i) -> bool:
    if not (destPos.x >= 0 and destPos.x <= 20 and destPos.y >=0 and destPos.y < 20):
       return false
 
-   if o == Player and Carrying != InvalidObject:
+   if Player and o == Player and Carrying:
       // Don't allow sword to go through walls
       let pf, pdir = direction(Player)
 
@@ -132,42 +126,38 @@ def move_is_allowed(s: SwerdFeesh, now: float, o: ObjId, destPos: xy_i) -> bool:
 
 def turn_is_allowed(s: SwerdFeesh, now: float, o: ObjId, destDir: Directions) -> bool:
    if o == Player:
-      if Carrying == InvalidObject:
-         return true
-      else:
+      if Player and Carrying:
          let pf, ppos = pos(Player)
          let sword_dest = ppos + all_dirs[destDir]
 
          return move_is_allowed(now, Carrying, sword_dest)
+      else:
+         return true
    else:
       return true
 
 private var BulletCount = 0
 let BulletIdOffset = 100
 def make_bullet(now: float, bpos: xy_i, dir: Directions): 
-   let oid = mkObjId(SwerdFeeshSystem, BulletIdOffset + BulletCount)
    let graphic = gobjs_spawn(ObjectKind_Bullet, bpos, dir)
 
    ++BulletCount
-   add_item(Bullets, oid, Bullet{name: oid, graphic: graphic})
-   schedule_callback(oid, now)
+   let bul = Bullet{system: SwerdFeeshSystem, graphic: graphic}
+   dl_add(Bullets, bul)
+   schedule_callback(bul, now)
    
 def think(sf: SwerdFeesh, span: TurnSpan, who: ObjId, now: float):
    // Wander aimlessly.
-   let bi = find(Bullets, who)
-
-   if bi >= 0:
-      // this is a bullet.
-      let bul = Bullets.vals[bi]
-      let df, dir = direction(bul.graphic)
-      let pf, bpos = pos(bul.graphic)
+   if who is Bullet and Player:
+      let df, dir = direction(who.graphic)
+      let pf, bpos = pos(who.graphic)
       let pp, player_pos = pos(Player) 
       
       if bpos == player_pos:
          PlayerDead = true
          play_wav("dist/pdead.wav")
 
-      let ar, act = move_action(span, now, bul.graphic, bpos, bpos + all_dirs[dir])
+      let ar, act = move_action(span, now, who.graphic, bpos, bpos + all_dirs[dir])
       if act:
          execute(act)
          if bpos + all_dirs[dir] == player_pos:
@@ -179,27 +169,25 @@ def think(sf: SwerdFeesh, span: TurnSpan, who: ObjId, now: float):
          notify_deleting(who)
          return
    
-   else:
-      let gi = find(Groundhogs, who)
-
-      if gi >= 0 and not Groundhogs.vals[gi].dead:
-         if rnd_float() < 0.05 and num_items(Bullets) < 100:
-            let pf, ppos = pos(Groundhogs.vals[gi].graphic)
-            let df, dir = direction(Groundhogs.vals[gi].graphic)
+   elif who is GroundhogRec:
+      if not who.dead:
+         if rnd_float() < 0.05 and Bullets.count < 100:
+            let pf, ppos = pos(who.graphic)
+            let df, dir = direction(who.graphic)
 
             make_bullet(now, ppos, opposite_dir[dir])
             schedule_callback(who, now + 1.0)
             return
 
          if rnd_float() < 0.45:
-            for_possible_actions(span, Groundhogs.vals[gi].graphic, now, acMoveFwd) act:
+            for_possible_actions(span, who.graphic, now, acMoveFwd) act:
                act.duration *= 0.5
                execute(act)
                schedule_callback(who, now + act.duration)
                return
 
          // Can't or didn't go forward, try turns, backward.
-         for_possible_actions(span, Groundhogs.vals[gi].graphic, now, acMoveFwd | acMoveBkwd | acTurn) act:
+         for_possible_actions(span, who.graphic, now, acMoveFwd | acMoveBkwd | acTurn) act:
             if rnd_float() < 0.10:
                act.duration *= 0.5
                execute(act)
@@ -249,15 +237,25 @@ def draw_game_frame(now: float, windowsz: xy_f, view_rect: Rectf):
       gobjs_draw(now, view_rect)
       map_render(MapTexture, view_rect) 
 
-def num_live_groundhogs() -> int:
-   return length(filter(Groundhogs.vals) g: not g.dead)
+def num_live_groundhogs() -> int, int:
+   var live = 0
+   var dead = 0
+
+   dl_foreach(Groundhogs) o: 
+      if not o.dead:
+         ++live
+      else:
+         ++dead
+
+   return live, dead
 
 def living_at(p: xy_i) -> bool:
    for_objects_at(p) o:
-      let spec = o.object_spec
-      
-      if spec and spec.flags & ItemFlags_Living:
-         return true
+      if o:
+         let spec = o.object_spec
+         
+         if spec and spec.flags & ItemFlags_Living:
+            return true
    return false
 
 def game_frame(do_debug) -> bool, Rectf:
@@ -265,71 +263,78 @@ def game_frame(do_debug) -> bool, Rectf:
    let fwsz = xy{float(wsz.x), float(wsz.y)}
    let hwsz = wsz/2
    let now = game_time()
-   let rv = if PlayerDead: Good else: player_handle_input(Player)
-   let view_rect = set_map_projection(anim_pos(Player, now), tile_size, fwsz)
+
+   if Player:
+      let rv = if PlayerDead: Good else: player_handle_input(Player)
+      let view_rect = set_map_projection(anim_pos(Player, now), tile_size, fwsz)
+      
+      //TODO player needs to be split too? Or part of the game module?
+      switch rv:
+         case ExitMainLoop:
+            return false, view_rect
+
+         case Good:
+            let live, dead = num_live_groundhogs()
+            if live == 0:
+               play_wav("dist/yoink.wav")
+               for(12) i:
+                  let pos = xy_rndi(20)
+                  if not living_at(pos):
+                     let gh = GroundhogRec{graphic: gobjs_spawn(ObjectKind_Groundhog, 
+                                                                          pos, East),
+                                           dead: false, 
+                                           system: SwerdFeeshSystem}
+                     dl_add(Groundhogs, gh)
+                     schedule_callback(gh, now)
+
+            gl_window_title("Penalty Box: " + 1/gl_delta_time())
+            gl_clear(color_black)
+            draw_game_frame(now, fwsz, view_rect)
+
+            gl_set_shader("color")
+
+            let playfield = Rectf{topLeft:xy_0, bottomRight:xy_f{21.0, 21.0}}
+
+            gl_color(color_white):
+               render(playfield, 1.0/32.0)
+
+            gl_ortho()
+            im_frame():
+               let num_live, num_dead = num_live_groundhogs()
+               im_window("HARARRRRRR", im_window_no_titlebar):
+                 im_text("# left in wave: " + num_live)
+                 im_text("# groundhogs stabbed: " + num_dead)
+                 im_treenode("Possible Moves"):
+                    for_player_actions(Player, now) key, desc:
+                       im_text(key + " - " + desc)
+
+
+               if do_debug:
+                  im_window("Realtime Debugger", im_window_always_autoresize):
+                      im_show_engine_stats()
+                      im_show_vars()
+               //im_window("Holy craps", im_window_no_titlebar | im_window_always_autoresize):
+               //   im_button("one"): print("one msg")
+               //   im_button("two"): print("two msg")
+               //
+
+            if PlayerDead:
+               gl_set_font_name("data/fonts/Zapato/greensboro.ttf")
+               gl_set_font_size(48)
+
+               let msg = "Thou Art Dead"
+               let msgsz = gl_text_size(msg)
+
+               gl_color(color_red):
+                  gl_translate(fwsz*0.5 - xy_f{float(msgsz.x), float(msgsz).y}*0.5):
+                     gl_text(msg)
+
+               if gl_button("escape") == 1:
+                  return false, view_rect
+                  
+      return true, view_rect
+
+   else:
+      return false, Rectf{xy_0, xy_0} 
    
-   //TODO player needs to be split too? Or part of the game module?
-   switch rv:
-      case ExitMainLoop:
-         return false, view_rect
-
-      case Good:
-         if num_live_groundhogs() == 0:
-            play_wav("dist/yoink.wav")
-            for(12) i:
-               let pos = xy_rndi(20)
-               if not living_at(pos):
-                  let gid = mkObjId(SwerdFeeshSystem, length(Groundhogs.vals))
-                  add_item(Groundhogs, gid, GroundhogRec{graphic: gobjs_spawn(ObjectKind_Groundhog, 
-                                                                     pos, East),
-                                                         dead: false})
-                  schedule_callback(gid, now)
-
-         gl_window_title("Penalty Box: " + 1/gl_delta_time())
-         gl_clear(color_black)
-         draw_game_frame(now, fwsz, view_rect)
-
-         gl_set_shader("color")
-
-         let playfield = Rectf{topLeft:xy_0, bottomRight:xy_f{21.0, 21.0}}
-
-         gl_color(color_white):
-            render(playfield, 1.0/32.0)
-
-         gl_ortho()
-         im_frame():
-            let num_live = num_live_groundhogs()
-            im_window("HARARRRRRR", im_window_no_titlebar):
-              im_text("# left in wave: " + num_live)
-              im_text("# groundhogs stabbed: " + (length(Groundhogs.vals) - num_live))
-              im_treenode("Possible Moves"):
-                 for_player_actions(Player, now) key, desc:
-                    im_text(key + " - " + desc)
-
-
-            if do_debug:
-               im_window("Realtime Debugger", im_window_always_autoresize):
-                   im_show_engine_stats()
-                   im_show_vars()
-            //im_window("Holy craps", im_window_no_titlebar | im_window_always_autoresize):
-            //   im_button("one"): print("one msg")
-            //   im_button("two"): print("two msg")
-            //
-
-         if PlayerDead:
-            gl_set_font_name("data/fonts/Zapato/greensboro.ttf")
-            gl_set_font_size(48)
-
-            let msg = "Thou Art Dead"
-            let msgsz = gl_text_size(msg)
-
-            gl_color(color_red):
-               gl_translate(fwsz*0.5 - xy_f{float(msgsz.x), float(msgsz).y}*0.5):
-                  gl_text(msg)
-
-            if gl_button("escape") == 1:
-               return false, view_rect
-               
-   return true, view_rect
-
 
