@@ -57,7 +57,7 @@ def gobjs_spawn(okind: ObjectKind, pos: xy_i, dir: Directions) -> ObjId:
                       parent: nil}
       ++IdCounter
       dl_add(GOInstances, rv)
-      xnotify_spawn(rv, rv, pos)
+      notify_spawn(rv, nil, pos)
 
       return rv
    else:

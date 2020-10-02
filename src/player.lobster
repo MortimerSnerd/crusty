@@ -30,7 +30,10 @@ private def perform_action(act):
       TurnTime = TurnSpan{GameTime, GameTime + act.duration}
       execute(act)
       PlayerState = Stepping
+      let t0 = seconds_elapsed()
       process_callbacks(TurnTime, TurnTime.end)
+      let t1 = seconds_elapsed()
+      debug(): "Callbacks seconds: " + (t1-t0)
       animations_turn_finalize(TurnTime)
    else:
       warn(): "Can\'t move "

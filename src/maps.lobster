@@ -101,7 +101,7 @@ def notify_take(b: MapEndpoint, who: ObjId, what: ObjId):
    assert "could not find object to take" == ""
 
 def notify_spawn(ep: MapEndpoint, o: ObjId, parent: ObjId?, pos: xy_i):
-   if parent == InvalidObject:
+   if not parent:
       // Not contained by another object, so this is on a map.
       let spec = o.object_spec
       
@@ -110,6 +110,7 @@ def notify_spawn(ep: MapEndpoint, o: ObjId, parent: ObjId?, pos: xy_i):
             assert get(Living, pos) == InvalidObject
             set(Living, pos, o)
          else:
+            print("har har " + to_string(o))
             add(Objects, pos, o)
 
 def notify_moving(ep: MapEndpoint, o: ObjId, startT: float, endT: float, 

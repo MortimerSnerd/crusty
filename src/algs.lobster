@@ -518,7 +518,7 @@ def repeat(body, whilecond):
 
 def dl_foreach<T>(list: EmbeddedCircList<T>, body):
    if list.head:
-      var o = list.head.dl_next
+      var o: T? = list.head
 
       repeat():
          if o:  // Should always be true, but we must check.

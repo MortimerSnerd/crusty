@@ -164,7 +164,7 @@ def notify_turning(o: ObjId, startT: float, endT: float, startDir: Directions, e
 // Called when an object is spawned.  If parent != InvalidObject, then
 // the spawned object is "contained" in that object.  Otherwise, the 
 // pos field is a world position for the object.
-def xnotify_spawn(o: ObjId, parent: ObjId?, pos: xy_i):
+def notify_spawn(o: ObjId, parent: ObjId?, pos: xy_i):
    for(Endpoints) ep:
       ep.notify_spawn(o, parent, pos)
 
