@@ -40,11 +40,17 @@ need to be aware of each other.  (or cause import recursion)
 
 ### ObjId
 
-Instead of references to object, there's an ObjId which uniquely identifies
-an object by a (module id, some id/index) pair.  The meaning of the id/index
-is up to the module.  For the simplistic gobj module right now, it's just 
-an index into an array of instance info.  Users of the ObjId's don't need
-to know.
+ObjId used to be a id that could be used to find an object.  This started
+to bog down quite a bit when adding lots of objects. 
+
+Switched over to the ObjId being a object reference to a base class, 
+that has an embedded links so it can be linked into doubly linked lists.
+
+On the good side, saves a lot of sorting to do lookups on objids.
+
+On the bad side, debugging is uglier, can't just expand an array
+to see all of the objects.
+
 
 ## The bus module
 Sometimes you don't just want to react to things going on, but actually make
@@ -104,14 +110,9 @@ sensitive help for the player.  (ie, you're next to a closed safe, so you let
 the player know they can hit 'o' to open the safe)
 
 # TODO
-- For gobjs, there's no indirection for the id, it's just an index into 
-  an array. Need to figure out what to do for the delete case.  Before
-  an object is deleted, need to send out an event so all systems will know
-  to scrub any references to that ObjId before it gets deleted.
 - Fix Rect and Rectf and assoc fns to use exclusive bounds. I think some usage of those
   already use it that way out of habit.
-
-- demo
-   tiles with sword, groundhog, fish
-   grab sword
-   sounds
+- end_changes for the maps module is ridiculously expensive when lots of 
+  things are moving.  It may be the case that the qsort is worst case
+  for almost sorted arrays.  Need to look into this, it's easily eating
+  20% when there's a lot of things moving around. 
