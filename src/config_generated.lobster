@@ -20,6 +20,7 @@ enum TileName:
 enum ItemFlags:
     ItemFlags_Living = 1
     ItemFlags_BlocksLiving = 2
+    ItemFlags_AnimTrail = 4
 
 class ObjectSpec
 

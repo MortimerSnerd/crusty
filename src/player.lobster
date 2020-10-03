@@ -27,6 +27,7 @@ let FakeTurnSpan = TurnSpan{0.0, 999999999990.0}
 private def perform_action(act):
    if act:
       debug(): "Player turn execute"
+      animations_turn_begin()
       TurnTime = TurnSpan{GameTime, GameTime + act.duration}
       execute(act)
       PlayerState = Stepping
@@ -128,7 +129,6 @@ def player_handle_input(player: ObjId):
             anim_play_sfx(GameTime)
             if GameTime == TurnTime.end:
                PlayerState = WaitingForInput
-               animations_turn_begin()
                rv = GoodSteppingEnded
 
 

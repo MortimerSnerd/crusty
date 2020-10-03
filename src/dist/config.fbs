@@ -19,7 +19,8 @@ enum TileName:int32 {
 enum ItemFlags : uint32 (bit_flags)
 {
     Living,
-    BlocksLiving
+    BlocksLiving,
+    AnimTrail
 }
 
 table ObjectSpec {

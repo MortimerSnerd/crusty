@@ -16,7 +16,7 @@
             kind: Groundhog, 
             short_name: "Phuxatawny Phil",
             static_tile: Groundhog, 
-            flags: Living
+            flags: "Living AnimTrail"
         },
         {
             kind: Bullet, 

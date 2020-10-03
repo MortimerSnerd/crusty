@@ -2,6 +2,8 @@ import from "../../../src/crusty/src/"
 import std
 import algs
 import bus
+import color
+import texture
 
 private var Turn = TurnSpan{0,0}
 
@@ -153,6 +155,25 @@ def anim_play_sfx(now: float):
                sound_volume(ch, l.soundVol)
                //TODO modify based on position eventually
             l.soundTriggered = true
+
+private let DrawingTrails = false
+
+def anim_render_move_lines(now: float):
+   if DrawingTrails:
+      gl_set_shader("color")
+      gl_blend(blend_alpha):
+         gl_color(color{1,1,1,0.5}):
+            for(Lanes) l:
+               if l.kind == anMove:
+                  let spec = l.who.object_spec
+
+                  if spec and spec.flags & ItemFlags_AnimTrail:
+                     if now > l.movLerp.endT:
+                        // This movement is complete.
+                        gl_line(l.movLerp.start, l.movLerp.end, 0.01)
+                     elif now >= l.movLerp.startT:
+                        gl_line(l.movLerp.start, eval(l.movLerp, now), 0.01)
+
 
 def anim_pos(ep: AnimEndpoint, what: ObjId, now: float) -> xy_f:
    let i = find_obj_lane(what, anMove, now)

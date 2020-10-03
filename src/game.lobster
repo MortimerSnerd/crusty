@@ -237,8 +237,9 @@ def draw_game_frame(now: float, windowsz: xy_f, view_rect: Rectf):
    gl_set_shader("textured_alpha_cut")
    if MapTexture:
       gl_set_primitive_texture(0, MapTexture.texture)
-      gobjs_draw(now, view_rect)
+      anim_render_move_lines(now)
       map_render(MapTexture, view_rect) 
+      gobjs_draw(now, view_rect)
 
 def num_live_groundhogs() -> int, int:
    var live = 0
