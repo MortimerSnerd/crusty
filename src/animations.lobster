@@ -6,7 +6,8 @@ import bus
 private var Turn = TurnSpan{0,0}
 
 enum AnimKind:
-   anMove, anTurn
+   anMove, anTurn, 
+   anTileChange 
 
 //TODO: add optional trails that shows the path an object moved through.
 
@@ -16,19 +17,24 @@ enum AnimKind:
 class AnimStep:
    who: ObjId
    kind: AnimKind
-   movLerp: LERP<xy_f>
-   turnLerp: AngleLERP
+   movLerp: LERP<xy_f> = mkLERP(0, 1, xy_0, xy_0)
+   turnLerp: AngleLERP = mkAngleLERP(0, 1, 0.0, 0.0)
+   oldTile: int = 0
+   newTile: int = 0
+   newTileTime: float = 0.0
 
 def startTime(a: AnimStep) -> float:
    switch a.kind:
       case anMove: return a.movLerp.startT
       case anTurn: return a.turnLerp.startT
+      case anTileChange: return a.newTileTime
    return 0.0
 
 def endTime(a: AnimStep) -> float:
    switch a.kind:
       case anMove: return a.movLerp.endT
       case anTurn: return a.turnLerp.endT
+      case anTileChange: return a.newTileTime
    return 0.0
 
 // Array of all animations for a given turn.
@@ -96,6 +102,7 @@ def animations_turn_finalize(span: TurnSpan):
             Lanes[i+k].movLerp.endT += d
             Lanes[i+k].turnLerp.startT += d
             Lanes[i+k].turnLerp.endT += d
+            Lanes[i+k].newTileTime += d
 
       if end > Turn.end:
          let d = Turn.end - end
@@ -104,6 +111,7 @@ def animations_turn_finalize(span: TurnSpan):
             Lanes[i+k].movLerp.endT += d
             Lanes[i+k].turnLerp.startT += d
             Lanes[i+k].turnLerp.endT += d
+            Lanes[i+k].newTileTime += d
 
 
 private def find_obj_lane(obj: ObjId, kind: AnimKind, now: float) -> int:
@@ -141,6 +149,17 @@ def anim_pos(ep: AnimEndpoint, what: ObjId, now: float) -> xy_f:
      else:
        return xy_0
 
+def anim_tile(ep: AnimEndpoint, what: ObjId, now: float) -> int:
+   let i = find_obj_lane(what, anTileChange, now)
+
+   if i >= 0:
+      if now >= Lanes[i].newTileTime: 
+         return Lanes[i].newTile
+      else:
+         return Lanes[i].oldTile
+   else:
+     return tile(what)
+
 def notify_deleting(ep: AnimEndpoint, o: ObjId):
    debug(): "animations removing " + to_string(o)
    Lanes = filter(Lanes) x: x.who != o
@@ -162,19 +181,26 @@ def notify_moving(e: AnimEndpoint, o: ObjId, startT: float, endT: float, start: 
    push(Lanes, 
         AnimStep{who: o, 
                  kind: anMove, 
-                 movLerp: mkLERP(startT, endT, gridToWorld(start), gridToWorld(end)),
-                 turnLerp: mkAngleLERP(0, 1, 0, 0)})
+                 movLerp: mkLERP(startT, endT, 
+                                 gridToWorld(start), gridToWorld(end))})
 
 def notify_turning(b: AnimEndpoint, o: ObjId, startT: float, endT: float, startDir: Directions, endDir: Directions):
    push(Lanes, 
         AnimStep{who: o, 
                  kind: anTurn, 
-                 movLerp: mkLERP(0, 1, xy_0, xy_0),
                  turnLerp: mkAngleLERP(startT, endT, 
                                        dir_angles[startDir], dir_angles[endDir])})
+
+def notify_tile_change(b: AnimEndpoint, o: ObjId, startT: float, startTile: int, endTile: int):
+   push(Lanes, 
+        AnimStep{who: o, 
+                 kind: anTileChange, 
+                 newTileTime: startT, 
+                 oldTile: startTile, 
+                 newTile: endTile})
 
 def animations_init():
   bus_register_endpoint(AnimEndpoint{system: AnimationSystem})
 
 def animations_time_scale() -> float:
-   return 2
+   return 1

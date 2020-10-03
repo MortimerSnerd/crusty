@@ -23,6 +23,16 @@ def pos(b:: BusEndpoint, what: ObjId) -> bool, xy_i:
 def anim_pos(b:: BusEndpoint, what: ObjId, now: float) -> xy_f:
    return xy_0
 
+// Returns the current tile at the given time.  Returns 0 for
+// objects that don't have tiles.
+def anim_tile(b:: BusEndpoint, what: ObjId, now: float) -> int:
+   return 0
+
+// Returns the tile for the current game state.  (ie, not animation
+// state).  Returns 0 if there is none.
+def tile(b::BusEndpoint, what: ObjId) -> int:
+   return 0
+
 // Returns the animation angle of `what` at time t.
 def anim_angle(b:: BusEndpoint, what: ObjId, now: float) -> float:
    return 0
@@ -57,6 +67,11 @@ def object_spec(b:: BusEndpoint, o: ObjId) -> ObjectSpec?:
 // any interested systems.  Gets called for all systems, not
 // just the owner.
 def notify_moving(b:: BusEndpoint, o: ObjId, startT: float, endT: float, start: xy_i, end: xy_i):
+   return
+
+// Should be called by actions that change the tiles on objects, 
+// to notify any interested systems.  
+def notify_tile_change(b: BusEndpoint, o: ObjId, startT: float, startTile: int, endTile: int):
    return
 
 // Should be called by actions that turn/rotate objects, to notify
@@ -233,7 +248,36 @@ def turn_is_allowed(now: float, o: ObjId, destDir: Directions) -> bool:
 
    return true
 
+// Returns the current tile at the given time.  Returns 0 for
+// objects that don't have tiles.
+def anim_tile(what: ObjId, now: float) -> int:
+   for(Endpoints) ep:
+      let rv = ep.anim_tile(what, now)
+
+      if rv > 0:
+         return rv
+
+   return 0
+
+
+// Returns the tile for the current game state.  (ie, not animation
+// state).  Returns 0 if there is none.
+def tile(what: ObjId) -> int:
+   let ep = endpointForSystem(what.system)
+
+   if ep:
+      return ep.tile(what)
+   else:
+      return 0
+   
+
 // Notifys that `o` is going away on the next frame.
 def notify_deleting(o: ObjId) -> void:
    for(Endpoints) ep:
       ep.notify_deleting(o)
+
+// Should be called by actions that change the tiles on objects, 
+// to notify any interested systems.  
+def notify_tile_change(o: ObjId, startT: float, startTile: int, endTile: int):
+   for(Endpoints) ep:
+      ep.notify_tile_change(o, startT, startTile, endTile)

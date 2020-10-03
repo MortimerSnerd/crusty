@@ -58,7 +58,7 @@ private def maybe_pickup_sword(now: float):
                play_wav("dist/yoink.wav")
                return
 
-private def maybe_sword_groundhog(gh: ObjId, p: xy_i):
+private def maybe_sword_groundhog(gh: ObjId, p: xy_i, now: float):
    if gh is GroundhogRec:
       if Carrying != InvalidObject and not gh.dead:
          let cc, cpos = pos(Carrying)
@@ -66,14 +66,15 @@ private def maybe_sword_groundhog(gh: ObjId, p: xy_i):
          if cpos == p:
             play_wav(rnd_pick(["dist/ouch1.wav", "dist/ouch2.wav", "dist/ouch3.wav"]))
             gh.dead = true
+            notify_tile_change(gh.graphic, now, tile(gh.graphic), TileName_DeadGroundhog)
             change_tile(gh.graphic, TileName_DeadGroundhog)
 
-private def maybe_sword_groundhog():
+private def maybe_sword_groundhog(now: float):
    if Carrying != InvalidObject:
       dl_foreach(Groundhogs) gh:
          if not gh.dead:
             let f, gpos = pos(gh.graphic)
-            maybe_sword_groundhog(gh, gpos)
+            maybe_sword_groundhog(gh, gpos, now)
 
 def notify_deleting(s: SwerdFeesh, o: ObjId) -> void:
    debug(): "SwerdFeesh: removing " + to_string(o)
@@ -97,7 +98,7 @@ def notify_moving(s: SwerdFeesh, o: ObjId, startT: float, endT: float, start: xy
       if Carrying:
          let op, opos = pos(Carrying)
          notify_moving(Carrying, startT, endT, opos, end + all_dirs[pdir])
-         maybe_sword_groundhog()
+         maybe_sword_groundhog(endT)
 
 def notify_turning(s: SwerdFeesh, o: ObjId, startT: float, endT: float, startDir: Directions, endDir: Directions):
    if o == Player:
@@ -107,7 +108,7 @@ def notify_turning(s: SwerdFeesh, o: ObjId, startT: float, endT: float, startDir
          maybe_pickup_sword(startT)
          notify_moving(Carrying, startT, endT, ppos + all_dirs[startDir], ppos + all_dirs[endDir])
          notify_turning(Carrying, startT, endT, startDir, endDir)
-         maybe_sword_groundhog()
+         maybe_sword_groundhog(endT)
 
 def move_is_allowed(s: SwerdFeesh, now: float, o: ObjId, destPos: xy_i) -> bool:
    // Keep everyone in an invisible playfield.

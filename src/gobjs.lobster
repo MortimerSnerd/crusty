@@ -38,7 +38,8 @@ def gobjs_draw(now: float, view: Rectf):
             let p = anim_pos(o, now)
             if contains(view, p):
                let a = anim_angle(o, now) + OSpecs[o.kind_idx].right_rotation
-               renderSprite(ObjTx, o.curTile, xyz_f{p.x, p.y, 3}, xy_1, sincos(a))
+               let ti = anim_tile(o, now)
+               renderSprite(ObjTx, ti, xyz_f{p.x, p.y, 3}, xy_1, sincos(a))
 
 private var IdCounter = 1
                   
@@ -69,6 +70,12 @@ def gobjs_tests():
 
 // Bus endpoint implementation.
 class GobjEndpoint : BusEndpoint
+
+def tile(b: GobjEndpoint, what: ObjId) -> int:
+   if what is GOInst:
+      return what.curTile
+   else:
+      return 0
 
 def change_tile(b:: GobjEndpoint, o: ObjId, tile: TileName):
    if o is GOInst:
