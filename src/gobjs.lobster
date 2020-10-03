@@ -139,3 +139,5 @@ def gobjs_init():
    qsort_in_place(OSpecs) a, b: int(a.kind) < int(b.kind)
    bus_register_endpoint(GobjEndpoint{system: GObjSystem})
 
+def gobjs_shutdown():
+   dl_clear(GOInstances)

@@ -63,4 +63,6 @@ def go():
 
             map_render_debug(view_rect, 1.0/tile_size)
 
+   game_shutdown()
+
 go()

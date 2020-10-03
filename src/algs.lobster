@@ -30,7 +30,6 @@ def closest_to(arr, x):
 
    return closest
 
-
 // If i ranges from 0..num-1, returns
 // the previous i, cycling around to the 
 // end of the range when i == 0
@@ -501,6 +500,24 @@ def dl_remove<T>(list: EmbeddedCircList<T>, item: T):
    item.dl_next = nil
    item.dl_prev = nil
    --list.count
+
+// Removes all entries.  If this isn't done
+// before you're done with a list, you'll get
+// a memory leak report because of the cycles.
+def dl_clear<T>(list: EmbeddedCircList<T>):
+   let fst = list.head
+
+   if fst:
+      var cur:T? = fst
+      repeat():
+         let nxt = cur.dl_next
+         cur.dl_next = nil
+         cur.dl_prev = nil
+         cur = nxt
+      fn():
+         cur != fst
+
+      list.head = nil
 
 // repeat() until type of loop.
 //     repeat():
