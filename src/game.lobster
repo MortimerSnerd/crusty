@@ -286,7 +286,7 @@ def game_frame(do_debug) -> bool, Rectf:
             let live, dead = num_live_groundhogs()
             if live == 0:
                play_wav("dist/yoink.wav")
-               for(165) i:
+               for(12) i:
                   let pos = xy_rndi(20)
                   if not living_at(pos):
                      let gh = GroundhogRec{graphic: gobjs_spawn(ObjectKind_Groundhog, 
