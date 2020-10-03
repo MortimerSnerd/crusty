@@ -100,7 +100,7 @@ def for_player_actions(player: ObjId, now: float, body):
          body(b.key, b.desc)
 
 enum HandleInputResult:
-   Good, ExitMainLoop
+   Good, GoodSteppingEnded, ExitMainLoop
 
 def player_handle_input(player: ObjId):
    var rv = Good
@@ -125,9 +125,11 @@ def player_handle_input(player: ObjId):
 
             GameTime = min(TurnTime.end, GameTime + dT)
 
+            anim_play_sfx(GameTime)
             if GameTime == TurnTime.end:
                PlayerState = WaitingForInput
                animations_turn_begin()
+               rv = GoodSteppingEnded
 
 
         // process_callbacks(now)

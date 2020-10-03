@@ -84,6 +84,11 @@ def notify_turning(b:: BusEndpoint, o: ObjId, startT: float, endT: float, startD
 def notify_deleting(b:: BusEndpoint, o: ObjId) -> void:
    return
 
+// Should be called by actions that play a sound effect for an object, 
+// to notify any interested systems.
+def notify_sfx(e: BusEndpoint, o: ObjId, startT: float, sfx: string, vol: float):
+   return
+
 // Changes the tile of an object.
 def change_tile(b:: BusEndpoint, o: ObjId, tile: TileName):
    return
@@ -281,3 +286,9 @@ def notify_deleting(o: ObjId) -> void:
 def notify_tile_change(o: ObjId, startT: float, startTile: int, endTile: int):
    for(Endpoints) ep:
       ep.notify_tile_change(o, startT, startTile, endTile)
+
+// Should be called by actions that play a sound effect for an object, 
+// to notify any interested systems.
+def notify_sfx(o: ObjId, startT: float, sfx: string, vol: float):
+   for(Endpoints) ep:
+      ep.notify_sfx(o, startT, sfx, vol)

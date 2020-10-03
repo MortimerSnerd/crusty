@@ -7,7 +7,7 @@ private var Turn = TurnSpan{0,0}
 
 enum AnimKind:
    anMove, anTurn, 
-   anTileChange 
+   anTileChange, anSound
 
 //TODO: add optional trails that shows the path an object moved through.
 
@@ -21,20 +21,24 @@ class AnimStep:
    turnLerp: AngleLERP = mkAngleLERP(0, 1, 0.0, 0.0)
    oldTile: int = 0
    newTile: int = 0
-   newTileTime: float = 0.0
+   animStartTime: float = 0.0  // Used for animations that are not movLerp or turnLerp
+   animEndTime: float = 0.0
+   soundFx: string = ""
+   soundVol: float = 1.0
+   soundTriggered: bool = false
 
 def startTime(a: AnimStep) -> float:
    switch a.kind:
       case anMove: return a.movLerp.startT
       case anTurn: return a.turnLerp.startT
-      case anTileChange: return a.newTileTime
+      case anTileChange, anSound: return a.animStartTime
    return 0.0
 
 def endTime(a: AnimStep) -> float:
    switch a.kind:
       case anMove: return a.movLerp.endT
       case anTurn: return a.turnLerp.endT
-      case anTileChange: return a.newTileTime
+      case anTileChange, anSound: return a.animEndTime
    return 0.0
 
 // Array of all animations for a given turn.
@@ -102,7 +106,8 @@ def animations_turn_finalize(span: TurnSpan):
             Lanes[i+k].movLerp.endT += d
             Lanes[i+k].turnLerp.startT += d
             Lanes[i+k].turnLerp.endT += d
-            Lanes[i+k].newTileTime += d
+            Lanes[i+k].animStartTime += d
+            Lanes[i+k].animEndTime += d
 
       if end > Turn.end:
          let d = Turn.end - end
@@ -111,8 +116,8 @@ def animations_turn_finalize(span: TurnSpan):
             Lanes[i+k].movLerp.endT += d
             Lanes[i+k].turnLerp.startT += d
             Lanes[i+k].turnLerp.endT += d
-            Lanes[i+k].newTileTime += d
-
+            Lanes[i+k].animStartTime += d
+            Lanes[i+k].animEndTime += d
 
 private def find_obj_lane(obj: ObjId, kind: AnimKind, now: float) -> int:
    var last = -1
@@ -136,6 +141,19 @@ private def find_obj_lane(obj: ObjId, kind: AnimKind, now: float) -> int:
 
 class AnimEndpoint : BusEndpoint
 
+// Can be called once per frame to play any sound effects
+// that have been triggered since the last call.
+def anim_play_sfx(now: float):
+   for(Lanes) l:
+      if l.kind == anSound:
+         debug(): "time " + now + " vs " + l.animStartTime + " triggered=" + l.soundTriggered + " " + l.soundFx
+         if now >= l.animStartTime and not l.soundTriggered:
+            let ch = play_wav(l.soundFx)
+            if ch >= 0:
+               sound_volume(ch, l.soundVol)
+               //TODO modify based on position eventually
+            l.soundTriggered = true
+
 def anim_pos(ep: AnimEndpoint, what: ObjId, now: float) -> xy_f:
    let i = find_obj_lane(what, anMove, now)
 
@@ -153,7 +171,7 @@ def anim_tile(ep: AnimEndpoint, what: ObjId, now: float) -> int:
    let i = find_obj_lane(what, anTileChange, now)
 
    if i >= 0:
-      if now >= Lanes[i].newTileTime: 
+      if now >= Lanes[i].animStartTime: 
          return Lanes[i].newTile
       else:
          return Lanes[i].oldTile
@@ -177,6 +195,16 @@ def anim_angle(ep: AnimEndpoint, what: ObjId, now: float) -> float:
      else:
        return 0
 
+def notify_sfx(e: AnimEndpoint, o: ObjId, startT: float, sfx: string, vol: float):
+   push(Lanes, 
+        AnimStep{who: o, 
+                 kind: anSound, 
+                 animStartTime: startT, 
+                 animEndTime: startT, 
+                 soundFx: sfx, 
+                 soundVol: vol, 
+                 soundTriggered: false})
+
 def notify_moving(e: AnimEndpoint, o: ObjId, startT: float, endT: float, start: xy_i, end: xy_i):
    push(Lanes, 
         AnimStep{who: o, 
@@ -195,7 +223,8 @@ def notify_tile_change(b: AnimEndpoint, o: ObjId, startT: float, startTile: int,
    push(Lanes, 
         AnimStep{who: o, 
                  kind: anTileChange, 
-                 newTileTime: startT, 
+                 animStartTime: startT, 
+                 animEndTime: startT, 
                  oldTile: startTile, 
                  newTile: endTile})
 

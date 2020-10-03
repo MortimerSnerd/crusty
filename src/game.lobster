@@ -17,6 +17,7 @@ import vec
 let tile_size = 64
 
 var Player = InvalidObject
+var PlayerAboutToDie = false
 var PlayerDead = false
 
 class DecomposeAction : ActionBase
@@ -44,7 +45,7 @@ let SwerdFeeshSystem = UserSystem1
 
 class SwerdFeesh : BusEndpoint
 
-private def maybe_pickup_sword(now: float):
+private def maybe_pickup_sword(pickUpTime: float):
    if Carrying == InvalidObject:
       let pf, ppos = pos(Player)
       let po, pdir = direction(Player)
@@ -55,7 +56,7 @@ private def maybe_pickup_sword(now: float):
 
             if spec and spec.kind == ObjectKind_Sword:
                Carrying = oid
-               play_wav("dist/yoink.wav")
+               notify_sfx(Player, pickUpTime, "dist/yoink.wav", 1.0)
                return
 
 private def maybe_sword_groundhog(gh: ObjId, p: xy_i, now: float):
@@ -64,7 +65,8 @@ private def maybe_sword_groundhog(gh: ObjId, p: xy_i, now: float):
          let cc, cpos = pos(Carrying)
 
          if cpos == p:
-            play_wav(rnd_pick(["dist/ouch1.wav", "dist/ouch2.wav", "dist/ouch3.wav"]))
+            let fx = rnd_pick(["dist/ouch1.wav", "dist/ouch2.wav", "dist/ouch3.wav"])
+            notify_sfx(gh.graphic, now, fx, 1.0)
             gh.dead = true
             notify_tile_change(gh.graphic, now, tile(gh.graphic), TileName_DeadGroundhog)
             change_tile(gh.graphic, TileName_DeadGroundhog)
@@ -94,7 +96,7 @@ def notify_moving(s: SwerdFeesh, o: ObjId, startT: float, endT: float, start: xy
    if Player and o == Player:
       let pdf, pdir = direction(Player)
 
-      maybe_pickup_sword(startT)
+      maybe_pickup_sword((startT + endT) / 2)
       if Carrying:
          let op, opos = pos(Carrying)
          notify_moving(Carrying, startT, endT, opos, end + all_dirs[pdir])
@@ -155,15 +157,15 @@ def think(sf: SwerdFeesh, span: TurnSpan, who: ObjId, now: float):
       let pp, player_pos = pos(Player) 
       
       if bpos == player_pos:
-         PlayerDead = true
-         play_wav("dist/pdead.wav")
+         PlayerAboutToDie = true
+         notify_sfx(Player, now, "dist/pdead.wav", 1.0)
 
       let ar, act = move_action(span, now, who.graphic, bpos, bpos + all_dirs[dir])
       if act:
          execute(act)
          if bpos + all_dirs[dir] == player_pos:
-            PlayerDead = true
-            play_wav("dist/pdead.wav")
+            PlayerAboutToDie = true
+            notify_sfx(Player, now, "dist/pdead.wav", 1.0)
          schedule_callback(who, now + act.duration)
          return
       else:
@@ -274,7 +276,13 @@ def game_frame(do_debug) -> bool, Rectf:
          case ExitMainLoop:
             return false, view_rect
 
-         case Good:
+         case Good, GoodSteppingEnded:
+            // Two step process, so animation for turn that killed the 
+            // player can play out.
+            if PlayerAboutToDie and rv == GoodSteppingEnded: 
+               PlayerDead = true
+               PlayerAboutToDie = false
+
             let live, dead = num_live_groundhogs()
             if live == 0:
                play_wav("dist/yoink.wav")
