@@ -8,7 +8,8 @@ enum ObjectSystem:
 
 class ObjId : EmbeddedDLinks<ObjId>
    system: ObjectSystem
-   id: int  = 0// Some sort of id that would be unique for `system`.  can probably go
+   id: int = 0 // TODO: this is only currently used as a unique field to sort
+               //       by in the animations module.
 
 // Sentinel for no object.
 let InvalidObject: ObjId? = nil
