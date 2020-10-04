@@ -114,136 +114,97 @@ def think(b:: BusEndpoint, span: TurnSpan, who: ObjId, now: float):
    error(): "Unimplemented think call for " + to_string(who)
    noop()
 
-private def endpointForSystem(s: ObjectSystem) -> BusEndpoint?:
-   let i = find(Endpoints) ep: ep.system == s
-
-   if i < 0:
-      return nil
-   else:
-      return Endpoints[i]
-
 // Should be call for all systems that own ObjId's.  
 def bus_register_endpoint(ep: BusEndpoint):
-   assert ep.system != InvalidSystem
-   let existing = endpointForSystem(ep.system)
+   if length(Endpoints) == 0:
+      for(NumSystemSentinel) i:
+         push(Endpoints, BusEndpoint{system: InvalidSystem})
 
-   assert not existing
-   push(Endpoints, ep)
+   assert ep.system != InvalidSystem
+   Endpoints[ep.system] = ep
 
 // Returns the grid position of the given object.
 def pos(what: ObjId) -> bool, xy_i:
-   let ep = endpointForSystem(what.system)
-
-   if ep:
-      let found, p = ep.pos(what)
-      return found, p
-   else:
-      return false, xy_i{0,0}
+   return Endpoints[what.system].pos(what)
 
 def direction(what: ObjId) -> bool, Directions:
-   let ep = endpointForSystem(what.system)
-
-   if ep:
-      let found, p = ep.direction(what)
-      return found, p
-   else:
-      return false, East
+   return Endpoints[what.system].direction(what)
 
 // Calls `body(ObjId, obj rectf)` for all objects that intersect
 // rectangle `r`.
 def for_objects_intersecting(now: float, r: Rectf, body):
    for(Endpoints) ep:
-      ep.for_objects_intersecting(now, r, body)
+      if ep.system != InvalidSystem: ep.for_objects_intersecting(now, r, body)
 
 // Called to give an object to make an action.  Think calls are
 // scheduled one-shot calls.  If `who` wants to be called again
 // it needs to call schedule_callback() itself.
 def think(span: TurnSpan, who: ObjId, now: float):
-   let ep = endpointForSystem(who.system)
+   let ep = Endpoints[who.system]
 
-   if ep:
-      debug(): "think " + to_string(who) + "@" + string(now)
-      ep.think(span, who, now)
-   else:
-      error(): "No endpoint registered for system " + who.system + " " + who.id
+   debug(): "think " + to_string(who) + "@" + string(now)
+   ep.think(span, who, now)
 
 // Should be called by actions that move objects, to notify
 // any interested systems.  Gets called for all systems, not just
 // the owner of the object.
 def notify_moving(o: ObjId, startT: float, endT: float, start: xy_i, end: xy_i) -> void:
    for(Endpoints) ep:
-      ep.notify_moving(o, startT, endT, start, end)
+      if ep.system != InvalidSystem: ep.notify_moving(o, startT, endT, start, end)
 
 // Should be called by actions that turn/rotate objects, to notify
 // any interested systems.  Gets called for all systems, not just
 // the owner of the object.
 def notify_turning(o: ObjId, startT: float, endT: float, startDir: Directions, endDir: Directions) -> void:
    for(Endpoints) ep:
-      ep.notify_turning(o, startT, endT, startDir, endDir)
+      if ep.system != InvalidSystem: ep.notify_turning(o, startT, endT, startDir, endDir)
 
 // Called when an object is spawned.  If parent != InvalidObject, then
 // the spawned object is "contained" in that object.  Otherwise, the 
 // pos field is a world position for the object.
 def notify_spawn(o: ObjId, parent: ObjId?, pos: xy_i):
    for(Endpoints) ep:
-      ep.notify_spawn(o, parent, pos)
+      if ep.system != InvalidSystem: ep.notify_spawn(o, parent, pos)
 
 // Called when `who` takes `what` off the map.
 // It's assumed that who is on top of or adjacent to 
 // `what`.
 def notify_take(who: ObjId, what: ObjId):
    for(Endpoints) ep:
-      ep.notify_take(who, what)
+      if ep.system != InvalidSystem: ep.notify_take(who, what)
 
 // Returns true, x if `o` should be allowed to move to `destPos`.
 // Returns false if one of the systems says the move should not be allowed.
 def move_is_allowed(now: float, o: ObjId, destPos: xy_i) -> bool:
    for(Endpoints) ep:
-      let allowed = ep.move_is_allowed(now, o, destPos)
+      if ep.system != InvalidSystem:
+         let allowed = ep.move_is_allowed(now, o, destPos)
 
-      if not allowed:
-         return false
+         if not allowed:
+            return false
 
    return true
 
 // If there's an ObjectSpect for an object, bodyfn will be executed with it.
 def object_spec(o: ObjId) -> ObjectSpec?:
-   let ep = endpointForSystem(o.system)
-
-   if ep:
-      return ep.object_spec(o)
-   else:
-      return nil
+   return Endpoints[o.system].object_spec(o)
 
 // Returns the animation position of `what` at time `now`.
 def anim_pos(what: ObjId, now: float) -> xy_f:
-   let ep = endpointForSystem(AnimationSystem)
-
-   if ep:
-      return ep.anim_pos(what, now)
-   else:
-      return xy_0
+   return Endpoints[AnimationSystem].anim_pos(what, now)
 
 // Returns the animation position of `what` at time `now`.
 def anim_angle(what: ObjId, now: float) -> float:
-   let ep = endpointForSystem(AnimationSystem)
-
-   if ep:
-      return ep.anim_angle(what, now)
-   else:
-      return 0
+   return Endpoints[AnimationSystem].anim_angle(what, now)
 
 // Base method. Calls `body(ObjId, obj rectf)` for all objects that intersect
 // rectangle `r`.
 def for_objects_at(p: xy_i, body):
    for(Endpoints) ep:
-      ep.for_objects_at(p, body)
+      if ep.system != InvalidSystem: ep.for_objects_at(p, body)
 
 def change_tile(o: ObjId, tile: TileName):
-   let ep = endpointForSystem(o.system)
-
-   if ep:
-      ep.change_tile(o, tile)
+   Endpoints[o.system].change_tile(o, tile)
 
 // Returns false to block a turn from being made.
 def turn_is_allowed(now: float, o: ObjId, destDir: Directions) -> bool:
@@ -256,39 +217,32 @@ def turn_is_allowed(now: float, o: ObjId, destDir: Directions) -> bool:
 // Returns the current tile at the given time.  Returns 0 for
 // objects that don't have tiles.
 def anim_tile(what: ObjId, now: float) -> int:
-   for(Endpoints) ep:
-      let rv = ep.anim_tile(what, now)
+   let ep = Endpoints[AnimationSystem]
 
-      if rv > 0:
-         return rv
-
-   return 0
+   return ep.anim_tile(what, now)
 
 
 // Returns the tile for the current game state.  (ie, not animation
 // state).  Returns 0 if there is none.
 def tile(what: ObjId) -> int:
-   let ep = endpointForSystem(what.system)
-
-   if ep:
-      return ep.tile(what)
-   else:
-      return 0
+   return Endpoints[what.system].tile(what)
    
-
 // Notifys that `o` is going away on the next frame.
 def notify_deleting(o: ObjId) -> void:
    for(Endpoints) ep:
-      ep.notify_deleting(o)
+      if ep.system != InvalidSystem:
+         ep.notify_deleting(o)
 
 // Should be called by actions that change the tiles on objects, 
 // to notify any interested systems.  
 def notify_tile_change(o: ObjId, startT: float, startTile: int, endTile: int):
    for(Endpoints) ep:
-      ep.notify_tile_change(o, startT, startTile, endTile)
+      if ep.system != InvalidSystem:
+         ep.notify_tile_change(o, startT, startTile, endTile)
 
 // Should be called by actions that play a sound effect for an object, 
 // to notify any interested systems.
 def notify_sfx(o: ObjId, startT: float, sfx: string, vol: float):
    for(Endpoints) ep:
-      ep.notify_sfx(o, startT, sfx, vol)
+      if ep.system != InvalidSystem:
+         ep.notify_sfx(o, startT, sfx, vol)

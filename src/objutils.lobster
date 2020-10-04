@@ -4,7 +4,7 @@ enum ObjectSystem:
    InvalidSystem, PlayerSystem, GObjSystem, MapSystem, AnimationSystem, 
    // Systems for use in game specific code.  Provided with generic names so
    // in theory this file doesn't need to be changed.
-   UserSystem1, UserSystem2, UserSystem3
+   UserSystem1, UserSystem2, UserSystem3, NumSystemSentinel
 
 class ObjId : EmbeddedDLinks<ObjId>
    system: ObjectSystem
