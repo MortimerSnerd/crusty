@@ -223,6 +223,9 @@ def game_init():
    if test_txtur:
       MapTexture = mkGridTiledTexture(test_txtur, xy_i{32, 32})
 
+   if MapTexture:
+      maps_load_debug_level(MapTexture)
+
    Player = gobjs_spawn(ObjectKind_Player, xy_i{4, 1}, East)
 
    bind("space", "Decompose gracefully") player, now: 
@@ -287,7 +290,7 @@ def game_frame(do_debug) -> bool, Rectf:
             let live, dead = num_live_groundhogs()
             if live == 0:
                play_wav("dist/yoink.wav")
-               for(12) i:
+               for(165) i:
                   let pos = xy_rndi(20)
                   if not living_at(pos):
                      let gh = GroundhogRec{graphic: gobjs_spawn(ObjectKind_Groundhog, 

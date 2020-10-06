@@ -12,7 +12,8 @@ enum TileName:int32 {
   Groundhog = 3,
   Wally = 4,
   DeadGroundhog = 5, 
-  Bullet = 6
+  Bullet = 6, 
+  Floor0 = 7
 }
 
 

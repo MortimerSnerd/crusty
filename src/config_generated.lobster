@@ -16,6 +16,7 @@ enum TileName:
     TileName_Wally = 4
     TileName_DeadGroundhog = 5
     TileName_Bullet = 6
+    TileName_Floor0 = 7
 
 enum ItemFlags:
     ItemFlags_Living = 1

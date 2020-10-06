@@ -21,11 +21,10 @@ private let Living = mkSparseGrid(InvalidObject)
 // as other game rules allow it.
 private let Objects = mkSparseGrid(InvalidObject)
 
-enum LayerName:
-   WallLayer
-
 // Grids for layers, one for each LayerName
-private let Layers = [mkSparseGrid(0)]
+private var WallLayer = mkSparseGrid(TileName_None)
+private var FloorLayer = mk_dense_grid<TileName>(xy_i{100, 100}, TileName_Floor0)
+private var LevelMesh: resource? = nil
 
 class MapEndpoint : BusEndpoint
 
@@ -40,10 +39,10 @@ def crosses_wall_diagonal(start: xy_i, end: xy_i) -> bool:
       let vr = all_dirs[turned_right(dir)]
       let vl = all_dirs[turned_left(dir)]
 
-      if get(Layers[WallLayer], start + vr) != 0:
+      if get(WallLayer, start + vr) != 0:
          return true
       
-      if get(Layers[WallLayer], start + vl) != 0:
+      if get(WallLayer, start + vl) != 0:
          return true
 
    return false
@@ -52,7 +51,7 @@ def move_is_allowed(ep: MapEndpoint, now: float, o: ObjId, destPos: xy_i) -> boo
    let spec = object_spec(o)
 
    if spec:
-      if get(Layers[WallLayer], destPos) != 0:
+      if get(WallLayer, destPos) != 0:
          return false
 
       let found, cpos = pos(o)
@@ -133,38 +132,71 @@ def for_objects_at(b:: MapEndpoint, p: xy_i, body):
    if lv != InvalidObject:
       body(lv)
 
+private def create_level_mesh(gtt: GridTiledTexture, estSize: int = 100):
+   let ps = vector_reserve(typeof [xyz_f], estSize * 4)  
+   let tcs = vector_reserve(typeof [xy_f], estSize * 4)  
+   let indices = vector_reserve(typeof [int], estSize * 6)
+
+   def add_rect(p: xy_f, ti: int, z: float):
+      let base = length(ps)
+
+      withTexCoords(gtt, ti) t0, t1, t2, t3:
+         push(ps, xyz_f{p.x + 0, p.y + 0, z}) ; push(tcs, t0)
+         push(ps, xyz_f{p.x + 1, p.y + 0, z}) ; push(tcs, t1)
+         push(ps, xyz_f{p.x + 1, p.y + 1, z}) ; push(tcs, t2)
+         push(ps, xyz_f{p.x + 0, p.y + 1, z}) ; push(tcs, t3)
+
+      push(indices, base + 1) ; push(indices, base + 3) ; push(indices, base + 0)
+      push(indices, base + 2) ; push(indices, base + 3) ; push(indices, base + 1)
+   
+   // We'll use the explicit size of the FloorLayer as
+   // the rect to pull items out of the wall sparse grid.
+   let all = Rect{topLeft: xy_i{0,0}, bottomRight: FloorLayer.dims}
+
+   let WallZ = 0.2
+   for_items_within(WallLayer, all) p, ti:
+      add_rect(xy_f{float(p.x), float(p.y)}, ti, WallZ)
+
+   let FloorZ = 0.1
+   for_items_within(FloorLayer, all) p, ti:
+      add_rect(xy_f{float(p.x), float(p.y)}, ti, FloorZ)
+
+   return gl_new_mesh("PT", ps, [], [], tcs, [], indices)
+
 def maps_init():
    bus_register_endpoint(MapEndpoint{system: MapSystem})
+
+def maps_load_debug_level(gtt: GridTiledTexture):
    // debuggery
-   modifying(Layers[WallLayer]):
+   modifying(WallLayer):
       for(50) i:
-         set(Layers[WallLayer], worldToGrid(xy_rnd() * 30) - xy_i{15, 15}, TileName_Wally)
+         set(WallLayer, worldToGrid(xy_rnd() * 20), TileName_Wally)
+
+   let lm = create_level_mesh(gtt, 200)
+
+   if lm:
+      LevelMesh = lm
+   else:
+      error(): "Didn\'t create level mesh?"
+
 
 // Called once per frame.
 def maps_frame():
    // Cleanup and reindex our changing grids if needed.
-   end_changes(Living)
-   end_changes(Objects)
+   let ect = stopwatch():
+      end_changes(Living)
+      end_changes(Objects)
+
+   timing(): "ECT seconds: " + ect
+
 
 // Assumes projection is already set.
 def map_render(gtt: GridTiledTexture, wview: Rectf):
    gl_set_shader("textured_alpha_cut")
    gl_blend(blend_alpha)
 
-   //TODO for static layers, we'll generate a mesh and just
-   // render it rather than doing N draw calls here.
-   // This is just for testing and debugging.
-   let gtl = worldToGrid(wview.topLeft - xy_1)
-   let gbr = worldToGrid(wview.bottomRight + xy_1)
-   let grect = Rect{topLeft: gtl, bottomRight: gbr}
-
-   for_items_within(Layers[WallLayer], grect) pos, ti:
-      // Reminder - we don't use gridToWorld here, because that adds
-      // an offset so sprites/etc are centered on the grid when pos = (1, 1).
-      let fpos = xy_f{float(pos.x), float(pos.y) + 1.0}
-      gl_translate(fpos):
-         withTexCoords(gtt, ti) t0, t1, t2, t3:
-            gl_rect_tc_col(xy_f{1.0, -1.0}, t0, t2-t0, [])
+   if LevelMesh:
+      gl_render_mesh(LevelMesh)
 
 // Assumes the shader is already set to color.
 def map_render_debug(wview: Rectf, thickness: float):
