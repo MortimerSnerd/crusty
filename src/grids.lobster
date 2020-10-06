@@ -23,21 +23,21 @@ def end_changes<T>(g:: SparseGrid<T>):
       ents = append(ents, new_ents)
       new_ents = []
 
-   // Order so we can lookup based on y.
-   // We rig the compare function to make any entries
-   // with the `missingVal` percolate to the back of the
-   // array, where we can pop them off.
-   qsort_in_place(ents) a, b:
-      if a.loc == missingVal:
-         false
-      elif b.loc == missingVal:
-         true
-      else:
-         a.pos.y < b.pos.y
+      // Order so we can lookup based on y.
+      // We rig the compare function to make any entries
+      // with the `missingVal` percolate to the back of the
+      // array, where we can pop them off.
+      qsort_in_place(ents) a, b:
+         if a.loc == missingVal:
+            false
+         elif b.loc == missingVal:
+            true
+         else:
+            a.pos.y < b.pos.y
 
-   // Goodbye default entries.
-   while length(ents) > 0 and ents[length(ents)-1].loc == missingVal:
-      pop(ents)
+      // Goodbye default entries.
+      while length(ents) > 0 and ents[length(ents)-1].loc == missingVal:
+         pop(ents)
 
 // Modifications to the grid should be done within
 // `f`.  Allows pre and post processing to be done.
@@ -147,6 +147,65 @@ def mkSparseGrid<T>(missingVal: T, estEnts = 100):
    return SparseGrid<T>{missingVal: missingVal, 
                         ents: vector_reserve(typeof [SGEnt<T>], estEnts), 
                         new_ents: vector_reserve(typeof [SGEnt<T>], estEnts)}
+
+class DenseGrid<T>:
+   dims: xy_i    // Have to specify the dimensions.  Implied 0,0 topLeft.
+   elems: [T]
+   defaultVal: T
+
+def mk_dense_grid<T>(dims: xy_i, defaultVal: T) -> DenseGrid<T>:
+   assert dims.x > 0 and dims.y > 0
+   let rv =  DenseGrid<T>{dims: dims, 
+                          elems: vector_reserve(typeof return, dims.x * dims.y), 
+                          defaultVal: defaultVal}
+
+   for(dims.x*dims.y) i:
+      push(rv.elems, defaultVal)
+
+   return rv
+
+// Calculates index of (x,y) in elems, with no checks to see 
+// if they fall in the dimensions of the grids, since this will
+// be called a lot.  Checks need to be done by callers.
+private def index<T>(g: DenseGrid<T>, x: int, y: int) -> int:
+   return x + y*g.dims.x
+
+// Clips a point to the boundaries of the grid.
+private def clip_to_dims<T>(g: DenseGrid<T>, p: xy_i) -> xy_i:
+   return xy_i{min(max(0, p.x), g.dims.x - 1),
+               min(max(0, p.y), g.dims.y - 1)}
+
+// Calls bodyfn(pos, index) for issing items within the given rectangle.
+def for_items_within<T>(g::DenseGrid<T>, r: Rect, bodyfn):
+   let tl = clip_to_dims(g, r.topLeft)
+   let br = clip_to_dims(g, r.bottomRight)
+   var y = tl.y
+
+   while y <= br.y:
+      var x = tl.x
+
+      while x <= br.x:
+         bodyfn(xy_i{x, y}, g.elems[index(g, x, y)])
+         ++x
+
+      ++y
+
+def contains<T>(g: DenseGrid<T>, p: xy_i) -> bool:
+   return p.x >= 0 and p.x <= g.dims.x and p.y >= 0 and p.y <= g.dims.y
+   
+// Returns the item at `pos`.  If `pos` is out of bounds, 
+// will return the default value passed into mk_dense_grid.
+def get<T>(g::DenseGrid<T>, pos: xy_i) -> T:
+   if g.contains(pos):
+      return g.elems[index(g, pos.x, pos.y)]
+   else:
+      return g.defaultVal
+
+// Sets the value at `pos`.  Does nothing if `pos` 
+// is out of the grid's bounds.
+def set<T>(g::DenseGrid<T>, pos: xy_i, val: T):
+   if g.contains(pos):
+      g.elems[index(g, pos.x, pos.y)] = val
 
 def grids_tests():
    let rv = mkSparseGrid(0)
