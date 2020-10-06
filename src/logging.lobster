@@ -5,7 +5,8 @@ enum LogLevel:
    None, 
    Error, 
    Warning, 
-   Debug
+   Debug, 
+   Timings
 
 var LoggingLevel = Warning
 
@@ -21,3 +22,6 @@ def debug(f):
    if LoggingLevel >= Debug:
       print("DEBUG: " + f())
 
+def timing(f):
+   if LoggingLevel >= Timings:
+      print("TIMEING: " + f())

@@ -391,6 +391,13 @@ private def rndcheck():
             print("could not find " + x + ", should go to " + i)
             break
 
+def stopwatch(body) -> float:
+   let t0 = seconds_elapsed()
+   body()
+   let t1 = seconds_elapsed()
+
+   return t1 - t0
+
 def heapcheck():
    let hcmp = fn(a: int, b: int) -> bool:
       a <= b
