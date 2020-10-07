@@ -115,9 +115,6 @@ the player know they can hit 'o' to open the safe)
 - Move layer depth constants out into common file, need to be referenced
   in a few places.
 - port over munificent visibility algo
-- add vizset - coordinate bitsets that record visible, lit, seen, etc...
-  (string as byte array, use unicode_to_string or repeat_string to create.)
-- mask dark areas with depth buffer.
 - can seen but not lit be masked with stipple pattern?  Probably looks ugly, but try.
 - change anim trails to use gl_new_mesh to make trails that are tapered and 
   alpha faded.
