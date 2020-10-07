@@ -22,6 +22,7 @@ enum ItemFlags:
     ItemFlags_Living = 1
     ItemFlags_BlocksLiving = 2
     ItemFlags_AnimTrail = 4
+    ItemFlags_EmitsLight = 8
 
 class ObjectSpec
 
@@ -40,13 +41,15 @@ class ObjectSpec : flatbuffers_handle
         return ItemFlags(buf_.flatbuffers_field_int32(pos_, 12, 0))
     def right_rotation():
         return buf_.flatbuffers_field_float32(pos_, 14, 0.0)
+    def light_radius():
+        return buf_.flatbuffers_field_int32(pos_, 16, 0)
 
 def GetRootAsObjectSpec(buf:string): return ObjectSpec { buf, buf.flatbuffers_indirect(0) }
 
 struct ObjectSpecBuilder:
     b_:flatbuffers_builder
     def start():
-        b_.StartObject(6)
+        b_.StartObject(7)
         return this
     def add_kind(kind:ObjectKind):
         b_.PrependInt16Slot(0, kind, 0)
@@ -65,6 +68,9 @@ struct ObjectSpecBuilder:
         return this
     def add_right_rotation(right_rotation:float):
         b_.PrependFloat32Slot(5, right_rotation, 0.0)
+        return this
+    def add_light_radius(light_radius:int):
+        b_.PrependInt32Slot(6, light_radius, 0)
         return this
     def end():
         return b_.EndObject()

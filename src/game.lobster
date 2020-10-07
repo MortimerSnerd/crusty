@@ -211,6 +211,7 @@ def set_map_projection(center: xy_f, tile_pixel_sz: int, view_area: xy_f) -> Rec
    return Rectf{center - viewsz, center + viewsz}
 
 def game_init():
+   rnd_seed(product(date_time()))
    gl_load_materials("dist/crusty.materials")
    im_init(false)
    assert im_add_font("data/fonts/Droid_Sans/DroidSans.ttf", 12.0)
@@ -223,16 +224,15 @@ def game_init():
    if test_txtur:
       MapTexture = mkGridTiledTexture(test_txtur, xy_i{32, 32})
 
+   Player = gobjs_spawn(ObjectKind_Player, xy_i{4, 1}, East)
+
    if MapTexture:
       maps_load_debug_level(MapTexture)
-
-   Player = gobjs_spawn(ObjectKind_Player, xy_i{4, 1}, East)
 
    bind("space", "Decompose gracefully") player, now: 
       let r, act = decompose_action(FakeTurnSpan, now, player)
       act
 
-   rnd_seed(product(date_time()))
 
    //play_wav("dist/ouch1.wav")
 
@@ -280,17 +280,24 @@ def game_frame(do_debug) -> bool, Rectf:
          case ExitMainLoop:
             return false, view_rect
 
-         case Good, GoodSteppingEnded:
+         case Good, GoodSteppingEnded, GoodTurnBegins:
             // Two step process, so animation for turn that killed the 
             // player can play out.
             if PlayerAboutToDie and rv == GoodSteppingEnded: 
                PlayerDead = true
                PlayerAboutToDie = false
+            elif rv == GoodTurnBegins:
+               // Update, while leaving current visibility intact.
+               maps_update_viz(false)
+            elif rv == GoodSteppingEnded:
+               // Update again, now clearing out any areas we can't
+               // see, after possibly moving.
+               maps_update_viz(true)
 
             let live, dead = num_live_groundhogs()
             if live == 0:
                play_wav("dist/yoink.wav")
-               for(165) i:
+               for(12) i:
                   let pos = xy_rndi(20)
                   if not living_at(pos):
                      let gh = GroundhogRec{graphic: gobjs_spawn(ObjectKind_Groundhog, 

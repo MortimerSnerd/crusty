@@ -1,27 +1,27 @@
 // Simple logging, with logging functions that delay message string creation
 // in a function, so strings are only created when the message needs to 
 // be logged.
-enum LogLevel:
-   None, 
+enum_flags LogLevel:
    Error, 
    Warning, 
    Debug, 
    Timings
 
-var LoggingLevel = Warning
+var LoggingLevel = Error
 
 def warn(f):
-   if LoggingLevel >= Warning:
+   if LoggingLevel & Warning:
       print("WARN: " + f())
 
 def error(f):
-   if LoggingLevel >= Error:
+   if LoggingLevel & Error:
       print("ERROR: " + f())
 
 def debug(f):
-   if LoggingLevel >= Debug:
+   if (LoggingLevel & Debug) != 0:
+      print("arf " + LoggingLevel)
       print("DEBUG: " + f())
 
 def timing(f):
-   if LoggingLevel >= Timings:
-      print("TIMEING: " + f())
+   if LoggingLevel & Timings:
+      print("TIMING: " + f())

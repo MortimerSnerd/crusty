@@ -21,7 +21,8 @@ enum ItemFlags : uint32 (bit_flags)
 {
     Living,
     BlocksLiving,
-    AnimTrail
+    AnimTrail,
+    EmitsLight
 }
 
 table ObjectSpec {
@@ -31,6 +32,7 @@ table ObjectSpec {
    weight: float;
    flags: ItemFlags;
    right_rotation: float = 0;
+   light_radius: int = 0;
 } 
 
 table ConfigRoot {

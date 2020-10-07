@@ -4,6 +4,7 @@ import algs
 import bus
 import callbacks
 import config
+import consts
 import config_generated
 import logging
 import objutils
@@ -39,7 +40,8 @@ def gobjs_draw(now: float, view: Rectf):
             if contains(view, p):
                let a = anim_angle(o, now) + OSpecs[o.kind_idx].right_rotation
                let ti = anim_tile(o, now)
-               renderSprite(ObjTx, ti, xyz_f{p.x, p.y, 3}, xy_1, sincos(a))
+               let z = if OSpecs[o.kind_idx].flags & ItemFlags_Living: LivingZ else: OnFloorZ
+               renderSprite(ObjTx, ti, xyz_f{p.x, p.y, z}, xy_1, sincos(a))
 
 private var IdCounter = 1
                   
@@ -70,6 +72,11 @@ def gobjs_tests():
 
 // Bus endpoint implementation.
 class GobjEndpoint : BusEndpoint
+
+def for_all_enabled_lights(b:: GobjEndpoint, body):
+   dl_foreach(GOInstances) o:
+      if not o.parent and OSpecs[o.kind_idx].flags & ItemFlags_EmitsLight:
+         body(o, OSpecs[o.kind_idx])
 
 def tile(b: GobjEndpoint, what: ObjId) -> int:
    if what is GOInst:

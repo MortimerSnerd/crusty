@@ -9,8 +9,9 @@
             kind: Player, 
             short_name: "Just Some Guy",
             static_tile: Fish,
-            flags: Living,
-            right_rotation: 0
+            flags: "Living EmitsLight",
+            right_rotation: 0,
+            light_radius: 5
         }, 
         {
             kind: Groundhog, 
@@ -21,7 +22,9 @@
         {
             kind: Bullet, 
             short_name: "Ugly Bullet",
-            static_tile: Bullet
+            static_tile: Bullet,
+            flags: EmitsLight,
+            light_radius: 1
         }
      ]
 }

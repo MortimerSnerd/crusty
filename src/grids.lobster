@@ -2,6 +2,8 @@
 import from "../../../src/crusty/src/"
 import std
 import algs
+import bus
+import config_generated
 
 private class SGEnt<T>:
    pos: xy_i
@@ -167,11 +169,11 @@ def mk_dense_grid<T>(dims: xy_i, defaultVal: T) -> DenseGrid<T>:
 // Calculates index of (x,y) in elems, with no checks to see 
 // if they fall in the dimensions of the grids, since this will
 // be called a lot.  Checks need to be done by callers.
-private def index<T>(g: DenseGrid<T>, x: int, y: int) -> int:
+private def index(g, x: int, y: int) -> int:
    return x + y*g.dims.x
 
 // Clips a point to the boundaries of the grid.
-private def clip_to_dims<T>(g: DenseGrid<T>, p: xy_i) -> xy_i:
+private def clip_to_dims(g, p: xy_i) -> xy_i:
    return xy_i{min(max(0, p.x), g.dims.x - 1),
                min(max(0, p.y), g.dims.y - 1)}
 
@@ -190,7 +192,7 @@ def for_items_within<T>(g::DenseGrid<T>, r: Rect, bodyfn):
 
       ++y
 
-def contains<T>(g: DenseGrid<T>, p: xy_i) -> bool:
+def contains(g, p: xy_i) -> bool:
    return p.x >= 0 and p.x <= g.dims.x and p.y >= 0 and p.y <= g.dims.y
    
 // Returns the item at `pos`.  If `pos` is out of bounds, 
@@ -206,6 +208,81 @@ def get<T>(g::DenseGrid<T>, pos: xy_i) -> T:
 def set<T>(g::DenseGrid<T>, pos: xy_i, val: T):
    if g.contains(pos):
       g.elems[index(g, pos.x, pos.y)] = val
+
+enum_flags VisFlag:
+   vfLit,              //  Has light
+   vfVisible,          // Visible to player
+   vfSeen              // Seen before by player.  May or may not be visible now.
+
+class VizSet:
+   dims: xy_i  // Dimensions of grid covered.
+   elems: [int] // 3 bit per 64 bit int makes me sad.
+
+// Creates a set for recording visibility for a grid.
+def mk_viz_set(dim: xy_i) -> VizSet:
+   assert dim.x > 0 and dim.y > 0
+   let num_elems = dim.x * dim.y
+   let rv = VizSet{dims: dim, 
+                   elems: vector_reserve(typeof return, num_elems)}
+
+   for(num_elems) i:
+      push(rv.elems, 0)
+
+   return rv
+
+// Returns true if the grid @ p is lit.  
+// Or false if p is outside the bounds of the grid.
+def is_lit(v: VizSet, p: xy_i) -> bool:
+   var rv = false
+
+   if v.contains(p):
+      let b = v.elems[index(v, p.x, p.y)]
+
+      rv = (b & vfLit) != 0
+
+   return rv
+
+// Marks a grid as lit, seen, etc...
+def mark(v: VizSet, p: xy_i, flags: VisFlag):
+   if v.contains(p):
+      let i = index(v, p.x, p.y)
+
+      v.elems[i] = flags
+
+// Clears the visible and lit flags, leaving
+// vfSeen untouched.
+def clear(v: VizSet):
+   for(length(v.elems)) i:
+      v.elems[i] &= ~(vfLit | vfVisible)
+
+//TODO for now just updates lights.
+def update_visibility(v: VizSet, clear_viz: bool = false):
+   let t = stopwatch():
+      if clear_viz:
+         clear(v)
+
+      for_all_enabled_lights() obj, spec:
+         let r = spec.light_radius()
+         let r2 = r * r
+         let f, ps = pos(obj)
+
+         if f:
+            var y = ps.y - r
+            let br = xy_i{ps.x + r, ps.y + r}
+
+            while y <= br.y:
+               var x = ps.x - r
+
+               while x <= br.x:
+                  let dx = x - ps.x
+                  let dy = y - ps.y
+
+                  if (dx*dx + dy*dy) < r2:
+                     mark(v, xy_i{x, y}, vfLit | vfVisible)
+                  ++x
+               ++y
+
+   timing(): "update_visibility: " + t
 
 def grids_tests():
    let rv = mkSparseGrid(0)

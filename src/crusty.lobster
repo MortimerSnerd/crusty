@@ -29,12 +29,16 @@ def go():
    var do_tests = false
    var do_debug_rects = false
 
+   LoggingLevel = Error | Warning
+
    for(command_line_arguments()) a:
       if a == "--test":
          do_tests = true
       elif a == "--debug":
          do_debug = true
-         LoggingLevel = Debug
+         LoggingLevel |= Debug 
+      elif a == "--timings":
+         LoggingLevel |= Timings
       elif a == "--debug-rects":
          do_debug_rects = true
       else:

@@ -44,7 +44,12 @@ def direction(b:: BusEndpoint, what: ObjId) -> bool, Directions:
 // Base method. Calls `body(ObjId, obj rectf)` for all objects that intersect
 // rectangle `r`.
 def for_objects_intersecting(b:: BusEndpoint, now: float, r: Rectf, body):
-   noop()
+   return
+
+// Calls body(ObjId, ObjectSpec) for all lights that are on the
+// map and that are turned on.
+def for_all_enabled_lights(b:: BusEndpoint, body):
+   return
 
 // Base method. Calls `body(ObjId, obj rectf)` for all objects that are at
 // `p`.
@@ -246,3 +251,10 @@ def notify_sfx(o: ObjId, startT: float, sfx: string, vol: float):
    for(Endpoints) ep:
       if ep.system != InvalidSystem:
          ep.notify_sfx(o, startT, sfx, vol)
+
+// Calls body(ObjId, ObjectSpec) for all lights that are on the
+// map and that are turned on.
+def for_all_enabled_lights(body):
+   for(Endpoints) ep:
+      ep.for_all_enabled_lights(body)
+

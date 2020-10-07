@@ -3,6 +3,7 @@ import from "../../../src/crusty/src/"
 import algs
 import bus
 import config_generated
+import consts
 import grids
 import logging
 import objutils
@@ -25,6 +26,7 @@ private let Objects = mkSparseGrid(InvalidObject)
 private var WallLayer = mkSparseGrid(TileName_None)
 private var FloorLayer = mk_dense_grid<TileName>(xy_i{100, 100}, TileName_Floor0)
 private var LevelMesh: resource? = nil
+private var PlayerViz: VizSet? = nil
 
 class MapEndpoint : BusEndpoint
 
@@ -153,11 +155,9 @@ private def create_level_mesh(gtt: GridTiledTexture, estSize: int = 100):
    // the rect to pull items out of the wall sparse grid.
    let all = Rect{topLeft: xy_i{0,0}, bottomRight: FloorLayer.dims}
 
-   let WallZ = 0.2
    for_items_within(WallLayer, all) p, ti:
       add_rect(xy_f{float(p.x), float(p.y)}, ti, WallZ)
 
-   let FloorZ = 0.1
    for_items_within(FloorLayer, all) p, ti:
       add_rect(xy_f{float(p.x), float(p.y)}, ti, FloorZ)
 
@@ -165,6 +165,12 @@ private def create_level_mesh(gtt: GridTiledTexture, estSize: int = 100):
 
 def maps_init():
    bus_register_endpoint(MapEndpoint{system: MapSystem})
+
+// Should be called before a turn starts animating, 
+// to update off the latest game state.
+def maps_update_viz(clear_viz: bool):
+   if PlayerViz:
+      update_visibility(PlayerViz, clear_viz)
 
 def maps_load_debug_level(gtt: GridTiledTexture):
    // debuggery
@@ -176,6 +182,8 @@ def maps_load_debug_level(gtt: GridTiledTexture):
 
    if lm:
       LevelMesh = lm
+      PlayerViz = mk_viz_set(FloorLayer.dims)
+      update_visibility(PlayerViz, true)
    else:
       error(): "Didn\'t create level mesh?"
 
@@ -183,15 +191,54 @@ def maps_load_debug_level(gtt: GridTiledTexture):
 // Called once per frame.
 def maps_frame():
    // Cleanup and reindex our changing grids if needed.
-   let ect = stopwatch():
-      end_changes(Living)
-      end_changes(Objects)
+   end_changes(Living)
+   end_changes(Objects)
 
-   timing(): "ECT seconds: " + ect
 
+private def render_viz_mask(wview: Rectf):
+   if PlayerViz:
+      let t = stopwatch():
+         let tl = worldToGrid(wview.topLeft - xy_1)
+         let br = worldToGrid(wview.bottomRight + xy_1)
+         let ps: [xyz_f] = vector_reserve(typeof return, 4)
+         let indices: [int] = vector_reserve(typeof return, 6)
+
+         def add_rect(xx: int, yy: int,  z: float):
+            let base = length(ps)
+
+            let x = float(xx)
+            let y = float(yy)
+
+            push(ps, xyz_f{x + 0, y + 0, z})
+            push(ps, xyz_f{x + 1, y + 0, z})
+            push(ps, xyz_f{x + 1, y + 1, z})
+            push(ps, xyz_f{x + 0, y + 1, z})
+
+            push(indices, base + 1) ; push(indices, base + 3) ; push(indices, base + 0)
+            push(indices, base + 2) ; push(indices, base + 3) ; push(indices, base + 1)
+
+         var y = tl.y
+         
+         while y <= br.y:
+            var x = tl.x
+            while x <= br.x:
+               if not is_lit(PlayerViz, xy_i{x, y}):
+                  add_rect(x, y, MaskZ)
+               ++x
+            ++y
+
+         let meh = gl_new_mesh("P", ps, [], [], [], [], indices)
+
+         gl_set_shader("color")
+         gl_color(color_black):
+            gl_render_mesh(meh)
+
+      timing(): "render mask " + t
 
 // Assumes projection is already set.
 def map_render(gtt: GridTiledTexture, wview: Rectf):
+   render_viz_mask(wview)
+   
    gl_set_shader("textured_alpha_cut")
    gl_blend(blend_alpha)
 

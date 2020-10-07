@@ -112,7 +112,12 @@ the player know they can hit 'o' to open the safe)
 # TODO
 - Fix Rect and Rectf and assoc fns to use exclusive bounds. I think some usage of those
   already use it that way out of habit.
-- end_changes for the maps module is ridiculously expensive when lots of 
-  things are moving.  It may be the case that the qsort is worst case
-  for almost sorted arrays.  Need to look into this, it's easily eating
-  20% when there's a lot of things moving around. 
+- Move layer depth constants out into common file, need to be referenced
+  in a few places.
+- port over munificent visibility algo
+- add vizset - coordinate bitsets that record visible, lit, seen, etc...
+  (string as byte array, use unicode_to_string or repeat_string to create.)
+- mask dark areas with depth buffer.
+- can seen but not lit be masked with stipple pattern?  Probably looks ugly, but try.
+- change anim trails to use gl_new_mesh to make trails that are tapered and 
+  alpha faded.

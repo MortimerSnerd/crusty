@@ -39,8 +39,6 @@ private def perform_action(act):
    else:
       warn(): "Can\'t move "
 
-// Commenting out the next line will allow the program to run.
-
 def PlayerAction(player: ObjId, now: float) -> ActionBase?
 
 class Binding:
@@ -101,7 +99,7 @@ def for_player_actions(player: ObjId, now: float, body):
          body(b.key, b.desc)
 
 enum HandleInputResult:
-   Good, GoodSteppingEnded, ExitMainLoop
+   Good, GoodSteppingEnded, GoodTurnBegins, ExitMainLoop
 
 def player_handle_input(player: ObjId):
    var rv = Good
@@ -116,6 +114,7 @@ def player_handle_input(player: ObjId):
                   let mkact = b.afn
                   let act = mkact(player, GameTime)
                   perform_action(act)
+                  rv = GoodTurnBegins
                   break
 
             if gl_button("q") == 1:
