@@ -224,10 +224,11 @@ def game_init():
    if test_txtur:
       MapTexture = mkGridTiledTexture(test_txtur, xy_i{32, 32})
 
-   Player = gobjs_spawn(ObjectKind_Player, xy_i{4, 1}, East)
+   let ppos = xy_i{4, 1}
+   Player = gobjs_spawn(ObjectKind_Player, ppos, East)
 
    if MapTexture:
-      maps_load_debug_level(MapTexture)
+      maps_load_debug_level(MapTexture, ppos)
 
    bind("space", "Decompose gracefully") player, now: 
       let r, act = decompose_action(FakeTurnSpan, now, player)
@@ -283,16 +284,17 @@ def game_frame(do_debug) -> bool, Rectf:
          case Good, GoodSteppingEnded, GoodTurnBegins:
             // Two step process, so animation for turn that killed the 
             // player can play out.
+            let ppfound, ppos = pos(Player)
             if PlayerAboutToDie and rv == GoodSteppingEnded: 
                PlayerDead = true
                PlayerAboutToDie = false
             elif rv == GoodTurnBegins:
                // Update, while leaving current visibility intact.
-               maps_update_viz(false)
+               maps_update_viz(ppos, false)
             elif rv == GoodSteppingEnded:
                // Update again, now clearing out any areas we can't
                // see, after possibly moving.
-               maps_update_viz(true)
+               maps_update_viz(ppos, true)
 
             let live, dead = num_live_groundhogs()
             if live == 0:

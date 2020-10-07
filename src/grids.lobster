@@ -230,24 +230,24 @@ def mk_viz_set(dim: xy_i) -> VizSet:
 
    return rv
 
-// Returns true if the grid @ p is lit.  
-// Or false if p is outside the bounds of the grid.
-def is_lit(v: VizSet, p: xy_i) -> bool:
-   var rv = false
-
-   if v.contains(p):
-      let b = v.elems[index(v, p.x, p.y)]
-
-      rv = (b & vfLit) != 0
-
-   return rv
-
 // Marks a grid as lit, seen, etc...
 def mark(v: VizSet, p: xy_i, flags: VisFlag):
    if v.contains(p):
       let i = index(v, p.x, p.y)
 
-      v.elems[i] = flags
+      v.elems[i] |= flags
+
+// Returns true if all the flags in `flags` at `p` 
+// are set.
+def test(v: VizSet, p: xy_i, flags: int) -> bool:
+   var rv = false
+
+   if v.contains(p):
+      let b = v.elems[index(v, p.x, p.y)]
+
+      rv = (b & flags) == flags
+
+   return rv
 
 // Clears the visible and lit flags, leaving
 // vfSeen untouched.
@@ -255,8 +255,8 @@ def clear(v: VizSet):
    for(length(v.elems)) i:
       v.elems[i] &= ~(vfLit | vfVisible)
 
-//TODO for now just updates lights.
-def update_visibility(v: VizSet, clear_viz: bool = false):
+// Updates light information for the viz set.
+def update_lights(v: VizSet, clear_viz: bool = false):
    let t = stopwatch():
       if clear_viz:
          clear(v)
@@ -278,11 +278,11 @@ def update_visibility(v: VizSet, clear_viz: bool = false):
                   let dy = y - ps.y
 
                   if (dx*dx + dy*dy) < r2:
-                     mark(v, xy_i{x, y}, vfLit | vfVisible)
+                     mark(v, xy_i{x, y}, vfLit)
                   ++x
                ++y
 
-   timing(): "update_visibility: " + t
+   timing(): "update_lights: " + t
 
 def grids_tests():
    let rv = mkSparseGrid(0)

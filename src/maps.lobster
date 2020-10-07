@@ -168,11 +168,21 @@ def maps_init():
 
 // Should be called before a turn starts animating, 
 // to update off the latest game state.
-def maps_update_viz(clear_viz: bool):
+def maps_update_viz(player_pos: xy_i, clear_viz: bool):
    if PlayerViz:
-      update_visibility(PlayerViz, clear_viz)
+      update_lights(PlayerViz, clear_viz)
 
-def maps_load_debug_level(gtt: GridTiledTexture):
+      let t = stopwatch():
+         // Can always see yourself.
+         mark(PlayerViz, player_pos, vfVisible)
+         walk_visible_tiles(player_pos, Rect{xy_i{0,0}, FloorLayer.dims-xy_i{1,1}}) pos:
+            // Is opaque at pos?
+            get(WallLayer, pos) != 0
+         fn(pos):
+            mark(PlayerViz, pos, vfVisible|vfSeen)
+      timing(): "update viz: " + t
+
+def maps_load_debug_level(gtt: GridTiledTexture, player_pos: xy_i):
    // debuggery
    modifying(WallLayer):
       for(50) i:
@@ -183,7 +193,7 @@ def maps_load_debug_level(gtt: GridTiledTexture):
    if lm:
       LevelMesh = lm
       PlayerViz = mk_viz_set(FloorLayer.dims)
-      update_visibility(PlayerViz, true)
+      maps_update_viz(player_pos, true)
    else:
       error(): "Didn\'t create level mesh?"
 
@@ -222,7 +232,7 @@ private def render_viz_mask(wview: Rectf):
          while y <= br.y:
             var x = tl.x
             while x <= br.x:
-               if not is_lit(PlayerViz, xy_i{x, y}):
+               if not test(PlayerViz, xy_i{x, y}, vfVisible | vfLit):
                   add_rect(x, y, MaskZ)
                ++x
             ++y

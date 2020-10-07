@@ -558,6 +558,104 @@ def dl_find<T>(list: EmbeddedCircList<T>, predfn) -> T?:
 
    return nil
 
+// Multipliers for row, col for the different octants.
+def transform_octant(octant: int, row: int, col: int) -> xy_i:
+   switch octant:
+      case 0: return xy_i{col, -row}
+      case 1: return xy_i{row, -col}
+      case 2: return xy_i{row, col}
+      case 3: return xy_i{col, row}
+      case 4: return xy_i{-col, row}
+      case 5: return xy_i{-row, col}
+      case 6: return xy_i{-row, -col}
+      case 7: return xy_i{-col, -row}
+   assert false
+
+// Visibility determination via munificent's 
+// algorithm:  http://journal.stuffwithstuff.com/2015/09/07/what-the-hero-sees/
+//
+
+// `start` and `end` are slopes.
+private class Shadow:
+   start: float  
+   end: float
+
+private class ShadowLine:
+   shadows: [Shadow]
+
+private def project_tile(row: int, col: int):
+   let fr = float(row)
+   let fc = float(col)
+   let tl = fc / (fr + 2)
+   let br = (fc + 1) / (fr + 1)
+
+   return Shadow{start: tl, end: br}
+
+private def contains_shadow(s:: Shadow, other: Shadow):
+   return start <= other.start and end >= other.end
+
+private def is_in_shadow(sl:: ShadowLine, projection: Shadow):
+   return exists(shadows) s: s.contains_shadow(projection)
+
+private def add(sl:: ShadowLine, new_shadow: Shadow):
+   var idx = 0
+   while idx < length(shadows):
+      if shadows[idx].start >= new_shadow.start: break
+      ++idx
+
+   var ovr_prev: Shadow? = nil
+   if idx > 0 and shadows[idx-1].end > new_shadow.start:
+      ovr_prev = shadows[idx - 1]
+
+   var ovr_next: Shadow? = nil
+   if idx < length(shadows) and shadows[idx].start < new_shadow.end:
+      ovr_next = shadows[idx]
+
+   if ovr_next:
+      if ovr_prev:
+         ovr_prev.end = ovr_next.end
+         remove(shadows, idx)
+      else:
+         ovr_next.start = new_shadow.start
+   else:
+      if ovr_prev:
+         ovr_prev.end = new_shadow.end
+      else:
+         insert(shadows, idx, new_shadow)
+
+private def is_full_shadow(sl:: ShadowLine):
+   return length(shadows) == 1 and shadows[0].start ==0 and shadows[0].end == 1
+
+private def refresh_octant(start_pos: xy_i, octant: int, bounds: Rect, block_test, body):
+   let line = ShadowLine{shadows: []}
+   var row = 1
+
+   while true:
+      var pos = start_pos + transform_octant(octant, row, 0)
+      if not bounds.contains(pos): break
+
+      var col = 0
+      while col <= row:
+         pos = start_pos + transform_octant(octant, row, col)
+         if not bounds.contains(pos): break
+
+         let proj = project_tile(row, col)
+         let visible = not line.is_in_shadow(proj)
+         if visible: 
+            body(pos)
+            if block_test(pos):
+               line.add(proj)
+               if line.is_full_shadow(): return
+         ++col
+      ++row
+
+// Calls body(pos) for all visible tiles from `start_pos`
+// block_test should be a functon that takes a grid position and
+// returns true if light is blocked at that position.
+def walk_visible_tiles(start_pos: xy_i, bounds: Rect, block_test, body):
+   for(8) octant:
+      refresh_octant(start_pos, octant, bounds, block_test, body)
+
 def algs_tests():
    rndcheck()
 
