@@ -51,6 +51,9 @@ def turned_right_90deg(v: xy_i) -> xy_i:
 def turned_left_90deg(v: xy_i) -> xy_i:
    return xy_i{v.y, -v.x}
 
+def turned_left_90deg(v: xy_f) -> xy_f:
+   return xy_f{v.y, -v.x}
+
 def is_diagonal(v: xy_i) -> bool:
    return v.x != 0 and v.y != 0
 

@@ -3,6 +3,7 @@ import std
 import algs
 import bus
 import color
+import consts
 import texture
 
 private var Turn = TurnSpan{0,0}
@@ -156,24 +157,65 @@ def anim_play_sfx(now: float):
                //TODO modify based on position eventually
             l.soundTriggered = true
 
-private let DrawingTrails = false
+private let DrawingTrails = true
 
 def anim_render_move_lines(now: float):
-   if DrawingTrails:
-      gl_set_shader("color")
-      gl_blend(blend_alpha):
-         gl_color(color{1,1,1,0.5}):
-            for(Lanes) l:
-               if l.kind == anMove:
-                  let spec = l.who.object_spec
+   let pts: [xyz_f] = []
+   let col: [xyzw_f] = []
+   let indices: [int] = []
 
-                  if spec and spec.flags & ItemFlags_AnimTrail:
-                     if now > l.movLerp.endT:
-                        // This movement is complete.
-                        gl_line(l.movLerp.start, l.movLerp.end, 0.01)
-                     elif now >= l.movLerp.startT:
-                        gl_line(l.movLerp.start, eval(l.movLerp, now), 0.01)
+   def add_line(p0: xy_f, w0: float, c0: xyzw_f, p1: xy_f, w1: float, c1: xyzw_f):
+      let base = length(pts)
+      let up = normalize(turned_left_90deg(p1 - p0))
+      let v0 =  p0 + up*w0
+      let v1 = p1 + up*w1
+      let v2 = p1 - up*w1
+      let v3 = p0 - up*w0
 
+      push(pts, xyz_f{v0.x, v0.y, TweenFloorLiving}) ; push(col, c0)
+      push(pts, xyz_f{v1.x, v1.y, TweenFloorLiving}) ; push(col, c1)
+      push(pts, xyz_f{v2.x, v2.y, TweenFloorLiving}) ; push(col, c1)
+      push(pts, xyz_f{v3.x, v3.y, TweenFloorLiving}) ; push(col, c0)
+
+      push(indices, base + 0) ; push(indices, base + 1) ; push(indices, base + 2)
+      push(indices, base + 0) ; push(indices, base + 2) ; push(indices, base + 3)
+
+   if DrawingTrails: 
+      var last_obj: ObjId? = nil
+      var start_a = 0.3
+      let alpha_step = 0.5
+      var width = 1/64.0
+      let width_step = 1/72.0
+
+      for(Lanes) l:
+         if l.who != last_obj:
+            last_obj = l.who
+            start_a = 0.3
+            width = 1/64.0
+
+         if l.kind == anMove:
+            let spec = l.who.object_spec
+
+            if spec and spec.flags & ItemFlags_AnimTrail:
+               let next_a = min(start_a + alpha_step, 1.0)
+               let next_width = width + width_step
+
+               if now > l.movLerp.endT:
+                  // This movement is complete.
+                  add_line(l.movLerp.start, width, xyzw_f{1.0, 1.0, 1.0, start_a}, 
+                           l.movLerp.end, next_width, xyzw_f{1.0, 1.0, 1.0, next_a})
+               elif now >= l.movLerp.startT:
+                  add_line(l.movLerp.start, width, xyzw_f{1.0, 1.0, 1.0, start_a}, 
+                           eval(l.movLerp, now), next_width, xyzw_f{1.0, 1.0, 1.0, next_a})
+
+               start_a = next_a
+               width = next_width
+
+      if length(pts) > 0:
+         let mesh  = gl_new_mesh("PC", pts, col, [], [], [], indices)
+         gl_set_shader("color_attr")
+         gl_blend(blend_alpha):
+            gl_render_mesh(mesh)
 
 def anim_pos(ep: AnimEndpoint, what: ObjId, now: float) -> xy_f:
    let i = find_obj_lane(what, anMove, now)

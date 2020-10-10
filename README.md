@@ -118,3 +118,5 @@ the player know they can hit 'o' to open the safe)
 - can seen but not lit be masked with stipple pattern?  Probably looks ugly, but try.
 - change anim trails to use gl_new_mesh to make trails that are tapered and 
   alpha faded.
+- level building - can we use the wave collapse? Making a good def seems
+  fidigity.  
