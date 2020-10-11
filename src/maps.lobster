@@ -27,8 +27,9 @@ private let Objects = mkSparseGrid(InvalidObject)
 private var WallLayer = mkSparseGrid(0)
 private var FloorLayer = mk_dense_grid<TileName>(xy_i{100, 100}, TileName_Floor0)
 private var LevelMesh: resource? = nil
-private var PlayerViz: VizSet? = nil
+var PlayerViz: VizSet? = nil
 private var MTileMap: GridTiledTexture? = nil
+private var StippleTexture: resource? = nil
 
 class MapEndpoint : BusEndpoint
 
@@ -52,6 +53,9 @@ def crosses_wall_diagonal(start: xy_i, end: xy_i) -> bool:
    return false
 
 def move_is_allowed(ep: MapEndpoint, now: float, o: ObjId, destPos: xy_i) -> bool:
+   if not FloorLayer.contains(destPos):
+      return false
+
    let spec = object_spec(o)
 
    if spec:
@@ -170,6 +174,8 @@ private def create_level_mesh(estSize: int = 100):
 
 def maps_init():
    bus_register_endpoint(MapEndpoint{system: MapSystem})
+   StippleTexture = gl_load_texture("dist/stipple.png", 
+                                    texture_format_nearest_mag or texture_format_nearest_min)
 
 // Should be called before a turn starts animating, 
 // to update off the latest game state.
@@ -179,12 +185,18 @@ def maps_update_viz(player_pos: xy_i, clear_viz: bool):
 
       let t = stopwatch():
          // Can always see yourself.
-         mark(PlayerViz, player_pos, vfVisible)
+         mark(PlayerViz, player_pos, vfVisible | vfSeen)
          walk_visible_tiles(player_pos, Rect{xy_i{0,0}, FloorLayer.dims-xy_i{1,1}}) pos:
             // Is opaque at pos?
             get(WallLayer, pos) != 0
          fn(pos):
-            mark(PlayerViz, pos, vfVisible|vfSeen)
+            var flags = vfVisible
+            
+            if has(PlayerViz, pos, vfLit):
+               flags |= vfSeen
+
+            mark(PlayerViz, pos, flags)
+
       timing(): "update viz: " + t
 
 def maps_load_debug_level(gtt: GridTiledTexture, player_pos: xy_i):
@@ -285,8 +297,11 @@ private def render_viz_mask(wview: Rectf):
       let t = stopwatch():
          let tl = worldToGrid(wview.topLeft - xy_1)
          let br = worldToGrid(wview.bottomRight + xy_1)
-         let ps: [xyz_f] = vector_reserve(typeof return, 4)
-         let indices: [int] = vector_reserve(typeof return, 6)
+         let ps: [xyz_f] = vector_reserve(typeof return, 4 * 50)
+         let indices: [int] = vector_reserve(typeof return, 6 * 50)
+         let seen_ps: [xyz_f] = vector_reserve(typeof return, 4 * 50)
+         let seen_tc: [xy_f] = vector_reserve(typeof return, 4 * 50)
+         let seen_indices: [int] = vector_reserve(typeof return, 6 * 50)
 
          def add_rect(xx: int, yy: int,  z: float):
             let base = length(ps)
@@ -302,13 +317,34 @@ private def render_viz_mask(wview: Rectf):
             push(indices, base + 1) ; push(indices, base + 3) ; push(indices, base + 0)
             push(indices, base + 2) ; push(indices, base + 3) ; push(indices, base + 1)
 
+         def add_seen_rect(xx: int, yy: int,  z: float):
+            let base = length(seen_ps)
+
+            let x = float(xx)
+            let y = float(yy)
+
+            push(seen_ps, xyz_f{x + 0, y + 0, z}) ; push(seen_tc, xy_0)
+            push(seen_ps, xyz_f{x + 1, y + 0, z}) ; push(seen_tc, xy_x)
+            push(seen_ps, xyz_f{x + 1, y + 1, z}) ; push(seen_tc, xy_1)
+            push(seen_ps, xyz_f{x + 0, y + 1, z}) ; push(seen_tc, xy_y)
+
+            push(seen_indices, base + 1) ; push(seen_indices, base + 3) ; push(seen_indices, base + 0)
+            push(seen_indices, base + 2) ; push(seen_indices, base + 3) ; push(seen_indices, base + 1)
+
          var y = tl.y
          
          while y <= br.y:
             var x = tl.x
             while x <= br.x:
-               if not test(PlayerViz, xy_i{x, y}, vfVisible | vfLit):
-                  add_rect(x, y, MaskZ)
+               let p = xy_i{x, y}
+               let vflags = get(PlayerViz, p)
+
+               if vflags & (vfVisible|vfLit) != (vfVisible|vfLit):
+                  if vflags & vfSeen:
+                     add_seen_rect(x, y, MaskZ)
+                  else:
+                     add_rect(x, y, MaskZ)
+
                ++x
             ++y
 
@@ -317,6 +353,13 @@ private def render_viz_mask(wview: Rectf):
          gl_set_shader("color")
          gl_color(color_black):
             gl_render_mesh(meh)
+
+         if StippleTexture and length(seen_ps) > 0:
+            let sm = gl_new_mesh("PT", seen_ps, [], [], seen_tc, [], seen_indices)
+
+            gl_set_shader("textured_alpha_cut")
+            gl_set_primitive_texture(0, StippleTexture)
+            gl_render_mesh(sm)
 
       timing(): "render mask " + t
 

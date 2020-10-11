@@ -7,6 +7,7 @@ import config
 import consts
 import config_generated
 import logging
+import maps
 import objutils
 import std
 import texture
@@ -37,11 +38,14 @@ def gobjs_draw(now: float, view: Rectf):
       dl_foreach(GOInstances) o:
          if not o.parent:
             let p = anim_pos(o, now)
+            
             if contains(view, p):
-               let a = anim_angle(o, now) + OSpecs[o.kind_idx].right_rotation
-               let ti = anim_tile(o, now)
-               let z = if OSpecs[o.kind_idx].flags & ItemFlags_Living: LivingZ else: OnFloorZ
-               renderSprite(ObjTx, ti, xyz_f{p.x, p.y, z}, xy_1, sincos(a))
+               let ff, gridp = pos(o)
+               if not PlayerViz or test(PlayerViz, gridp, vfVisible|vfLit):
+                  let a = anim_angle(o, now) + OSpecs[o.kind_idx].right_rotation
+                  let ti = anim_tile(o, now)
+                  let z = if OSpecs[o.kind_idx].flags & ItemFlags_Living: LivingZ else: OnFloorZ
+                  renderSprite(ObjTx, ti, xyz_f{p.x, p.y, z}, xy_1, sincos(a))
 
 private var IdCounter = 1
                   

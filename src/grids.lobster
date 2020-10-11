@@ -193,7 +193,7 @@ def for_items_within<T>(g::DenseGrid<T>, r: Rect, bodyfn):
       ++y
 
 def contains(g, p: xy_i) -> bool:
-   return p.x >= 0 and p.x <= g.dims.x and p.y >= 0 and p.y <= g.dims.y
+   return p.x >= 0 and p.x < g.dims.x and p.y >= 0 and p.y < g.dims.y
    
 // Returns the item at `pos`.  If `pos` is out of bounds, 
 // will return the default value passed into mk_dense_grid.
@@ -249,11 +249,29 @@ def test(v: VizSet, p: xy_i, flags: int) -> bool:
 
    return rv
 
+// Returns true if any the flags in `flags` at `p` 
+// are set.
+def has(v: VizSet, p: xy_i, flags: int) -> bool:
+   var rv = false
+
+   if v.contains(p):
+      let b = v.elems[index(v, p.x, p.y)]
+
+      rv = (b & flags) != 0
+
+   return rv
+
 // Clears the visible and lit flags, leaving
 // vfSeen untouched.
 def clear(v: VizSet):
    for(length(v.elems)) i:
       v.elems[i] &= ~(vfLit | vfVisible)
+
+def get(v: VizSet, p: xy_i) -> int:
+   if v.contains(p):
+      return v.elems[index(v, p.x, p.y)]
+   else:
+      return 0
 
 // Updates light information for the viz set.
 def update_lights(v: VizSet, clear_viz: bool = false):

@@ -19,7 +19,6 @@ def error(f):
 
 def debug(f):
    if (LoggingLevel & Debug) != 0:
-      print("arf " + LoggingLevel)
       print("DEBUG: " + f())
 
 def timing(f):
