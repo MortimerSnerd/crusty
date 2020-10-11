@@ -212,22 +212,24 @@ def game_init():
    assert im_add_font("data/fonts/Droid_Sans/DroidSans.ttf", 12.0)
    bus_register_endpoint(SwerdFeesh{system: SwerdFeeshSystem})
 
+   load_map("dist/testmap.json")
 
-   let ppos = xy_i{10, 6}
-   Player = gobjs_spawn(ObjectKind_Player, ppos, East)
-   gobjs_spawn(ObjectKind_Sword, ppos, North)
+   let spawn = map_feature_named("spawn")
+
+   if spawn:
+      Player = gobjs_spawn(ObjectKind_Player, spawn.pos, East)
+      gobjs_spawn(ObjectKind_Sword, spawn.pos + xy_i{1, 0}, North)
+      maps_update_viz(spawn.pos, true)
+   else:
+      error(): "No spawn found."
 
    //maps_load_debug_level(MapTexture, ppos)
-   load_map("dist/testmap.json")
-   maps_update_viz(ppos, true)
-
    bind("space", "Decompose gracefully") player, now: 
       let r, act = decompose_action(FakeTurnSpan, now, player)
       act
 
 
    //play_wav("dist/ouch1.wav")
-
 def draw_game_frame(now: float, windowsz: xy_f, view_rect: Rectf):
    gl_set_shader("textured_alpha_cut")
    anim_render_move_lines(now)

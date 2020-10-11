@@ -16,6 +16,8 @@ class GridTiledTexture:
    spacing: int    // Spacing to the right and bottom of a tile
    spacingTx: xy_f // Spacing adjustment for tile spacing.
 
+def num_tiles(gtt:: GridTiledTexture) -> int:
+   return gridDims.x * gridDims.y
 
 // Calls f with the topLeft, topRight, bottomRight and bottomLeft texture
 // coordinates for entry #`i`.

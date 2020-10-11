@@ -12,7 +12,14 @@ import texture
 import tileing
 import tilekit_generated
 
-//TODO: port over lighting and shadowing calcs.
+// Objects that can be attached to the map in TileKit
+class MapFeature:
+   name: string
+   id: string
+   pos: xy_i
+
+
+private let Features: [MapFeature] = []
 
 // Sparse grid of living object positions on the map.
 // For now, no two objects at the same position.
@@ -31,7 +38,17 @@ var PlayerViz: VizSet? = nil
 private var MTileMap: GridTiledTexture? = nil
 private var StippleTexture: resource? = nil
 
+// Bitset of flags indexed by tile index.
+private var TileTags: [int] = []
+
+enum_flags TileFlags:
+   tfBlocksLight, tfBlocksMovement, tfFloor
+
 class MapEndpoint : BusEndpoint
+
+private def wall_blocks_move(pos: xy_i) -> bool:
+   let t = get(WallLayer, pos)
+   return TileTags[t] & tfBlocksMovement != 0
 
 // Returns true if moving start -> end cuts across a wall
 // diagonally.  Assumes start and end are only one step away.
@@ -44,10 +61,10 @@ def crosses_wall_diagonal(start: xy_i, end: xy_i) -> bool:
       let vr = all_dirs[turned_right(dir)]
       let vl = all_dirs[turned_left(dir)]
 
-      if get(WallLayer, start + vr) != 0:
+      if wall_blocks_move(start + vr):
          return true
       
-      if get(WallLayer, start + vl) != 0:
+      if wall_blocks_move(start + vl):
          return true
 
    return false
@@ -59,7 +76,7 @@ def move_is_allowed(ep: MapEndpoint, now: float, o: ObjId, destPos: xy_i) -> boo
    let spec = object_spec(o)
 
    if spec:
-      if get(WallLayer, destPos) != 0:
+      if wall_blocks_move(destPos):
          return false
 
       let found, cpos = pos(o)
@@ -188,7 +205,8 @@ def maps_update_viz(player_pos: xy_i, clear_viz: bool):
          mark(PlayerViz, player_pos, vfVisible | vfSeen)
          walk_visible_tiles(player_pos, Rect{xy_i{0,0}, FloorLayer.dims-xy_i{1,1}}) pos:
             // Is opaque at pos?
-            get(WallLayer, pos) != 0
+            let tnum = get(WallLayer, pos)
+            TileTags[tnum] & tfBlocksLight != 0
          fn(pos):
             var flags = vfVisible
             
@@ -199,21 +217,36 @@ def maps_update_viz(player_pos: xy_i, clear_viz: bool):
 
       timing(): "update viz: " + t
 
-def maps_load_debug_level(gtt: GridTiledTexture, player_pos: xy_i):
-   // debuggery
-   MTileMap = gtt
-   modifying(WallLayer):
-      for(50) i:
-         set(WallLayer, worldToGrid(xy_rnd() * 20), TileName_Wally)
 
-   let lm = create_level_mesh(200)
 
-   if lm:
-      LevelMesh = lm
-      PlayerViz = mk_viz_set(FloorLayer.dims)
-      maps_update_viz(player_pos, true)
-   else:
-      error(): "Didn\'t create level mesh?"
+// Loads the per-tile tags.  load_tilemap() must have been called
+// first.
+private def load_tags(map: Map):
+   def flag_for(x: string):
+      switch x:
+         case "blockslight":
+            return tfBlocksLight
+         case "floor":
+            return tfFloor
+         case "blocksmovement":
+            return tfBlocksMovement
+         default:
+            return 0
+
+   if MTileMap:
+      let nt = num_tiles(MTileMap)
+      TileTags = vector_reserve(typeof return, nt)
+
+      while length(TileTags) < nt:
+         push(TileTags, 0)
+
+      for(map.tags_length()) i:
+         let tag = map.tags(i) 
+
+         for(tag.tiles_length()) j:
+            // Once again, -1 because TileKit uses 0 as sentinel
+            // for nothing.
+            TileTags[tag.tiles(j)-1] |= flag_for(tag.label())
 
 
 // One impedance mismatch with tilekit maps and our rep is
@@ -221,7 +254,7 @@ def maps_load_debug_level(gtt: GridTiledTexture, player_pos: xy_i):
 // from the floor layer.  This halps us partition the tiles to 
 // the right layer.
 private def is_wall_tile(map: Map, n: int) -> bool:
-   return n != TileName_Floor0
+   return TileTags[n] & tfFloor == 0
 
 private def load_tilemap(map: Map, basename: string) -> bool:
    let txt = gl_load_texture("dist/" + basename, 
@@ -243,6 +276,8 @@ def load_map_object(root: MapRoot) -> bool:
       FloorLayer = mk_dense_grid<TileName>(xy_i{mappy.w(), mappy.h()}, TileName_Floor0)
       PlayerViz = mk_viz_set(FloorLayer.dims)
       if load_tilemap(mappy, mappy.image_filename()):
+         load_tags(mappy)
+
          var yc = 0
          var idx = 0
 
@@ -253,7 +288,7 @@ def load_map_object(root: MapRoot) -> bool:
                // -1 to get real tile index.
                let t = mappy.data(idx) - 1
 
-               if is_wall_tile(mappy, t) and t > 0:
+               if t > 0 and is_wall_tile(mappy, t):
                   set(WallLayer, xy_i{xc, yc}, t)
                else:
                   set(FloorLayer, xy_i{xc, yc}, TileName(t))
@@ -264,6 +299,15 @@ def load_map_object(root: MapRoot) -> bool:
 
          end_changes(WallLayer)
          LevelMesh = create_level_mesh()
+
+         for(root.objects_length()) i:
+            let obj = root.objects(i)
+            let fx = string_to_float(obj.x())
+            let fy = string_to_float(obj.y())
+            let p = xy_i{int(fx) / mappy.tile_w(), int(fy) / mappy.tile_h()}
+
+
+            push(Features, MapFeature{name: obj.name(), id: obj.id(), pos: p})
       else:
          return false
 
@@ -394,5 +438,11 @@ def map_render_debug(wview: Rectf, thickness: float):
       for_items_within(Objects, gview) pos, x:
          ex(pos)
 
+def map_feature_named(name: string) -> MapFeature?:
+   let i = find(Features) x: x.name == name
+   if i >= 0:
+      return Features[i]
+   else:
+      return nil
 
 //notify_moving
