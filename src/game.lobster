@@ -113,10 +113,6 @@ def notify_turning(s: SwerdFeesh, o: ObjId, startT: float, endT: float, startDir
          maybe_sword_groundhog(endT)
 
 def move_is_allowed(s: SwerdFeesh, now: float, o: ObjId, destPos: xy_i) -> bool:
-   // Keep everyone in an invisible playfield.
-   if not (destPos.x >= 0 and destPos.x <= 20 and destPos.y >=0 and destPos.y < 20):
-      return false
-
    if Player and o == Player and Carrying:
       // Don't allow sword to go through walls
       let pf, pdir = direction(Player)
@@ -217,18 +213,20 @@ def game_init():
    assert im_add_font("data/fonts/Droid_Sans/DroidSans.ttf", 12.0)
    bus_register_endpoint(SwerdFeesh{system: SwerdFeeshSystem})
 
-   gobjs_spawn(ObjectKind_Sword, xy_i{4,2}, North)
 
    let test_txtur = gl_load_texture("dist/tiles.png", 
                                     texture_format_nearest_mag or texture_format_nearest_min)
    if test_txtur:
       MapTexture = mkGridTiledTexture(test_txtur, xy_i{32, 32})
 
-   let ppos = xy_i{4, 1}
+   let ppos = xy_i{10, 6}
    Player = gobjs_spawn(ObjectKind_Player, ppos, East)
+   gobjs_spawn(ObjectKind_Sword, ppos, North)
 
    if MapTexture:
-      maps_load_debug_level(MapTexture, ppos)
+      //maps_load_debug_level(MapTexture, ppos)
+      load_map("dist/testmap.json")
+      maps_update_viz(ppos, true)
 
    bind("space", "Decompose gracefully") player, now: 
       let r, act = decompose_action(FakeTurnSpan, now, player)
@@ -242,7 +240,7 @@ def draw_game_frame(now: float, windowsz: xy_f, view_rect: Rectf):
    if MapTexture:
       gl_set_primitive_texture(0, MapTexture.texture)
       anim_render_move_lines(now)
-      map_render(MapTexture, view_rect) 
+      map_render(view_rect) 
       gobjs_draw(now, view_rect)
 
 def num_live_groundhogs() -> int, int:

@@ -187,35 +187,38 @@ def anim_render_move_lines(now: float):
       var width = 1/64.0
       let width_step = 1/72.0
 
-      for(Lanes) l:
-         if l.who != last_obj:
-            last_obj = l.who
-            start_a = 0.3
-            width = 1/64.0
+      let t = stopwatch():
+         for(Lanes) l:
+            if l.who != last_obj:
+               last_obj = l.who
+               start_a = 0.3
+               width = 1/64.0
 
-         if l.kind == anMove:
-            let spec = l.who.object_spec
+            if l.kind == anMove:
+               let spec = l.who.object_spec
 
-            if spec and spec.flags & ItemFlags_AnimTrail:
-               let next_a = min(start_a + alpha_step, 1.0)
-               let next_width = width + width_step
+               if spec and spec.flags & ItemFlags_AnimTrail:
+                  let next_a = min(start_a + alpha_step, 1.0)
+                  let next_width = width + width_step
 
-               if now > l.movLerp.endT:
-                  // This movement is complete.
-                  add_line(l.movLerp.start, width, xyzw_f{1.0, 1.0, 1.0, start_a}, 
-                           l.movLerp.end, next_width, xyzw_f{1.0, 1.0, 1.0, next_a})
-               elif now >= l.movLerp.startT:
-                  add_line(l.movLerp.start, width, xyzw_f{1.0, 1.0, 1.0, start_a}, 
-                           eval(l.movLerp, now), next_width, xyzw_f{1.0, 1.0, 1.0, next_a})
+                  if now > l.movLerp.endT:
+                     // This movement is complete.
+                     add_line(l.movLerp.start, width, xyzw_f{1.0, 1.0, 1.0, start_a}, 
+                              l.movLerp.end, next_width, xyzw_f{1.0, 1.0, 1.0, next_a})
+                  elif now >= l.movLerp.startT:
+                     add_line(l.movLerp.start, width, xyzw_f{1.0, 1.0, 1.0, start_a}, 
+                              eval(l.movLerp, now), next_width, xyzw_f{1.0, 1.0, 1.0, next_a})
 
-               start_a = next_a
-               width = next_width
+                  start_a = next_a
+                  width = next_width
 
-      if length(pts) > 0:
-         let mesh  = gl_new_mesh("PC", pts, col, [], [], [], indices)
-         gl_set_shader("color_attr")
-         gl_blend(blend_alpha):
-            gl_render_mesh(mesh)
+         if length(pts) > 0:
+            let mesh  = gl_new_mesh("PC", pts, col, [], [], [], indices)
+            gl_set_shader("color_attr")
+            gl_blend(blend_alpha):
+               gl_render_mesh(mesh)
+
+      timing(): "anim trail render: " + t
 
 def anim_pos(ep: AnimEndpoint, what: ObjId, now: float) -> xy_f:
    let i = find_obj_lane(what, anMove, now)

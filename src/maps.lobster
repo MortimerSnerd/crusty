@@ -10,6 +10,7 @@ import objutils
 import std
 import texture
 import tileing
+import tilekit_generated
 
 //TODO: port over lighting and shadowing calcs.
 
@@ -23,10 +24,11 @@ private let Living = mkSparseGrid(InvalidObject)
 private let Objects = mkSparseGrid(InvalidObject)
 
 // Grids for layers, one for each LayerName
-private var WallLayer = mkSparseGrid(TileName_None)
+private var WallLayer = mkSparseGrid(0)
 private var FloorLayer = mk_dense_grid<TileName>(xy_i{100, 100}, TileName_Floor0)
 private var LevelMesh: resource? = nil
 private var PlayerViz: VizSet? = nil
+private var MTileMap: GridTiledTexture? = nil
 
 class MapEndpoint : BusEndpoint
 
@@ -134,34 +136,37 @@ def for_objects_at(b:: MapEndpoint, p: xy_i, body):
    if lv != InvalidObject:
       body(lv)
 
-private def create_level_mesh(gtt: GridTiledTexture, estSize: int = 100):
+private def create_level_mesh(estSize: int = 100):
    let ps = vector_reserve(typeof [xyz_f], estSize * 4)  
    let tcs = vector_reserve(typeof [xy_f], estSize * 4)  
    let indices = vector_reserve(typeof [int], estSize * 6)
 
-   def add_rect(p: xy_f, ti: int, z: float):
-      let base = length(ps)
+   if MTileMap:
+      def add_rect(p: xy_f, ti: int, z: float):
+         let base = length(ps)
 
-      withTexCoords(gtt, ti) t0, t1, t2, t3:
-         push(ps, xyz_f{p.x + 0, p.y + 0, z}) ; push(tcs, t0)
-         push(ps, xyz_f{p.x + 1, p.y + 0, z}) ; push(tcs, t1)
-         push(ps, xyz_f{p.x + 1, p.y + 1, z}) ; push(tcs, t2)
-         push(ps, xyz_f{p.x + 0, p.y + 1, z}) ; push(tcs, t3)
+         withTexCoords(MTileMap, ti) t0, t1, t2, t3:
+            push(ps, xyz_f{p.x + 0, p.y + 0, z}) ; push(tcs, t0)
+            push(ps, xyz_f{p.x + 1, p.y + 0, z}) ; push(tcs, t1)
+            push(ps, xyz_f{p.x + 1, p.y + 1, z}) ; push(tcs, t2)
+            push(ps, xyz_f{p.x + 0, p.y + 1, z}) ; push(tcs, t3)
 
-      push(indices, base + 1) ; push(indices, base + 3) ; push(indices, base + 0)
-      push(indices, base + 2) ; push(indices, base + 3) ; push(indices, base + 1)
-   
-   // We'll use the explicit size of the FloorLayer as
-   // the rect to pull items out of the wall sparse grid.
-   let all = Rect{topLeft: xy_i{0,0}, bottomRight: FloorLayer.dims}
+         push(indices, base + 1) ; push(indices, base + 3) ; push(indices, base + 0)
+         push(indices, base + 2) ; push(indices, base + 3) ; push(indices, base + 1)
+      
+      // We'll use the explicit size of the FloorLayer as
+      // the rect to pull items out of the wall sparse grid.
+      let all = Rect{topLeft: xy_i{0,0}, bottomRight: FloorLayer.dims}
 
-   for_items_within(WallLayer, all) p, ti:
-      add_rect(xy_f{float(p.x), float(p.y)}, ti, WallZ)
+      for_items_within(WallLayer, all) p, ti:
+         add_rect(xy_f{float(p.x), float(p.y)}, ti, WallZ)
 
-   for_items_within(FloorLayer, all) p, ti:
-      add_rect(xy_f{float(p.x), float(p.y)}, ti, FloorZ)
+      for_items_within(FloorLayer, all) p, ti:
+         add_rect(xy_f{float(p.x), float(p.y)}, ti, FloorZ)
 
-   return gl_new_mesh("PT", ps, [], [], tcs, [], indices)
+      return gl_new_mesh("PT", ps, [], [], tcs, [], indices)
+   else:
+      return nil
 
 def maps_init():
    bus_register_endpoint(MapEndpoint{system: MapSystem})
@@ -184,11 +189,12 @@ def maps_update_viz(player_pos: xy_i, clear_viz: bool):
 
 def maps_load_debug_level(gtt: GridTiledTexture, player_pos: xy_i):
    // debuggery
+   MTileMap = gtt
    modifying(WallLayer):
       for(50) i:
          set(WallLayer, worldToGrid(xy_rnd() * 20), TileName_Wally)
 
-   let lm = create_level_mesh(gtt, 200)
+   let lm = create_level_mesh(200)
 
    if lm:
       LevelMesh = lm
@@ -197,6 +203,75 @@ def maps_load_debug_level(gtt: GridTiledTexture, player_pos: xy_i):
    else:
       error(): "Didn\'t create level mesh?"
 
+
+// One impedance mismatch with tilekit maps and our rep is
+// that tilekit has one layer, and we have a separate wall layer
+// from the floor layer.  This halps us partition the tiles to 
+// the right layer.
+private def is_wall_tile(map: Map, n: int) -> bool:
+   return n != TileName_Floor0
+
+private def load_tilemap(map: Map, basename: string) -> bool:
+   let txt = gl_load_texture("dist/" + basename, 
+                              texture_format_nearest_mag or texture_format_nearest_min)
+
+   if txt:
+      MTileMap = mkGridTiledTexture(txt, xy_i{map.tile_w(), map.tile_h()})
+      if MTileMap:
+         return true
+
+   return false
+
+def load_map_object(root: MapRoot) -> bool:
+   let mappy = root.map()
+
+   if mappy:
+      WallLayer = mkSparseGrid(0)
+      FloorLayer = mk_dense_grid<TileName>(xy_i{mappy.w(), mappy.h()}, TileName_Floor0)
+      PlayerViz = mk_viz_set(FloorLayer.dims)
+      if load_tilemap(mappy, mappy.image_filename()):
+         var yc = 0
+         var idx = 0
+
+         while yc < mappy.h():
+            var xc = 0
+            while xc < mappy.w():
+               // tilekit makes 0 a blank tile, so 
+               // -1 to get real tile index.
+               let t = mappy.data(idx) - 1
+
+               if is_wall_tile(mappy, t) and t > 0:
+                  set(WallLayer, xy_i{xc, yc}, t)
+               else:
+                  set(FloorLayer, xy_i{xc, yc}, TileName(t))
+
+               ++idx
+               ++xc
+            ++yc
+
+         end_changes(WallLayer)
+         LevelMesh = create_level_mesh()
+      else:
+         return false
+
+   return false
+
+def load_map(name: string) -> bool:
+   let schema = read_file("dist/tilekit.fbs")
+   assert schema
+   let data = read_file(name)
+   assert data
+
+   let fb, err = flatbuffers_json_to_binary(schema, data, [])
+
+   if err:
+      error(): err
+      assert not err
+   else:
+      if fb:
+         return load_map_object(GetRootAsMapRoot(fb))
+      else:
+         return false
 
 // Called once per frame.
 def maps_frame():
@@ -246,14 +321,15 @@ private def render_viz_mask(wview: Rectf):
       timing(): "render mask " + t
 
 // Assumes projection is already set.
-def map_render(gtt: GridTiledTexture, wview: Rectf):
+def map_render(wview: Rectf):
    render_viz_mask(wview)
-   
-   gl_set_shader("textured_alpha_cut")
-   gl_blend(blend_alpha)
+   if MTileMap:
+      gl_set_primitive_texture(0, MTileMap.texture) 
+      gl_set_shader("textured_alpha_cut")
+      gl_blend(blend_alpha)
 
-   if LevelMesh:
-      gl_render_mesh(LevelMesh)
+      if LevelMesh:
+         gl_render_mesh(LevelMesh)
 
 // Assumes the shader is already set to color.
 def map_render_debug(wview: Rectf, thickness: float):

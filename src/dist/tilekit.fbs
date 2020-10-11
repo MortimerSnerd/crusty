@@ -1,0 +1,37 @@
+// Configuration to read TileKit map files.
+table Animation {
+}
+
+table Tag {
+    label: string;
+    tiles: [int];
+}
+
+table Map {
+   tile_w: int;
+   tile_h: int;
+   tile_spacing: int;
+   image_filename: string;
+   animations: [Animation];   // Not right.
+   tags: [Tag];
+   w: int;
+   h: int;
+   data: [int];
+}
+
+table Object {
+    name: string;
+    id: string;
+    x: string;
+    y: string;
+    w: string;
+    h: string;
+}
+
+table MapRoot {
+    map: Map;
+    objects: [Object];
+}
+    
+root_type MapRoot;
+
