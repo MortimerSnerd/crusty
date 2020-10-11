@@ -4,6 +4,8 @@ import algs
 import bus
 import color
 import consts
+import grids
+import maps
 import texture
 
 private var Turn = TurnSpan{0,0}
@@ -200,14 +202,16 @@ def anim_render_move_lines(now: float):
                if spec and spec.flags & ItemFlags_AnimTrail:
                   let next_a = min(start_a + alpha_step, 1.0)
                   let next_width = width + width_step
+                  let pf, whopos = pos(l.who)
 
-                  if now > l.movLerp.endT:
-                     // This movement is complete.
-                     add_line(l.movLerp.start, width, xyzw_f{1.0, 1.0, 1.0, start_a}, 
-                              l.movLerp.end, next_width, xyzw_f{1.0, 1.0, 1.0, next_a})
-                  elif now >= l.movLerp.startT:
-                     add_line(l.movLerp.start, width, xyzw_f{1.0, 1.0, 1.0, start_a}, 
-                              eval(l.movLerp, now), next_width, xyzw_f{1.0, 1.0, 1.0, next_a})
+                  if not PlayerViz or test(PlayerViz, whopos, vfVisible|vfLit):
+                     if now > l.movLerp.endT:
+                        // This movement is complete.
+                        add_line(l.movLerp.start, width, xyzw_f{1.0, 1.0, 1.0, start_a}, 
+                                 l.movLerp.end, next_width, xyzw_f{1.0, 1.0, 1.0, next_a})
+                     elif now >= l.movLerp.startT:
+                        add_line(l.movLerp.start, width, xyzw_f{1.0, 1.0, 1.0, start_a}, 
+                                 eval(l.movLerp, now), next_width, xyzw_f{1.0, 1.0, 1.0, next_a})
 
                   start_a = next_a
                   width = next_width
