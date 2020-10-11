@@ -1,0 +1,31 @@
+#!/bin/sh
+
+# Put 1px extruded border around each tile for the sprites.
+echo "Converting sprites..."
+cvt sprites.png /tmp/sprites.bmp
+if [ "$?" != "0" ]; then
+   echo "ERROR: could not add borders"
+   exit 1
+fi
+
+convert /tmp/sprites.bmp ../dist/sprites.png
+if [ "$?" != "0" ]; then
+   echo "ERROR: could not convert back to png"
+   exit 1
+fi
+
+# Put 1px spacing to the bottom and right for all map tiles.
+# This is expected by the TileKit map editor.
+echo "Converting tiles..."
+tkcvt tiles.png /tmp/tiles.bmp
+if [ "$?" != "0" ]; then
+   echo "ERROR: could not add borders"
+   exit 1
+fi
+
+convert /tmp/tiles.bmp ../dist/tiles.png
+if [ "$?" != "0" ]; then
+   echo "ERROR: could not convert back to png"
+   exit 1
+fi
+

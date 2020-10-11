@@ -38,7 +38,6 @@ class Bullet : ObjId
 let Bullets = EmbeddedCircList<Bullet>{head: nil}
 let Groundhogs = EmbeddedCircList<GroundhogRec>{head: nil}
 
-var MapTexture : GridTiledTexture? = nil
 var Carrying = InvalidObject
 
 let SwerdFeeshSystem = UserSystem1
@@ -214,19 +213,13 @@ def game_init():
    bus_register_endpoint(SwerdFeesh{system: SwerdFeeshSystem})
 
 
-   let test_txtur = gl_load_texture("dist/tiles.png", 
-                                    texture_format_nearest_mag or texture_format_nearest_min)
-   if test_txtur:
-      MapTexture = mkGridTiledTexture(test_txtur, xy_i{32, 32})
-
    let ppos = xy_i{10, 6}
    Player = gobjs_spawn(ObjectKind_Player, ppos, East)
    gobjs_spawn(ObjectKind_Sword, ppos, North)
 
-   if MapTexture:
-      //maps_load_debug_level(MapTexture, ppos)
-      load_map("dist/testmap.json")
-      maps_update_viz(ppos, true)
+   //maps_load_debug_level(MapTexture, ppos)
+   load_map("dist/testmap.json")
+   maps_update_viz(ppos, true)
 
    bind("space", "Decompose gracefully") player, now: 
       let r, act = decompose_action(FakeTurnSpan, now, player)
@@ -237,11 +230,9 @@ def game_init():
 
 def draw_game_frame(now: float, windowsz: xy_f, view_rect: Rectf):
    gl_set_shader("textured_alpha_cut")
-   if MapTexture:
-      gl_set_primitive_texture(0, MapTexture.texture)
-      anim_render_move_lines(now)
-      map_render(view_rect) 
-      gobjs_draw(now, view_rect)
+   anim_render_move_lines(now)
+   map_render(view_rect) 
+   gobjs_draw(now, view_rect)
 
 def num_live_groundhogs() -> int, int:
    var live = 0

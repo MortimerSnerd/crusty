@@ -149,7 +149,7 @@ private def create_level_mesh(estSize: int = 100):
       def add_rect(p: xy_f, ti: int, z: float):
          let base = length(ps)
 
-         withTexCoords(MTileMap, ti) t0, t1, t2, t3:
+         withTexCoordsTileKit(MTileMap, ti) t0, t1, t2, t3:
             push(ps, xyz_f{p.x + 0, p.y + 0, z}) ; push(tcs, t0)
             push(ps, xyz_f{p.x + 1, p.y + 0, z}) ; push(tcs, t1)
             push(ps, xyz_f{p.x + 1, p.y + 1, z}) ; push(tcs, t2)
@@ -225,10 +225,11 @@ private def is_wall_tile(map: Map, n: int) -> bool:
 
 private def load_tilemap(map: Map, basename: string) -> bool:
    let txt = gl_load_texture("dist/" + basename, 
-                              texture_format_nearest_mag or texture_format_nearest_min)
+                              texture_format_nearest_mag or texture_format_nearest_min or texture_format_nomipmap or texture_format_clamp)
 
    if txt:
-      MTileMap = mkGridTiledTexture(txt, xy_i{map.tile_w(), map.tile_h()})
+      MTileMap = mkGridTiledTexture(txt, xy_i{map.tile_w(), map.tile_h()}, 
+                                    map.tile_spacing())
       if MTileMap:
          return true
 

@@ -34,6 +34,7 @@ def gobj_short_name(o: GOInst?) -> string:
 
 def gobjs_draw(now: float, view: Rectf):
    if ObjTx:
+      gl_set_primitive_texture(0, ObjTx.texture)
       gl_blend(blend_alpha)
       dl_foreach(GOInstances) o:
          if not o.parent:
@@ -142,12 +143,12 @@ def object_spec(ep:: GobjEndpoint, o: ObjId) -> ObjectSpec?:
       return nil
    
 def gobjs_init():
-   let txtfile = "dist/tiles.png"
+   let txtfile = "dist/sprites.png"
    let txtur = gl_load_texture(txtfile, 
-                               texture_format_nearest_mag or texture_format_nearest_min)
+                              texture_format_nearest_mag or texture_format_nearest_min or texture_format_clamp)
 
    if txtur:
-      ObjTx = mkGridTiledTexture(txtur, xy_i{32,32})
+      ObjTx = mkGridTiledTexture(txtur, xy_i{32,32}, 1)
    else:
       error(): "Could not load gobjs texture " + txtfile
 

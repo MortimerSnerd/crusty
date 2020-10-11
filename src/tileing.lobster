@@ -13,7 +13,22 @@ class GridTiledTexture:
    texture: resource
    gridDims: xy_i  // Dimensions in quads.
    tileTxSz: xy_f  // dimensions of quad in texture coordinates.
+   spacing: int    // Spacing to the right and bottom of a tile
+   spacingTx: xy_f // Spacing adjustment for tile spacing.
 
+
+// Calls f with the topLeft, topRight, bottomRight and bottomLeft texture
+// coordinates for entry #`i`.
+// This is a special version for how TileKit likes sprites with borders, 
+// where only the right and bottoms of sprites have borders.
+def withTexCoordsTileKit(lu:: GridTiledTexture, i: int, f):
+   // The idea here is it's cheap to calc the coords when needed
+   // rather than just keeping array of points to lookup all the time.
+   let tlx = i % gridDims.x
+   let tly = i / gridDims.x
+   let tl = xy{float(tlx) * tileTxSz.x + tlx*spacingTx.x, 
+               float(tly) * tileTxSz.y + tly*spacingTx.y}
+   f(tl, tl + xy{tileTxSz.x, 0}, tl + tileTxSz, tl + xy{0.0, tileTxSz.y})
 
 // Calls f with the topLeft, topRight, bottomRight and bottomLeft texture
 // coordinates for entry #`i`.
@@ -22,28 +37,28 @@ def withTexCoords(lu:: GridTiledTexture, i: int, f):
    // rather than just keeping array of points to lookup all the time.
    let tlx = i % gridDims.x
    let tly = i / gridDims.x
-   let tl = xy{float(tlx) * tileTxSz.x, float(tly) * tileTxSz.y}
+   let tl = xy{float(tlx) * (tileTxSz.x + spacingTx.x*2), 
+               float(tly) * (tileTxSz.y + spacingTx.y*2)}
    f(tl, tl + xy{tileTxSz.x, 0}, tl + tileTxSz, tl + xy{0.0, tileTxSz.y})
 
 // Creates a tiled texture where the texture is evently divided up into
 // a grid of tiles, where each tile's size is `tileDims`
-def mkGridTiledTexture(txt: resource, tileDims: xy_i):
+def mkGridTiledTexture(txt: resource, tileDims: xy_i, spacing: int):
    let tx_sz = gl_texture_size(txt)
 
    assert tileDims.x > 0 and tileDims.y > 0
    assert tx_sz.x > tileDims.x and tx_sz.y > tileDims.y
 
-   if tx_sz.x % tileDims.x != 0 or tx_sz.y % tileDims.y != 0:
-      warn(): "Texture size not evenly divided by grid size: " + 
-              tx_sz + " vs " + tileDims
-
-   let nx = tx_sz.x / tileDims.x 
-   let ny = tx_sz.y / tileDims.y
+   let nx = tx_sz.x / (tileDims.x+spacing)
+   let ny = tx_sz.y / (tileDims.y+spacing)
    let tileTxSz = xy{float(tileDims.x) / tx_sz.x, float(tileDims.y) / tx_sz.y}
+   let spacingTx = xy_f{float(spacing) / tx_sz.x, float(spacing) / tx_sz.y}
 
    return GridTiledTexture{texture: txt, 
                            gridDims: xy{nx, ny}, 
-                           tileTxSz: tileTxSz}
+                           tileTxSz: tileTxSz, 
+                           spacing: spacing, 
+                           spacingTx: spacingTx}
 
 // Adds indexed geometry to vertices + indices + tc for a axis aligned quad.
 def addTileQuad(tiledTexture, tileIdx: int, topLeft: xyz_f, dims: xy_f, 
