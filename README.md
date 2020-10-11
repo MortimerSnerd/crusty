@@ -120,3 +120,7 @@ the player know they can hit 'o' to open the safe)
   alpha faded.
 - level building - can we use the wave collapse? Making a good def seems
   fidigity.  
+- Remove TileName from the config?  Was going to be for animations, and
+  for testing, but TileKit can do the animations, and tiles can be
+  looked up or classified by tags.
+
