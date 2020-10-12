@@ -32,9 +32,9 @@ def gobj_short_name(o: GOInst?) -> string:
    else:
       return "Wot"
 
-private def render_offset(flags: int, facing: Directions) -> xyz_f:
-   if flags & ItemFlags_AbutsWall:
-      let fv = all_dirs_f[facing] * 0.30
+private def render_offset(os: ObjectSpec, facing: Directions) -> xyz_f:
+   if os.flags & ItemFlags_AbutsWall:
+      let fv = all_dirs_f[facing] * os.dir_offset
       return xyz_f{fv.x, fv.y, AboveWallZ - OnFloorZ}
    else:
       return xyz_0
@@ -57,7 +57,7 @@ def gobjs_draw(now: float, view: Rectf):
                   let a = anim_angle(o, now) + OSpecs[o.kind_idx].right_rotation
                   let ti = anim_tile(o, now)
                   let z = if oflags & ItemFlags_Living: LivingZ else: OnFloorZ
-                  let dpos = xyz_f{p.x, p.y, z} + render_offset(oflags, o.dir)
+                  let dpos = xyz_f{p.x, p.y, z} + render_offset(OSpecs[o.kind_idx], o.dir)
                   
                   renderSprite(ObjTx, ti, dpos, xy_1, sincos(a))
 

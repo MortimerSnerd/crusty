@@ -31,7 +31,8 @@
             short_name: "A oak dresser.",
             static_tile: Dresser,
             right_rotation: -90,
-            flags: "AbutsWall Immobile"
+            flags: "AbutsWall Immobile", 
+            dir_offset: 0.7
         }
      ]
 }

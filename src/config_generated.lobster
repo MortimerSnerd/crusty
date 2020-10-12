@@ -45,13 +45,15 @@ class ObjectSpec : flatbuffers_handle
         return buf_.flatbuffers_field_float32(pos_, 14, 0.0)
     def light_radius():
         return buf_.flatbuffers_field_int32(pos_, 16, 0)
+    def dir_offset():
+        return buf_.flatbuffers_field_float32(pos_, 18, 0.0)
 
 def GetRootAsObjectSpec(buf:string): return ObjectSpec { buf, buf.flatbuffers_indirect(0) }
 
 struct ObjectSpecBuilder:
     b_:flatbuffers_builder
     def start():
-        b_.StartObject(7)
+        b_.StartObject(8)
         return this
     def add_kind(kind:ObjectKind):
         b_.PrependInt16Slot(0, kind, 0)
@@ -73,6 +75,9 @@ struct ObjectSpecBuilder:
         return this
     def add_light_radius(light_radius:int):
         b_.PrependInt32Slot(6, light_radius, 0)
+        return this
+    def add_dir_offset(dir_offset:float):
+        b_.PrependFloat32Slot(7, dir_offset, 0.0)
         return this
     def end():
         return b_.EndObject()
