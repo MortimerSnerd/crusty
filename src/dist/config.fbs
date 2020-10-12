@@ -2,7 +2,8 @@ enum ObjectKind:short { okInvalid = 0,
   Player, 
   Sword,
   Groundhog, 
-  Bullet
+  Bullet, 
+  Dresser
 }
 
 enum TileName:int32 {
@@ -10,10 +11,9 @@ enum TileName:int32 {
   Sword = 1,
   Fish = 2,
   Groundhog = 3,
-  Wally = 4,
+  Dresser = 4,
   DeadGroundhog = 5, 
   Bullet = 6, 
-  Floor0 = 7
 }
 
 
@@ -22,7 +22,9 @@ enum ItemFlags : uint32 (bit_flags)
     Living,
     BlocksLiving,
     AnimTrail,
-    EmitsLight
+    EmitsLight, 
+    AbutsWall,
+    Immobile
 }
 
 table ObjectSpec {

@@ -26,6 +26,7 @@ table Object {
     y: string;
     w: string;
     h: string;
+    orientation: string;
 }
 
 table MapRoot {

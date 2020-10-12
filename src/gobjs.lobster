@@ -32,6 +32,14 @@ def gobj_short_name(o: GOInst?) -> string:
    else:
       return "Wot"
 
+private def render_offset(flags: int, facing: Directions) -> xyz_f:
+   if flags & ItemFlags_AbutsWall:
+      let fv = all_dirs_f[facing] * 0.30
+      return xyz_f{fv.x, fv.y, AboveWallZ - OnFloorZ}
+   else:
+      return xyz_0
+
+
 def gobjs_draw(now: float, view: Rectf):
    if ObjTx:
       gl_set_primitive_texture(0, ObjTx.texture)
@@ -41,12 +49,17 @@ def gobjs_draw(now: float, view: Rectf):
             let p = anim_pos(o, now)
             
             if contains(view, p):
-               let ff, gridp = pos(o)
-               if not PlayerViz or test(PlayerViz, gridp, vfVisible|vfLit):
+               let oflags = OSpecs[o.kind_idx].flags
+
+               // Only immobile objects like furniture are drawn when they 
+               // occupy a grid that is not visible.
+               if not PlayerViz or oflags & ItemFlags_Immobile != 0 or test(PlayerViz, o.pos, vfVisible|vfLit):
                   let a = anim_angle(o, now) + OSpecs[o.kind_idx].right_rotation
                   let ti = anim_tile(o, now)
-                  let z = if OSpecs[o.kind_idx].flags & ItemFlags_Living: LivingZ else: OnFloorZ
-                  renderSprite(ObjTx, ti, xyz_f{p.x, p.y, z}, xy_1, sincos(a))
+                  let z = if oflags & ItemFlags_Living: LivingZ else: OnFloorZ
+                  let dpos = xyz_f{p.x, p.y, z} + render_offset(oflags, o.dir)
+                  
+                  renderSprite(ObjTx, ti, dpos, xy_1, sincos(a))
 
 private var IdCounter = 1
                   

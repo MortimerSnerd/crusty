@@ -151,13 +151,15 @@ class Object : flatbuffers_handle
         return buf_.flatbuffers_field_string(pos_, 12)
     def h():
         return buf_.flatbuffers_field_string(pos_, 14)
+    def orientation():
+        return buf_.flatbuffers_field_string(pos_, 16)
 
 def GetRootAsObject(buf:string): return Object { buf, buf.flatbuffers_indirect(0) }
 
 struct ObjectBuilder:
     b_:flatbuffers_builder
     def start():
-        b_.StartObject(6)
+        b_.StartObject(7)
         return this
     def add_name(name:flatbuffers_offset):
         b_.PrependUOffsetTRelativeSlot(0, name)
@@ -176,6 +178,9 @@ struct ObjectBuilder:
         return this
     def add_h(h:flatbuffers_offset):
         b_.PrependUOffsetTRelativeSlot(5, h)
+        return this
+    def add_orientation(orientation:flatbuffers_offset):
+        b_.PrependUOffsetTRelativeSlot(6, orientation)
         return this
     def end():
         return b_.EndObject()

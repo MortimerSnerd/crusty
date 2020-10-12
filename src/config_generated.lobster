@@ -7,22 +7,24 @@ enum ObjectKind:
     ObjectKind_Sword = 2
     ObjectKind_Groundhog = 3
     ObjectKind_Bullet = 4
+    ObjectKind_Dresser = 5
 
 enum TileName:
     TileName_None = 0
     TileName_Sword = 1
     TileName_Fish = 2
     TileName_Groundhog = 3
-    TileName_Wally = 4
+    TileName_Dresser = 4
     TileName_DeadGroundhog = 5
     TileName_Bullet = 6
-    TileName_Floor0 = 7
 
 enum ItemFlags:
     ItemFlags_Living = 1
     ItemFlags_BlocksLiving = 2
     ItemFlags_AnimTrail = 4
     ItemFlags_EmitsLight = 8
+    ItemFlags_AbutsWall = 16
+    ItemFlags_Immobile = 32
 
 class ObjectSpec
 

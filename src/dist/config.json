@@ -25,6 +25,13 @@
             static_tile: Bullet,
             flags: EmitsLight,
             light_radius: 1
+        }, 
+        {
+            kind: Dresser, 
+            short_name: "A oak dresser.",
+            static_tile: Dresser,
+            right_rotation: -90,
+            flags: "AbutsWall Immobile"
         }
      ]
 }

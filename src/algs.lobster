@@ -13,6 +13,9 @@ enum Directions:
 let all_dirs = [xy_i{1, 0}, xy_i{1, 1}, xy_i{0, 1}, xy_i{-1, 1}, xy_i{-1, 0}, 
                 xy_i{-1, -1}, xy_i{0, -1}, xy_i{1, -1}]
 
+let all_dirs_f = [xy_f{1, 0}, xy_f{1, 1}, xy_f{0, 1}, xy_f{-1, 1}, xy_f{-1, 0}, 
+                  xy_f{-1, -1}, xy_f{0, -1}, xy_f{1, -1}]
+
 let opposite_dir = [West, NorthWest, North, NorthEast, East, SouthEast, 
                     South, SouthWest]
 

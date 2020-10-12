@@ -116,10 +116,6 @@ the player know they can hit 'o' to open the safe)
   in a few places.
 - port over munificent visibility algo
 - can seen but not lit be masked with stipple pattern?  Probably looks ugly, but try.
-- change anim trails to use gl_new_mesh to make trails that are tapered and 
-  alpha faded.
-- level building - can we use the wave collapse? Making a good def seems
-  fidigity.  
 - Remove TileName from the config?  Was going to be for animations, and
   for testing, but TileKit can do the animations, and tiles can be
   looked up or classified by tags.

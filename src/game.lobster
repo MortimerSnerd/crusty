@@ -223,6 +223,9 @@ def game_init():
    else:
       error(): "No spawn found."
 
+   for_map_features_named("Dresser") dloc:
+      gobjs_spawn(ObjectKind_Dresser, dloc.pos, dloc.orientation)
+
    //maps_load_debug_level(MapTexture, ppos)
    bind("space", "Decompose gracefully") player, now: 
       let r, act = decompose_action(FakeTurnSpan, now, player)

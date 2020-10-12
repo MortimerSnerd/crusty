@@ -17,6 +17,7 @@ class MapFeature:
    name: string
    id: string
    pos: xy_i
+   orientation: Directions
 
 
 private let Features: [MapFeature] = []
@@ -32,7 +33,7 @@ private let Objects = mkSparseGrid(InvalidObject)
 
 // Grids for layers, one for each LayerName
 private var WallLayer = mkSparseGrid(0)
-private var FloorLayer = mk_dense_grid<TileName>(xy_i{100, 100}, TileName_Floor0)
+private var FloorLayer = mk_dense_grid<TileName>(xy_i{100, 100}, 0)
 private var LevelMesh: resource? = nil
 var PlayerViz: VizSet? = nil
 private var MTileMap: GridTiledTexture? = nil
@@ -271,9 +272,30 @@ private def load_tilemap(map: Map, basename: string) -> bool:
 def load_map_object(root: MapRoot) -> bool:
    let mappy = root.map()
 
+   def direction_from(s: string):
+      return switch s:
+               case "n":
+                  North
+               case "s":
+                  South
+               case "e":
+                  East
+               case "w":
+                  West
+               case "ne":
+                  NorthEast
+               case "se":
+                  SouthEast
+               case "nw":
+                  NorthWest
+               case "sw":
+                  SouthWest
+               default:
+                  North
+
    if mappy:
       WallLayer = mkSparseGrid(0)
-      FloorLayer = mk_dense_grid<TileName>(xy_i{mappy.w(), mappy.h()}, TileName_Floor0)
+      FloorLayer = mk_dense_grid<TileName>(xy_i{mappy.w(), mappy.h()}, 0)
       PlayerViz = mk_viz_set(FloorLayer.dims)
       if load_tilemap(mappy, mappy.image_filename()):
          load_tags(mappy)
@@ -307,7 +329,8 @@ def load_map_object(root: MapRoot) -> bool:
             let p = xy_i{int(fx) / mappy.tile_w(), int(fy) / mappy.tile_h()}
 
 
-            push(Features, MapFeature{name: obj.name(), id: obj.id(), pos: p})
+            push(Features, MapFeature{name: obj.name(), id: obj.id(), pos: p, 
+                                      orientation: direction_from(obj.orientation())})
       else:
          return false
 
@@ -438,11 +461,19 @@ def map_render_debug(wview: Rectf, thickness: float):
       for_items_within(Objects, gview) pos, x:
          ex(pos)
 
+// Returns a map feature with the given name if any
+// exists.
 def map_feature_named(name: string) -> MapFeature?:
    let i = find(Features) x: x.name == name
    if i >= 0:
       return Features[i]
    else:
       return nil
+
+// Iterates all map features with the given names.
+def for_map_features_named(name: string, body):
+   for(Features) f:
+      if f.name == name:
+         body(f)
 
 //notify_moving
