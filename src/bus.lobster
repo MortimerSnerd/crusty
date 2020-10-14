@@ -37,6 +37,16 @@ def anim_tile(b:: BusEndpoint, what: ObjId, now: float) -> int:
 def tile(b::BusEndpoint, what: ObjId) -> int:
    return 0
 
+// Returns the state flags for the given Object. See StateFlags
+// in config.fbs.
+def object_state(b::BusEndpoint, what: ObjId) -> StateFlags:
+   return StateFlags(0)
+
+// Passes in the current state to body, and updates it with
+// whatever body returns.
+def modify_object_state(b: BusEndpoint, what: ObjId, body):
+   return
+
 // Returns the animation angle of `what` at time t.
 def anim_angle(b:: BusEndpoint, what: ObjId, now: float) -> float:
    return 0
@@ -277,3 +287,13 @@ def notify_animation(o: ObjId, startT: float, name: string):
    for(Endpoints) ep:
       if ep.system != InvalidSystem:
          ep.notify_animation(o, startT, name)
+
+// Returns the state flags for the given Object. See StateFlags
+// in config.fbs.
+def object_state(what: ObjId) -> StateFlags:
+   return Endpoints[what.system].object_state(what)
+
+// Passes in the current state to body, and updates it with
+// whatever body returns.
+def modify_object_state(what: ObjId, body):
+   return Endpoints[what.system].modify_object_state(what, body)

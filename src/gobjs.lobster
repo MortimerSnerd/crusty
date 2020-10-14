@@ -22,6 +22,7 @@ class GOInst : ObjId
    playing_anim: int = -1
    frame_idx: int = 0 
    frame_left: float = 0.0
+   state: StateFlags = StateFlags(0)
 
 struct GOFrame:
    frame: TileName
@@ -110,7 +111,8 @@ def gobjs_spawn(okind: ObjectKind, pos: xy_i, dir: Directions) -> ObjId:
                       dir: dir, 
                       curTile: OSpecs[ki].static_tile, 
                       kind_idx: ki, 
-                      parent: nil}
+                      parent: nil, 
+                      state: OSpecs[ki].initial_state}
       ++IdCounter
       dl_add(GOInstances, rv)
       notify_spawn(rv, nil, pos)
@@ -182,6 +184,16 @@ def play_animation(ep: GobjEndpoint, obj: ObjId, name: string):
          obj.curTile = Animations[ai].frames[0].frame
       else:
          warn(): "animation not found: " + name
+
+def object_state(b::GobjEndpoint, what: ObjId) -> StateFlags:
+   if what is GOInst:
+      return what.state
+   else:
+      return StateFlags(0)
+
+def modify_object_state(b: GobjEndpoint, what: ObjId, body):
+   if what is GOInst:
+      what.state = body(what.state)
 
 def notify_deleting(ep: GobjEndpoint, o: ObjId):
    if o and o is GOInst:

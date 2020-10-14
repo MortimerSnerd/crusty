@@ -15,7 +15,10 @@ class MoveAction : ActionBase
 
 enum ActionResultKinds:
    arOk, 
-   arBlocked 
+   arBlocked, 
+   arNotOpenable, 
+   arAlreadyOpen,
+   arCanNotReach
 
 class ActionResult:
    kind: ActionResultKinds
@@ -53,9 +56,50 @@ def turn_action(span: TurnSpan, now: float, who: ObjId, start: Directions, end: 
 def execute(a:: TurnAction):
    notify_turning(who, time, time + duration, start, end)
 
+class OpenAction : ActionBase
+   what: ObjId
+
+private def at_same_location(a: ObjId, b: ObjId) -> bool:
+   let f0, p0 = pos(a)
+   let f1, p1 = pos(b)
+
+   return f0 and f1 and p0 == p1
+
+def open_action(span: TurnSpan, now: float, who: ObjId, what: ObjId) -> ActionResult, OpenAction?:
+   if at_same_location(who, what):
+      let spec = object_spec(what)
+
+      if spec:
+         if spec.flags & ItemFlags_Container:
+            let st = object_state(what)
+
+            if st & StateFlags_Open:
+               return ActionResult{kind: arAlreadyOpen, other: what}, nil
+            else:
+               return GoodResult, OpenAction{who: who, time: now, what: what, duration: 0.1}
+
+         else:
+            return ActionResult{kind: arNotOpenable, other: what}, nil
+      else:
+         return ActionResult{kind: arNotOpenable, other: what}, nil
+   else:
+      return ActionResult{kind: arCanNotReach, other: what}, nil
+
+// Naming convention for container open and close animations.
+private def open_animation_name(what: ObjId):
+   let spec = object_spec(what)
+
+   if spec:
+      return "open_" + spec.kind
+   else:
+      return ""
+
+def execute(a:: OpenAction):
+   modify_object_state(what) st: st | StateFlags_Open
+   notify_animation(what, time, open_animation_name(what))
 
 enum_flags ActionCategory:
-   acTurn, acMoveFwd, acMoveBkwd, acStrafe
+   acTurn, acMoveFwd, acMoveBkwd, acStrafe, acObjectInteractions
 
 let AllCategories = acTurn | acMoveFwd | acMoveBkwd | acStrafe
 
@@ -111,3 +155,10 @@ def for_possible_actions(span: TurnSpan, who: ObjId, now: float,
                if act:
                   bodyfn(act)
 
+      if cats & acObjectInteractions:
+         for_objects_at(gpos) o:
+            if o:
+               let openr, openact = open_action(span, now, who, o)
+
+               if openact:
+                  bodyfn(openact)

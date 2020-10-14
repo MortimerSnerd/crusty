@@ -31,7 +31,7 @@
             short_name: "A oak dresser.",
             static_tile: Dresser,
             right_rotation: -90,
-            flags: "AbutsWall Immobile", 
+            flags: "AbutsWall Immobile Container", 
             dir_offset: 0.7
         }
      ],
@@ -55,6 +55,11 @@
                 {frame: DeadGroundhog1, duration: 1},
                 {frame: DeadGroundhog2, duration: 1}
             ]
+        }, 
+        {
+            name: "open_ObjectKind_Dresser", 
+            kind: OneShot, 
+            frames: [ {frame: DresserOpen, duration: 1} ]
         }
     ]
 }

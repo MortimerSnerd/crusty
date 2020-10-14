@@ -17,7 +17,8 @@ enum TileName:int32 {
   Fishf = 7, 
   Groundhog1 = 8, 
   DeadGroundhog1 = 9,
-  DeadGroundhog2 = 10
+  DeadGroundhog2 = 10,
+  DresserOpen = 11
 }
 
 
@@ -28,7 +29,13 @@ enum ItemFlags : uint32 (bit_flags)
     AnimTrail,
     EmitsLight, 
     AbutsWall,
-    Immobile
+    Immobile, 
+    Container
+}
+
+enum StateFlags : uint32 (bit_flags)
+{
+    Open
 }
 
 table ObjectSpec {
@@ -40,6 +47,7 @@ table ObjectSpec {
    right_rotation: float = 0;
    light_radius: int = 0;
    dir_offset: float = 0.0;  // For AbutsWall, amount of offset in the direction the object is facing. 1 == 1 grid.
+   initial_state: StateFlags = 0;
 } 
 
 enum AnimationKind : uint8

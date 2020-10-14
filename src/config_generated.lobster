@@ -21,6 +21,7 @@ enum TileName:
     TileName_Groundhog1 = 8
     TileName_DeadGroundhog1 = 9
     TileName_DeadGroundhog2 = 10
+    TileName_DresserOpen = 11
 
 enum ItemFlags:
     ItemFlags_Living = 1
@@ -29,6 +30,10 @@ enum ItemFlags:
     ItemFlags_EmitsLight = 8
     ItemFlags_AbutsWall = 16
     ItemFlags_Immobile = 32
+    ItemFlags_Container = 64
+
+enum StateFlags:
+    StateFlags_Open = 1
 
 enum AnimationKind:
     AnimationKind_OneShot = 0
@@ -59,13 +64,15 @@ class ObjectSpec : flatbuffers_handle
         return buf_.flatbuffers_field_int32(pos_, 16, 0)
     def dir_offset():
         return buf_.flatbuffers_field_float32(pos_, 18, 0.0)
+    def initial_state():
+        return StateFlags(buf_.flatbuffers_field_int32(pos_, 20, 0))
 
 def GetRootAsObjectSpec(buf:string): return ObjectSpec { buf, buf.flatbuffers_indirect(0) }
 
 struct ObjectSpecBuilder:
     b_:flatbuffers_builder
     def start():
-        b_.StartObject(8)
+        b_.StartObject(9)
         return this
     def add_kind(kind:ObjectKind):
         b_.PrependInt16Slot(0, kind, 0)
@@ -90,6 +97,9 @@ struct ObjectSpecBuilder:
         return this
     def add_dir_offset(dir_offset:float):
         b_.PrependFloat32Slot(7, dir_offset, 0.0)
+        return this
+    def add_initial_state(initial_state:StateFlags):
+        b_.PrependUint32Slot(8, initial_state, 0)
         return this
     def end():
         return b_.EndObject()
