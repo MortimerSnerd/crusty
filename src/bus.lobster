@@ -3,6 +3,7 @@
 // accidental creation of import cycles.
 import from "../../../src/crusty/src/"
 import algs
+import config
 import config_generated
 import logging
 import objutils
@@ -79,8 +80,8 @@ def turn_is_allowed(b:: BusEndpoint, now: float, o: ObjId, destDir: Directions) 
    return true
 
 // If there's an ObjectSpect for an object, bodyfn will be executed with it.
-def object_spec(b:: BusEndpoint, o: ObjId) -> ObjectSpec?:
-   return nil
+def object_spec(b:: BusEndpoint, o: ObjId) -> ObjectSpec:
+   return EmptyObjectSpec
 
 // Should be called by actions that move objects, to notify
 // any interested systems.  Gets called for all systems, not
@@ -210,7 +211,7 @@ def move_is_allowed(now: float, o: ObjId, destPos: xy_i) -> bool:
    return true
 
 // If there's an ObjectSpect for an object, bodyfn will be executed with it.
-def object_spec(o: ObjId) -> ObjectSpec?:
+def object_spec(o: ObjId) -> ObjectSpec:
    return Endpoints[o.system].object_spec(o)
 
 // Returns the animation position of `what` at time `now`.
@@ -297,3 +298,14 @@ def object_state(what: ObjId) -> StateFlags:
 // whatever body returns.
 def modify_object_state(what: ObjId, body):
    return Endpoints[what.system].modify_object_state(what, body)
+
+// Helper function that returns an array of objects at `p`
+// that pass `predfn`.
+def collect_objects_at(p: xy_i, predfn) -> [ObjId]:
+   let rv = []
+   for_objects_at(p) o:
+      if o and predfn(o):
+         push(rv, o)
+
+   return rv
+

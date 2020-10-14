@@ -206,9 +206,7 @@ def anim_render_move_lines(now: float):
                width = 1/64.0
 
             if l.kind == anMove:
-               let spec = l.who.object_spec
-
-               if spec and spec.flags & ItemFlags_AnimTrail:
+               if object_spec(l.who).flags & ItemFlags_AnimTrail:
                   let next_a = min(start_a + alpha_step, 1.0)
                   let next_width = width + width_step
                   let pf, whopos = pos(l.who)

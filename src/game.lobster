@@ -51,9 +51,7 @@ private def maybe_pickup_sword(pickUpTime: float):
 
       for_objects_at(ppos) oid:
          if oid:
-            let spec = oid.object_spec
-
-            if spec and spec.kind == ObjectKind_Sword:
+            if object_spec(oid).kind == ObjectKind_Sword:
                Carrying = oid
                notify_sfx(Player, pickUpTime, "dist/yoink.wav", 1.0)
                return
@@ -256,9 +254,7 @@ def num_live_groundhogs() -> int, int:
 def living_at(p: xy_i) -> bool:
    for_objects_at(p) o:
       if o:
-         let spec = o.object_spec
-         
-         if spec and spec.flags & ItemFlags_Living:
+         if object_spec(o).flags & ItemFlags_Living:
             return true
    return false
 

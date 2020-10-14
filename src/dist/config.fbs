@@ -1,4 +1,4 @@
-enum ObjectKind:short { okInvalid = 0, 
+enum ObjectKind:short { Invalid = 0, 
   Player, 
   Sword,
   Groundhog, 

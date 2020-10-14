@@ -1,6 +1,7 @@
 // Define actions so they can be validated or introspected.
 import from "../../../src/crusty/src/"
 import bus
+import config
 import logging
 import objutils
 
@@ -18,6 +19,7 @@ enum ActionResultKinds:
    arBlocked, 
    arNotOpenable, 
    arAlreadyOpen,
+   arAlreadyClosed,
    arCanNotReach
 
 class ActionResult:
@@ -58,6 +60,7 @@ def execute(a:: TurnAction):
 
 class OpenAction : ActionBase
    what: ObjId
+   opening: bool
 
 private def at_same_location(a: ObjId, b: ObjId) -> bool:
    let f0, p0 = pos(a)
@@ -67,36 +70,47 @@ private def at_same_location(a: ObjId, b: ObjId) -> bool:
 
 def open_action(span: TurnSpan, now: float, who: ObjId, what: ObjId) -> ActionResult, OpenAction?:
    if at_same_location(who, what):
-      let spec = object_spec(what)
+      if object_spec(what).flags & ItemFlags_Container:
+         let st = object_state(what)
 
-      if spec:
-         if spec.flags & ItemFlags_Container:
-            let st = object_state(what)
-
-            if st & StateFlags_Open:
-               return ActionResult{kind: arAlreadyOpen, other: what}, nil
-            else:
-               return GoodResult, OpenAction{who: who, time: now, what: what, duration: 0.1}
-
+         if st & StateFlags_Open:
+            return ActionResult{kind: arAlreadyOpen, other: what}, nil
          else:
-            return ActionResult{kind: arNotOpenable, other: what}, nil
+            return GoodResult, OpenAction{who: who, time: now, what: what, duration: 0.1, 
+                                          opening: true}
+
+      else:
+         return ActionResult{kind: arNotOpenable, other: what}, nil
+   else:
+      return ActionResult{kind: arCanNotReach, other: what}, nil
+
+def close_action(span: TurnSpan, now: float, who: ObjId, what: ObjId) -> ActionResult, OpenAction?:
+   if at_same_location(who, what):
+      if object_spec(what).flags & ItemFlags_Container:
+         let st = object_state(what)
+
+         if not st & StateFlags_Open:
+            return ActionResult{kind: arAlreadyClosed, other: what}, nil
+         else:
+            return GoodResult, OpenAction{who: who, time: now, what: what, duration: 0.1, 
+                                          opening: false}
+
       else:
          return ActionResult{kind: arNotOpenable, other: what}, nil
    else:
       return ActionResult{kind: arCanNotReach, other: what}, nil
 
 // Naming convention for container open and close animations.
-private def open_animation_name(what: ObjId):
-   let spec = object_spec(what)
-
-   if spec:
-      return "open_" + spec.kind
-   else:
-      return ""
+private def open_close_animation_name(action: string, what: ObjId):
+   return action + "_" + object_spec(what).kind
 
 def execute(a:: OpenAction):
-   modify_object_state(what) st: st | StateFlags_Open
-   notify_animation(what, time, open_animation_name(what))
+   if opening:
+      modify_object_state(what) st: st | StateFlags_Open
+      notify_animation(what, time, open_close_animation_name("open", what))
+   else:
+      modify_object_state(what) st: st & ~StateFlags_Open
+      notify_animation(what, time, open_close_animation_name("close", what))
 
 enum_flags ActionCategory:
    acTurn, acMoveFwd, acMoveBkwd, acStrafe, acObjectInteractions
@@ -108,57 +122,60 @@ let AllCategories = acTurn | acMoveFwd | acMoveBkwd | acStrafe
 def for_possible_actions(span: TurnSpan, who: ObjId, now: float, 
                          cats: ActionCategory, bodyfn):
    let spec = who.object_spec
+   let found_pos, gpos = pos(who)
+   let found_dir, dir = direction(who)
 
-   if spec:
-      let found_pos, gpos = pos(who)
-      let found_dir, dir = direction(who)
+   // Can we turn?
+   if found_dir and cats & acTurn:
+      let dir_left = turned_left(dir)
+      let rl, lact = turn_action(span, now, who, dir, dir_left)
 
-      // Can we turn?
-      if found_dir and cats & acTurn:
-         let dir_left = turned_left(dir)
-         let rl, lact = turn_action(span, now, who, dir, dir_left)
+      if lact:
+         bodyfn(lact)
 
-         if lact:
-            bodyfn(lact)
+      let dir_right = turned_right(dir)
+      let rr, ract = turn_action(span, now, who, dir, dir_right)
 
-         let dir_right = turned_right(dir)
-         let rr, ract = turn_action(span, now, who, dir, dir_right)
+      if ract:
+         bodyfn(ract)
 
-         if ract:
-            bodyfn(ract)
+   if found_pos and found_dir:
+      // Movement.
+      let wpos = gridToWorld(gpos)
+      let curdir = all_dirs[dir]
+       
+      for(all_dirs) d:
+         let targ = gpos + xy_i{int(d.x), int(d.y)}
+         let is_fwd_dir = d == curdir
+         let is_back_dir = d == curdir*-1
 
-      if found_pos and found_dir:
-         // Movement.
-         let wpos = gridToWorld(gpos)
-         let curdir = all_dirs[dir]
-          
-         for(all_dirs) d:
-            let targ = gpos + xy_i{int(d.x), int(d.y)}
-            let is_fwd_dir = d == curdir
-            let is_back_dir = d == curdir*-1
+         if cats & acMoveFwd and is_fwd_dir:
+            let rl, act = move_action(span, now, who, gpos, targ)
 
-            if cats & acMoveFwd and is_fwd_dir:
-               let rl, act = move_action(span, now, who, gpos, targ)
+            if act:
+               bodyfn(act)
 
-               if act:
-                  bodyfn(act)
+         elif cats & acMoveBkwd and is_back_dir:
+            let rl, act = move_action(span, now, who, gpos, targ)
 
-            elif cats & acMoveBkwd and is_back_dir:
-               let rl, act = move_action(span, now, who, gpos, targ)
+            if act:
+               bodyfn(act)
 
-               if act:
-                  bodyfn(act)
+         elif cats & acStrafe:
+            let rl, act = move_action(span, now, who, gpos, targ)
 
-            elif cats & acStrafe:
-               let rl, act = move_action(span, now, who, gpos, targ)
+            if act:
+               bodyfn(act)
 
-               if act:
-                  bodyfn(act)
+   if cats & acObjectInteractions:
+      for_objects_at(gpos) o:
+         if o:
+            let openr, openact = open_action(span, now, who, o)
 
-      if cats & acObjectInteractions:
-         for_objects_at(gpos) o:
-            if o:
-               let openr, openact = open_action(span, now, who, o)
+            if openact:
+               bodyfn(openact)
 
-               if openact:
-                  bodyfn(openact)
+            let closer, closeact = close_action(span, now, who, o)
+
+            if closeact:
+               bodyfn(closeact)

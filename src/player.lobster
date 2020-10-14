@@ -58,16 +58,12 @@ private let pl_fwd_action = fn(player: ObjId, now: float) -> ActionBase?:
 def bind(key, desc, afn): push(Bindings, Binding{key: key, desc: desc, afn: afn})
 
 private def closed_containers_at(p: xy_i) -> [ObjId]:
-   let rv = []
+   return collect_objects_at(p) o:
+      object_spec(o).flags & ItemFlags_Container and not (object_state(o) & StateFlags_Open)
 
-   for_objects_at(p) o:
-      if o:
-         let spec = object_spec(o)
-
-         if spec and spec.flags & ItemFlags_Container and not (object_state(o) & StateFlags_Open):
-            push(rv, o)
-   return rv
-
+private def opened_containers_at(p: xy_i) -> [ObjId]:
+   return collect_objects_at(p) o:
+      object_spec(o).flags & ItemFlags_Container and (object_state(o) & StateFlags_Open)
 
 def player_init():
    bind("w", "Move forward") player, now:
@@ -101,6 +97,17 @@ def player_init():
       assert length(cands) <= 1  // TODO how to set up prompting state.
       if length(cands) > 0:
          let r, act = open_action(FakeTurnSpan, GameTime, player, cands[0])
+         act
+      else:
+         nil
+
+   bind("c", "Close") player, now:
+      let f, p = pos(player)
+      let cands = opened_containers_at(p)
+
+      assert length(cands) <= 1  // TODO how to set up prompting state.
+      if length(cands) > 0:
+         let r, act = close_action(FakeTurnSpan, GameTime, player, cands[0])
          act
       else:
          nil

@@ -2,7 +2,7 @@
 import flatbuffers
 
 enum ObjectKind:
-    ObjectKind_okInvalid = 0
+    ObjectKind_Invalid = 0
     ObjectKind_Player = 1
     ObjectKind_Sword = 2
     ObjectKind_Groundhog = 3

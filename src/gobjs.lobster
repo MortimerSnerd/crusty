@@ -210,11 +210,11 @@ def notify_take(ep: GobjEndpoint, who: ObjId, what: ObjId):
    if what is GOInst:
       what.parent = who
 
-def object_spec(ep:: GobjEndpoint, o: ObjId) -> ObjectSpec?:
+def object_spec(ep:: GobjEndpoint, o: ObjId) -> ObjectSpec:
    if o is GOInst:
       return OSpecs[o.kind_idx]
    else:
-      return nil
+      return EmptyObjectSpec
    
 def gobjs_init():
    let txtfile = "dist/sprites.png"

@@ -76,33 +76,31 @@ def move_is_allowed(ep: MapEndpoint, now: float, o: ObjId, destPos: xy_i) -> boo
 
    let spec = object_spec(o)
 
-   if spec:
-      if wall_blocks_move(destPos):
+   if wall_blocks_move(destPos):
+      return false
+
+   let found, cpos = pos(o)
+
+   if found and crosses_wall_diagonal(cpos, destPos):
+      return false
+
+   let liv = get(Living, destPos)
+
+   if spec.flags & ItemFlags_Living:
+      if liv != InvalidObject:
          return false
 
-      let found, cpos = pos(o)
+      let blocked = any_items_at(Objects, destPos) it: 
+         if it:
+            object_spec(it).flags & ItemFlags_BlocksLiving != 0
+         else:
+            false
 
-      if found and crosses_wall_diagonal(cpos, destPos):
+      if blocked:
          return false
-
-      let liv = get(Living, destPos)
-
-      if spec.flags & ItemFlags_Living:
-         if liv != InvalidObject:
-            return false
-
-         let blocked = any_items_at(Objects, destPos) it: 
-            if it:
-               let ispec = it.object_spec
-               ispec and ispec.flags & ItemFlags_BlocksLiving
-            else:
-               false
-
-         if blocked:
-            return false
-      elif spec.flags & ItemFlags_BlocksLiving:
-         if liv != InvalidObject:
-            return false
+   elif spec.flags & ItemFlags_BlocksLiving:
+      if liv != InvalidObject:
+         return false
 
    return true
 
@@ -128,27 +126,21 @@ def notify_take(b: MapEndpoint, who: ObjId, what: ObjId):
 def notify_spawn(ep: MapEndpoint, o: ObjId, parent: ObjId?, pos: xy_i):
    if not parent:
       // Not contained by another object, so this is on a map.
-      let spec = o.object_spec
-      
-      if spec:
-         if spec.flags & ItemFlags_Living:
-            assert get(Living, pos) == InvalidObject
-            set(Living, pos, o)
-         else:
-            add(Objects, pos, o)
+      if object_spec(o).flags & ItemFlags_Living:
+         assert get(Living, pos) == InvalidObject
+         set(Living, pos, o)
+      else:
+         add(Objects, pos, o)
 
 def notify_moving(ep: MapEndpoint, o: ObjId, startT: float, endT: float, 
                   start: xy_i, end: xy_i):
-   let spec = o.object_spec
-
-   if spec:
-      if spec.flags & ItemFlags_Living:
-         remove_item(Living, start, o)
-         assert get(Living, end) == InvalidObject
-         set(Living, end, o)
-      else:
-         remove_item(Objects, start, o)
-         add(Objects, end, o)
+   if object_spec(o).flags & ItemFlags_Living:
+      remove_item(Living, start, o)
+      assert get(Living, end) == InvalidObject
+      set(Living, end, o)
+   else:
+      remove_item(Objects, start, o)
+      add(Objects, end, o)
 
 def for_objects_at(b:: MapEndpoint, p: xy_i, body):
    for_items_at(Objects, p) o:

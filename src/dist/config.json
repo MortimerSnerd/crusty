@@ -60,6 +60,11 @@
             name: "open_ObjectKind_Dresser", 
             kind: OneShot, 
             frames: [ {frame: DresserOpen, duration: 1} ]
+        },
+        {
+            name: "close_ObjectKind_Dresser", 
+            kind: OneShot, 
+            frames: [ {frame: Dresser, duration: 1} ]
         }
     ]
 }

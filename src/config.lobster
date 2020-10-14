@@ -1,5 +1,6 @@
 import from "../../../src/crusty/src/"
 import config_generated
+import flatbuffers
 import logging
 
 private var CfgRoot: ConfigRoot? = nil
@@ -29,3 +30,20 @@ def cur_config() -> ConfigRoot:
       error(): "No config?"
       assert false
 
+private def mk_empty():
+   let b = flatbuffers_builder{}
+   let bob = ObjectSpecBuilder{b_: b}
+   let nm = b.CreateString("")
+   
+   bob.start()
+   bob.add_kind(ObjectKind_Invalid).add_short_name(nm)
+   bob.add_static_tile(TileName_None).add_weight(0.0).add_flags(ItemFlags(0))
+   bob.add_right_rotation(0.0).add_light_radius(0).add_dir_offset(0.0)
+   bob.add_initial_state(StateFlags(0))
+   let fb = bob.end()
+
+   b.Finish(fb)
+   return GetRootAsObjectSpec(b.SizedCopy())
+
+// Empty object.  Can be used as a sentinel for 
+let EmptyObjectSpec:ObjectSpec = mk_empty()
