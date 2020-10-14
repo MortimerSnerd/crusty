@@ -19,11 +19,24 @@ class GOInst : ObjId
    dir: Directions
    curTile: int
    parent: ObjId?
+   playing_anim: int = -1
+   frame_idx: int = 0 
+   frame_left: float = 0.0
+
+struct GOFrame:
+   frame: TileName
+   duration: float
+
+class GOAnim:
+   name: string
+   kind: AnimationKind
+   frames: [GOFrame]
 
 // For now we just use the flatbuffer instance.  Hooray laziness.
 private let OSpecs : [ObjectSpec] = []
 private var ObjTx : GridTiledTexture? = nil
 
+private let Animations: [GOAnim] = []
 private let GOInstances = EmbeddedCircList<GOInst>{head: nil}
 
 def gobj_short_name(o: GOInst?) -> string:
@@ -39,6 +52,28 @@ private def render_offset(os: ObjectSpec, facing: Directions) -> xyz_f:
    else:
       return xyz_0
 
+private def find_animation(name: string):
+   return find(Animations) x: x.name == name
+
+def gobjs_update():
+   let dT = gl_delta_time()
+   dl_foreach(GOInstances) o:
+      if o.playing_anim >= 0:
+         let anim = Animations[o.playing_anim]
+         o.frame_left -= dT
+         if o.frame_left <= 0:
+            o.frame_idx += 1
+            if o.frame_idx >= length(anim.frames):
+               switch anim.kind:
+                  case AnimationKind_OneShot:
+                     o.playing_anim = -1
+                  case AnimationKind_Loop:
+                     o.frame_idx = 0
+                     o.frame_left += anim.frames[0].duration
+                     o.curTile = anim.frames[0].frame
+            else:
+               o.frame_left += anim.frames[o.frame_idx].duration
+               o.curTile = anim.frames[o.frame_idx].frame
 
 def gobjs_draw(now: float, view: Rectf):
    if ObjTx:
@@ -105,6 +140,8 @@ def tile(b: GobjEndpoint, what: ObjId) -> int:
 def change_tile(b:: GobjEndpoint, o: ObjId, tile: TileName):
    if o is GOInst:
       o.curTile = tile
+      // If a tile is set manually, cancel animation.
+      o.playing_anim = -1
 
 def pos(ep:: GobjEndpoint, what: ObjId) -> bool, xy_i:
    if what is GOInst:
@@ -133,6 +170,18 @@ def think(ep:: GobjEndpoint, span: TurnSpan, who: ObjId, now: float):
 def notify_moving(ep:: GobjEndpoint, o: ObjId, startT: float, endT: float, start: xy_i, end: xy_i):
    if o is GOInst:
       o.pos = end
+
+def play_animation(ep: GobjEndpoint, obj: ObjId, name: string):
+   if obj is GOInst:
+      let ai = find_animation(name)
+
+      if ai >= 0:
+         obj.playing_anim = ai
+         obj.frame_idx = 0
+         obj.frame_left = Animations[ai].frames[0].duration
+         obj.curTile = Animations[ai].frames[0].frame
+      else:
+         warn(): "animation not found: " + name
 
 def notify_deleting(ep: GobjEndpoint, o: ObjId):
    if o and o is GOInst:
@@ -170,6 +219,19 @@ def gobjs_init():
 
    qsort_in_place(OSpecs) a, b: int(a.kind) < int(b.kind)
    bus_register_endpoint(GobjEndpoint{system: GObjSystem})
+
+   for(cur_config().animations_length()) i:
+      let a = cur_config().animations(i)
+      let anim = GOAnim{name: a.name(), 
+                        kind: a.kind, 
+                        frames: vector_reserve(typeof return, a.frames_length())}
+      for(a.frames_length()) j:
+         let fr = a.frames(j)
+         push(anim.frames, GOFrame{frame: fr.frame, duration: fr.duration})
+
+      push(Animations, anim)
+
+   qsort_in_place(Animations) a, b: a.name < b.name
 
 def gobjs_shutdown():
    dl_clear(GOInstances)

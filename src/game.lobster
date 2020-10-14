@@ -67,8 +67,9 @@ private def maybe_sword_groundhog(gh: ObjId, p: xy_i, now: float):
             let fx = rnd_pick(["dist/ouch1.wav", "dist/ouch2.wav", "dist/ouch3.wav"])
             notify_sfx(gh.graphic, now, fx, 1.0)
             gh.dead = true
-            notify_tile_change(gh.graphic, now, tile(gh.graphic), TileName_DeadGroundhog)
-            change_tile(gh.graphic, TileName_DeadGroundhog)
+            notify_animation(gh.graphic, now, "groundhog_croaked")
+            //notify_tile_change(gh.graphic, now, tile(gh.graphic), TileName_DeadGroundhog)
+            //change_tile(gh.graphic, TileName_DeadGroundhog)
 
 private def maybe_sword_groundhog(now: float):
    if Carrying != InvalidObject:
@@ -218,6 +219,7 @@ def game_init():
 
    if spawn:
       Player = gobjs_spawn(ObjectKind_Player, spawn.pos, East)
+      play_animation(Player, "player_idle")
       gobjs_spawn(ObjectKind_Sword, spawn.pos + xy_i{1, 0}, North)
       maps_update_viz(spawn.pos, true)
    else:
@@ -266,6 +268,8 @@ def game_frame(do_debug) -> bool, Rectf:
    let hwsz = wsz/2
    let now = game_time()
 
+   gobjs_update()
+
    if Player:
       let rv = if PlayerDead: Good else: player_handle_input(Player)
       let view_rect = set_map_projection(anim_pos(Player, now), tile_size, fwsz)
@@ -302,6 +306,7 @@ def game_frame(do_debug) -> bool, Rectf:
                                            system: SwerdFeeshSystem}
                      dl_add(Groundhogs, gh)
                      schedule_callback(gh, now)
+                     play_animation(gh.graphic, "groundhog_idle")
 
             gl_window_title("Penalty Box: " + 1/gl_delta_time())
             gl_clear(color_black)

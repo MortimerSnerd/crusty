@@ -23,6 +23,10 @@ def pos(b:: BusEndpoint, what: ObjId) -> bool, xy_i:
 def anim_pos(b:: BusEndpoint, what: ObjId, now: float) -> xy_f:
    return xy_0
 
+// Plays animation named `name` for `obj` immediately.
+def play_animation(b: BusEndpoint, obj: ObjId, name: string):
+   return
+
 // Returns the current tile at the given time.  Returns 0 for
 // objects that don't have tiles.
 def anim_tile(b:: BusEndpoint, what: ObjId, now: float) -> int:
@@ -92,6 +96,11 @@ def notify_deleting(b:: BusEndpoint, o: ObjId) -> void:
 // Should be called by actions that play a sound effect for an object, 
 // to notify any interested systems.
 def notify_sfx(e: BusEndpoint, o: ObjId, startT: float, sfx: string, vol: float):
+   return
+
+// Should be called by actions that start an animation at a 
+// certain point in the turn.
+def notify_animation(e: BusEndpoint, o: ObjId, startT: float, name: string):
    return
 
 // Changes the tile of an object.
@@ -258,3 +267,13 @@ def for_all_enabled_lights(body):
    for(Endpoints) ep:
       ep.for_all_enabled_lights(body)
 
+// Plays animation named `name` for `obj` immediately.
+def play_animation(obj: ObjId, name: string):
+   Endpoints[GObjSystem].play_animation(obj, name)
+
+// Should be called by actions that start an animation at a 
+// certain point in the turn.
+def notify_animation(o: ObjId, startT: float, name: string):
+   for(Endpoints) ep:
+      if ep.system != InvalidSystem:
+         ep.notify_animation(o, startT, name)

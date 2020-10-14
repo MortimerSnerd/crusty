@@ -14,6 +14,10 @@ enum TileName:int32 {
   Dresser = 4,
   DeadGroundhog = 5, 
   Bullet = 6, 
+  Fishf = 7, 
+  Groundhog1 = 8, 
+  DeadGroundhog1 = 9,
+  DeadGroundhog2 = 10
 }
 
 
@@ -38,8 +42,26 @@ table ObjectSpec {
    dir_offset: float = 0.0;  // For AbutsWall, amount of offset in the direction the object is facing. 1 == 1 grid.
 } 
 
+enum AnimationKind : uint8
+{
+    OneShot, 
+    Loop
+}
+
+table Frame {
+    frame:  TileName;
+    duration: float;
+}
+
+table SpriteAnim {
+   name: string;
+   kind: AnimationKind = Loop;
+   frames: [Frame];
+}
+
 table ConfigRoot {
    objtypes: [ObjectSpec];
+   animations: [SpriteAnim];
 }
     
 root_type ConfigRoot;

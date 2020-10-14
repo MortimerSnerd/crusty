@@ -12,7 +12,7 @@ private var Turn = TurnSpan{0,0}
 
 enum AnimKind:
    anMove, anTurn, 
-   anTileChange, anSound
+   anTileChange, anSound, anPlayAnimation
 
 //TODO: add optional trails that shows the path an object moved through.
 
@@ -28,22 +28,22 @@ class AnimStep:
    newTile: int = 0
    animStartTime: float = 0.0  // Used for animations that are not movLerp or turnLerp
    animEndTime: float = 0.0
-   soundFx: string = ""
+   oneShotName: string = ""
    soundVol: float = 1.0
-   soundTriggered: bool = false
+   oneShotTriggered: bool = false
 
 def startTime(a: AnimStep) -> float:
    switch a.kind:
       case anMove: return a.movLerp.startT
       case anTurn: return a.turnLerp.startT
-      case anTileChange, anSound: return a.animStartTime
+      case anTileChange, anSound, anPlayAnimation: return a.animStartTime
    return 0.0
 
 def endTime(a: AnimStep) -> float:
    switch a.kind:
       case anMove: return a.movLerp.endT
       case anTurn: return a.turnLerp.endT
-      case anTileChange, anSound: return a.animEndTime
+      case anTileChange, anSound, anPlayAnimation: return a.animEndTime
    return 0.0
 
 // Array of all animations for a given turn.
@@ -146,18 +146,27 @@ private def find_obj_lane(obj: ObjId, kind: AnimKind, now: float) -> int:
 
 class AnimEndpoint : BusEndpoint
 
-// Can be called once per frame to play any sound effects
-// that have been triggered since the last call.
-def anim_play_sfx(now: float):
+// Can be called once per frame to play any effects
+// that are one shot events, and not interpolated values.
+def anim_play_one_shots(now: float):
    for(Lanes) l:
-      if l.kind == anSound:
-         debug(): "time " + now + " vs " + l.animStartTime + " triggered=" + l.soundTriggered + " " + l.soundFx
-         if now >= l.animStartTime and not l.soundTriggered:
-            let ch = play_wav(l.soundFx)
-            if ch >= 0:
-               sound_volume(ch, l.soundVol)
-               //TODO modify based on position eventually
-            l.soundTriggered = true
+      switch l.kind:
+         case anSound:
+            debug(): "time " + now + " vs " + l.animStartTime + " triggered=" + l.oneShotTriggered + " " + l.oneShotName
+            if now >= l.animStartTime and not l.oneShotTriggered:
+               let ch = play_wav(l.oneShotName)
+               if ch >= 0:
+                  sound_volume(ch, l.soundVol)
+                  //TODO modify based on position eventually
+               l.oneShotTriggered = true
+
+         case anPlayAnimation:
+            if now >= l.animStartTime and not l.oneShotTriggered:
+               play_animation(l.who, l.oneShotName)
+               l.oneShotTriggered = true
+
+         case anMove, anTurn, anTileChange:
+            noop()
 
 private let DrawingTrails = true
 
@@ -265,15 +274,24 @@ def anim_angle(ep: AnimEndpoint, what: ObjId, now: float) -> float:
      else:
        return 0
 
+def notify_animation(e: AnimEndpoint, o: ObjId, startT: float, name: string):
+   push(Lanes, 
+        AnimStep{who: o, 
+                 kind: anPlayAnimation, 
+                 animStartTime: startT, 
+                 animEndTime: startT, 
+                 oneShotName: name, 
+                 oneShotTriggered: false})
+
 def notify_sfx(e: AnimEndpoint, o: ObjId, startT: float, sfx: string, vol: float):
    push(Lanes, 
         AnimStep{who: o, 
                  kind: anSound, 
                  animStartTime: startT, 
                  animEndTime: startT, 
-                 soundFx: sfx, 
+                 oneShotName: sfx, 
                  soundVol: vol, 
-                 soundTriggered: false})
+                 oneShotTriggered: false})
 
 def notify_moving(e: AnimEndpoint, o: ObjId, startT: float, endT: float, start: xy_i, end: xy_i):
    push(Lanes, 

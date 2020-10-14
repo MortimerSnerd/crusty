@@ -34,5 +34,27 @@
             flags: "AbutsWall Immobile", 
             dir_offset: 0.7
         }
-     ]
+     ],
+
+    "animations": [
+        {
+            name: "player_idle", 
+            frames: [{frame: Fish, duration: 0.4}, 
+                     {frame: Fishf, duration: 0.4}]
+        },
+        {
+            name: "groundhog_idle",
+            frames: [{frame: Groundhog, duration: 0.35},
+                     {frame: Groundhog1, duration: 0.35}]
+        },
+        {
+            name: "groundhog_croaked",
+            kind: OneShot,
+            frames: [
+                {frame: DeadGroundhog, duration: 1},
+                {frame: DeadGroundhog1, duration: 1},
+                {frame: DeadGroundhog2, duration: 1}
+            ]
+        }
+    ]
 }

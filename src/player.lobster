@@ -125,7 +125,7 @@ def player_handle_input(player: ObjId):
 
             GameTime = min(TurnTime.end, GameTime + dT)
 
-            anim_play_sfx(GameTime)
+            anim_play_one_shots(GameTime)
             if GameTime == TurnTime.end:
                PlayerState = WaitingForInput
                rv = GoodSteppingEnded

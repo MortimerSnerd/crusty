@@ -17,6 +17,10 @@ enum TileName:
     TileName_Dresser = 4
     TileName_DeadGroundhog = 5
     TileName_Bullet = 6
+    TileName_Fishf = 7
+    TileName_Groundhog1 = 8
+    TileName_DeadGroundhog1 = 9
+    TileName_DeadGroundhog2 = 10
 
 enum ItemFlags:
     ItemFlags_Living = 1
@@ -26,7 +30,15 @@ enum ItemFlags:
     ItemFlags_AbutsWall = 16
     ItemFlags_Immobile = 32
 
+enum AnimationKind:
+    AnimationKind_OneShot = 0
+    AnimationKind_Loop = 1
+
 class ObjectSpec
+
+class Frame
+
+class SpriteAnim
 
 class ConfigRoot
 
@@ -82,21 +94,86 @@ struct ObjectSpecBuilder:
     def end():
         return b_.EndObject()
 
+class Frame : flatbuffers_handle
+    def frame():
+        return TileName(buf_.flatbuffers_field_int32(pos_, 4, 0))
+    def duration():
+        return buf_.flatbuffers_field_float32(pos_, 6, 0.0)
+
+def GetRootAsFrame(buf:string): return Frame { buf, buf.flatbuffers_indirect(0) }
+
+struct FrameBuilder:
+    b_:flatbuffers_builder
+    def start():
+        b_.StartObject(2)
+        return this
+    def add_frame(frame:TileName):
+        b_.PrependInt32Slot(0, frame, 0)
+        return this
+    def add_duration(duration:float):
+        b_.PrependFloat32Slot(1, duration, 0.0)
+        return this
+    def end():
+        return b_.EndObject()
+
+class SpriteAnim : flatbuffers_handle
+    def name():
+        return buf_.flatbuffers_field_string(pos_, 4)
+    def kind():
+        return AnimationKind(buf_.flatbuffers_field_int8(pos_, 6, 1))
+    def frames(i:int):
+        return Frame { buf_, buf_.flatbuffers_indirect(buf_.flatbuffers_field_vector(pos_, 8) + i * 4) }
+    def frames_length():
+        return buf_.flatbuffers_field_vector_len(pos_, 8)
+
+def GetRootAsSpriteAnim(buf:string): return SpriteAnim { buf, buf.flatbuffers_indirect(0) }
+
+struct SpriteAnimBuilder:
+    b_:flatbuffers_builder
+    def start():
+        b_.StartObject(3)
+        return this
+    def add_name(name:flatbuffers_offset):
+        b_.PrependUOffsetTRelativeSlot(0, name)
+        return this
+    def add_kind(kind:AnimationKind):
+        b_.PrependUint8Slot(1, kind, 1)
+        return this
+    def add_frames(frames:flatbuffers_offset):
+        b_.PrependUOffsetTRelativeSlot(2, frames)
+        return this
+    def end():
+        return b_.EndObject()
+
+def SpriteAnimStartFramesVector(b_:flatbuffers_builder, n_:int):
+    b_.StartVector(4, n_, 4)
+def SpriteAnimCreateFramesVector(b_:flatbuffers_builder, v_:[flatbuffers_offset]):
+    b_.StartVector(4, v_.length, 4)
+    reverse(v_) e_: b_.PrependUOffsetTRelative(e_)
+    return b_.EndVector(v_.length)
+
 class ConfigRoot : flatbuffers_handle
     def objtypes(i:int):
         return ObjectSpec { buf_, buf_.flatbuffers_indirect(buf_.flatbuffers_field_vector(pos_, 4) + i * 4) }
     def objtypes_length():
         return buf_.flatbuffers_field_vector_len(pos_, 4)
+    def animations(i:int):
+        return SpriteAnim { buf_, buf_.flatbuffers_indirect(buf_.flatbuffers_field_vector(pos_, 6) + i * 4) }
+    def animations_length():
+        return buf_.flatbuffers_field_vector_len(pos_, 6)
 
 def GetRootAsConfigRoot(buf:string): return ConfigRoot { buf, buf.flatbuffers_indirect(0) }
 
 struct ConfigRootBuilder:
     b_:flatbuffers_builder
     def start():
-        b_.StartObject(1)
+        b_.StartObject(2)
         return this
     def add_objtypes(objtypes:flatbuffers_offset):
         b_.PrependUOffsetTRelativeSlot(0, objtypes)
+        return this
+    def add_animations(animations:flatbuffers_offset):
+        b_.PrependUOffsetTRelativeSlot(1, animations)
         return this
     def end():
         return b_.EndObject()
@@ -104,6 +181,13 @@ struct ConfigRootBuilder:
 def ConfigRootStartObjtypesVector(b_:flatbuffers_builder, n_:int):
     b_.StartVector(4, n_, 4)
 def ConfigRootCreateObjtypesVector(b_:flatbuffers_builder, v_:[flatbuffers_offset]):
+    b_.StartVector(4, v_.length, 4)
+    reverse(v_) e_: b_.PrependUOffsetTRelative(e_)
+    return b_.EndVector(v_.length)
+
+def ConfigRootStartAnimationsVector(b_:flatbuffers_builder, n_:int):
+    b_.StartVector(4, n_, 4)
+def ConfigRootCreateAnimationsVector(b_:flatbuffers_builder, v_:[flatbuffers_offset]):
     b_.StartVector(4, v_.length, 4)
     reverse(v_) e_: b_.PrependUOffsetTRelative(e_)
     return b_.EndVector(v_.length)
