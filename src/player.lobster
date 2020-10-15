@@ -15,7 +15,7 @@ def PromptAction(o: ObjId) -> void
 
 class PromptState:
    action: PromptAction
-   objs: [ObjId] = []
+   objs: ObjList = ObjList{options: olAddChoiceLetter}
    title: string = ""
    result: ActionBase? = nil
    done: bool = false
@@ -26,47 +26,36 @@ private var PlayerState = WaitingForInput
 private var TurnTime = TurnSpan{0.0, 0.0} // Valid when PlayerState == Stepping
 private var GameTime : float = 0    // Abs game time.  (ie, total time stepping, not waiting for input)
 
-// Return a letter choice for a list of choices.  Practically limited to 
-// 26 + 10 digits, since we can't do uppercase.
-private def choice_letter(i: int):
-   let rv = " "
 
-   if i >= 0 and i < 25:
-      rv.write_int8_le(0, i + 97)
-   elif i >= 26 and i < 36:
-      rv.write_int8_le(0, i - 26 + 48)
-   else:
-      assert false //exceeded #choices
+private def prompt_handler():
+   var rv = dlsOk
+
+   if CurPrompt:
+      let ws = gl_window_size().to_f * xy_f{0.4, 0.5} 
+      im_set_next_window_pos(ws, im_cond_first_use_ever, xy_f{0.5, 0.5})
+      im_window(CurPrompt.title, 0):
+         let status, picked = display_list(CurPrompt.objs)
+
+         if status == dlsCancel:
+            rv = status
+         elif picked:
+            let act = CurPrompt.action
+            act(picked)
 
    return rv
 
-
-private def prompt_handler():
-   if CurPrompt:
-      var acted = false
-      im_window(CurPrompt.title, 0):
-         for(CurPrompt.objs) o, i:
-            im_group(string(i)):
-               if im_button(choice_letter(i)+ ")  " + object_spec(o).short_name):
-                  let act = CurPrompt.action
-                  act(o)
-                  acted = true
-      if not acted:
-         for(CurPrompt.objs) o, i:
-            if gl_button(choice_letter(i)) == 1:
-               let act = CurPrompt.action
-               act(o)
-
-
-private def prompt_for_object(player: ObjId, title: string, choices: [ObjId], action: PromptAction):
+private def prompt_for_object(player: ObjId, title: string, choices: ObjList, action: PromptAction):
    assert CurPrompt == nil
-   if length(choices) > 0:
+   if count(choices) > 0:
       CurPrompt = PromptState{action: action, 
                               objs: choices, 
                               title: title, 
                               player: player}
-      if length(choices) == 1:
-         action(choices[0])
+      if count(choices) == 19:
+         let o = first(choices)
+
+         if o:
+            action(o)
 
 def game_time() -> float:
    return GameTime
@@ -112,13 +101,24 @@ private let pl_fwd_action = fn(player: ObjId, now: float) -> ActionBase?:
 
 def bind(key, desc, afn): push(Bindings, Binding{key: key, desc: desc, afn: afn})
 
-private def closed_containers_at(p: xy_i) -> [ObjId]:
-   return collect_objects_at(p) o:
-      object_spec(o).flags & ItemFlags_Container and not (object_state(o) & StateFlags_Open)
+private def closed_containers_at(p: xy_i) -> ObjList:
+   let rv = ObjList{options: olAddChoiceLetter}
 
-private def opened_containers_at(p: xy_i) -> [ObjId]:
-   return collect_objects_at(p) o:
-      object_spec(o).flags & ItemFlags_Container and (object_state(o) & StateFlags_Open)
+   add_section(rv, "What have we here?")
+   for_objects_at(p) o:
+      if o and object_spec(o).flags & ItemFlags_Container and not (object_state(o) & StateFlags_Open):
+         add_object(rv, o)
+
+   return rv
+
+private def opened_containers_at(p: xy_i) -> ObjList:
+   let rv = ObjList{options: olAddChoiceLetter}
+
+   for_objects_at(p) o:
+      if o and object_spec(o).flags & ItemFlags_Container and (object_state(o) & StateFlags_Open):
+         add_object(rv, o)
+
+   return rv
 
 def player_init():
    bind("w", "Move forward") player, now:
@@ -149,7 +149,7 @@ def player_init():
       let f, p = pos(player)
       let cands = closed_containers_at(p)
 
-      if length(cands) > 0:
+      if count(cands) > 0:
          prompt_for_object(player, "Open what?", cands) o:
             if CurPrompt: 
                let r, act = open_action(FakeTurnSpan, GameTime, CurPrompt.player, o)
@@ -163,7 +163,7 @@ def player_init():
       let f, p = pos(player)
       let cands = opened_containers_at(p)
 
-      if length(cands) > 0:
+      if count(cands) > 0:
          prompt_for_object(player, "Close what?", cands) o:
             if CurPrompt:
                let r, act = close_action(FakeTurnSpan, GameTime, CurPrompt.player, o)
@@ -220,7 +220,7 @@ def player_handle_input(player: ObjId):
          return false
 
    maps_frame()
-   if gl_button("escape") == 1:
+   if not CurPrompt and gl_button("escape") == 1:
       rv = ExitMainLoop
    else:
       switch PlayerState:
@@ -259,4 +259,5 @@ def player_handle_input(player: ObjId):
 // Called when it's ok to do imgui UI drawing.
 // The projection is already set up for pixel coords.
 def player_handle_ui():
-   prompt_handler()
+   if prompt_handler() == dlsCancel:
+      CurPrompt = nil

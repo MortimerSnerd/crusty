@@ -662,6 +662,23 @@ def walk_visible_tiles(start_pos: xy_i, bounds: Rect, block_test, body):
    for(8) octant:
       refresh_octant(start_pos, octant, bounds, block_test, body)
 
+def to_f(p: xy_i):
+   return xy_f{float(p.x), float(p.y)}
+
+// Return a letter choice for a list of choices.  Practically limited to 
+// 26 + 10 digits, since we can't do uppercase.
+def choice_letter(i: int):
+   let rv = " "
+
+   if i >= 0 and i < 25:
+      rv.write_int8_le(0, i + 97)
+   elif i >= 26 and i < 36:
+      rv.write_int8_le(0, i - 26 + 48)
+   else:
+      assert false //exceeded #choices
+
+   return rv
+
 def algs_tests():
    rndcheck()
 
