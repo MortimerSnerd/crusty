@@ -3,6 +3,7 @@ import actions
 import animations
 import bus
 import gobjs
+import imgui
 import maps
 import objutils
 
@@ -10,9 +11,62 @@ import objutils
 enum PlayStates:
    WaitingForInput, Stepping
 
+def PromptAction(o: ObjId) -> void
+
+class PromptState:
+   action: PromptAction
+   objs: [ObjId] = []
+   title: string = ""
+   result: ActionBase? = nil
+   done: bool = false
+   player: ObjId
+
+private var CurPrompt: PromptState? = nil
 private var PlayerState = WaitingForInput
 private var TurnTime = TurnSpan{0.0, 0.0} // Valid when PlayerState == Stepping
 private var GameTime : float = 0    // Abs game time.  (ie, total time stepping, not waiting for input)
+
+// Return a letter choice for a list of choices.  Practically limited to 
+// 26 + 10 digits, since we can't do uppercase.
+private def choice_letter(i: int):
+   let rv = " "
+
+   if i >= 0 and i < 25:
+      rv.write_int8_le(0, i + 97)
+   elif i >= 26 and i < 36:
+      rv.write_int8_le(0, i - 26 + 48)
+   else:
+      assert false //exceeded #choices
+
+   return rv
+
+
+private def prompt_handler():
+   if CurPrompt:
+      var acted = false
+      im_window(CurPrompt.title, 0):
+         for(CurPrompt.objs) o, i:
+            im_group(string(i)):
+               if im_button(choice_letter(i)+ ")  " + object_spec(o).short_name):
+                  let act = CurPrompt.action
+                  act(o)
+                  acted = true
+      if not acted:
+         for(CurPrompt.objs) o, i:
+            if gl_button(choice_letter(i)) == 1:
+               let act = CurPrompt.action
+               act(o)
+
+
+private def prompt_for_object(player: ObjId, title: string, choices: [ObjId], action: PromptAction):
+   assert CurPrompt == nil
+   if length(choices) > 0:
+      CurPrompt = PromptState{action: action, 
+                              objs: choices, 
+                              title: title, 
+                              player: player}
+      if length(choices) == 1:
+         action(choices[0])
 
 def game_time() -> float:
    return GameTime
@@ -20,6 +74,7 @@ def game_time() -> float:
 //TODO player object pieces should go in game module.  
 //     code for dealing with turns should stay.  And input
 //     mapping here?
+
 // For player actions, don't scale the time of the action - the time of the
 // action will be the span that all other actions will need to scale to.
 let FakeTurnSpan = TurnSpan{0.0, 999999999990.0}
@@ -94,10 +149,13 @@ def player_init():
       let f, p = pos(player)
       let cands = closed_containers_at(p)
 
-      assert length(cands) <= 1  // TODO how to set up prompting state.
       if length(cands) > 0:
-         let r, act = open_action(FakeTurnSpan, GameTime, player, cands[0])
-         act
+         prompt_for_object(player, "Open what?", cands) o:
+            if CurPrompt: 
+               let r, act = open_action(FakeTurnSpan, GameTime, CurPrompt.player, o)
+               CurPrompt.result = act
+               CurPrompt.done = true
+         nil
       else:
          nil
 
@@ -105,10 +163,13 @@ def player_init():
       let f, p = pos(player)
       let cands = opened_containers_at(p)
 
-      assert length(cands) <= 1  // TODO how to set up prompting state.
       if length(cands) > 0:
-         let r, act = close_action(FakeTurnSpan, GameTime, player, cands[0])
-         act
+         prompt_for_object(player, "Close what?", cands) o:
+            if CurPrompt:
+               let r, act = close_action(FakeTurnSpan, GameTime, CurPrompt.player, o)
+               CurPrompt.result = act
+               CurPrompt.done = true
+         nil
       else:
          nil
 
@@ -121,33 +182,64 @@ def player_init():
 // the actions are subclasses of ActionBase rather than
 // being a case object like in previous Nim impl.
 def for_player_actions(player: ObjId, now: float, body):
+   let saved = CurPrompt
+
+   CurPrompt = nil
    for(Bindings) b:
       let ff = b.afn
       let act = ff(player, now)
 
       if act:
          body(b.key, b.desc)
+      elif CurPrompt:
+         // Well, close enough they need to prompt.
+         body(b.key, b.desc)
+         CurPrompt = nil
+
+   CurPrompt = saved
 
 enum HandleInputResult:
    Good, GoodSteppingEnded, GoodTurnBegins, ExitMainLoop
 
 def player_handle_input(player: ObjId):
    var rv = Good
+
+   def check_prompted_action():
+      if CurPrompt and CurPrompt.done:
+         if CurPrompt.result:
+            perform_action(CurPrompt.result)
+            rv = GoodTurnBegins
+         else:
+            print("BAD ACTION")
+
+         CurPrompt = nil
+         return true
+      elif CurPrompt:
+         return true
+      else:
+         return false
+
    maps_frame()
    if gl_button("escape") == 1:
       rv = ExitMainLoop
    else:
       switch PlayerState:
          case WaitingForInput:
-            for(Bindings) b:
-               if gl_button(b.key) == 1:
-                  let mkact = b.afn
-                  let act = mkact(player, GameTime)
-                  perform_action(act)
-                  rv = GoodTurnBegins
-                  break
+            if not check_prompted_action():
+               for(Bindings) b:
+                  if gl_button(b.key) == 1:
+                     let mkact = b.afn
+                     let act = mkact(player, GameTime)
+                     if act:
+                        perform_action(act)
+                        rv = GoodTurnBegins
+                     else:
+                        // Possible there's an immediately answered
+                        // prompt.
+                        check_prompted_action()
+                     break
 
-            if gl_button("q") == 1:
+            if gl_button("Q") == 1:
                play_wav("dist/ouch3.wav")
 
          case Stepping:
@@ -163,3 +255,8 @@ def player_handle_input(player: ObjId):
 
         // process_callbacks(now)
    return rv
+
+// Called when it's ok to do imgui UI drawing.
+// The projection is already set up for pixel coords.
+def player_handle_ui():
+   prompt_handler()

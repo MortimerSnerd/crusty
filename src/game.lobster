@@ -325,11 +325,13 @@ def game_frame(do_debug) -> bool, Rectf:
                     for_player_actions(Player, now) key, desc:
                        im_text(key + " - " + desc)
 
-
                if do_debug:
                   im_window("Realtime Debugger", im_window_always_autoresize):
                       im_show_engine_stats()
                       im_show_vars()
+
+               player_handle_ui()
+
                //im_window("Holy craps", im_window_no_titlebar | im_window_always_autoresize):
                //   im_button("one"): print("one msg")
                //   im_button("two"): print("two msg")
