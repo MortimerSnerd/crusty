@@ -229,6 +229,7 @@ def game_init():
 
    for_map_features_named("Cheese") dloc:
       gobjs_spawn(ObjectKind_Cheese, dloc.pos, North)
+      gobjs_spawn(ObjectKind_FalseTeeth, dloc.pos, North)
 
    //maps_load_debug_level(MapTexture, ppos)
    bind("space", "Decompose gracefully") player, now: 
