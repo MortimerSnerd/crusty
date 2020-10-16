@@ -321,6 +321,7 @@ def game_frame(do_debug) -> bool, Rectf:
                im_window("HARARRRRRR", im_window_no_titlebar):
                  im_text("# left in wave: " + num_live)
                  im_text("# groundhogs stabbed: " + num_dead)
+                 im_set_next_item_open(true, im_cond_once)
                  im_treenode("Possible Moves"):
                     for_player_actions(Player, now) key, desc:
                        im_text(key + " - " + desc)

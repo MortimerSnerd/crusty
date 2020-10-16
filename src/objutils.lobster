@@ -127,6 +127,7 @@ def display_list(ol:: ObjList) -> DisplayListStatus, ObjId?:
 
       if g.section:
          maybe_close_node()
+         im_set_next_item_open(true, im_cond_appearing)
          let open = im_treenode_start(g.name)
 
          ++i
