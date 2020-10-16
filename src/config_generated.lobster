@@ -8,6 +8,8 @@ enum ObjectKind:
     ObjectKind_Groundhog = 3
     ObjectKind_Bullet = 4
     ObjectKind_Dresser = 5
+    ObjectKind_FalseTeeth = 6
+    ObjectKind_Cheese = 7
 
 enum TileName:
     TileName_None = 0
@@ -22,6 +24,8 @@ enum TileName:
     TileName_DeadGroundhog1 = 9
     TileName_DeadGroundhog2 = 10
     TileName_DresserOpen = 11
+    TileName_FalseTeeth = 12
+    TileName_Cheese = 13
 
 enum ItemFlags:
     ItemFlags_Living = 1

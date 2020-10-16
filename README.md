@@ -115,4 +115,7 @@ the player know they can hit 'o' to open the safe)
 - Remove TileName from the config?  Was going to be for animations, and
   for testing, but TileKit can do the animations, and tiles can be
   looked up or classified by tags.
-
+- Item info page with summary, and action buttons
+- Nested prompting - if you want to drop false teeth, and you have 3, need to 
+  prompt for how many... Or prompting a put object for floor, container1, container?
+- need to presize some prompt windows?  Need another imgui binding.

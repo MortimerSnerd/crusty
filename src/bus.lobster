@@ -37,6 +37,11 @@ def anim_tile(b:: BusEndpoint, what: ObjId, now: float) -> int:
 // state).  Returns 0 if there is none.
 def tile(b::BusEndpoint, what: ObjId) -> int:
    return 0
+   
+// Returns the object that contains `what` or nil if it's on the map
+// and not in a container.
+def container_of(b: BusEndpoint, what: ObjId) -> ObjId?:
+   return nil
 
 // Returns the state flags for the given Object. See StateFlags
 // in config.fbs.
@@ -59,6 +64,10 @@ def direction(b:: BusEndpoint, what: ObjId) -> bool, Directions:
 // Base method. Calls `body(ObjId, obj rectf)` for all objects that intersect
 // rectangle `r`.
 def for_objects_intersecting(b:: BusEndpoint, now: float, r: Rectf, body):
+   return
+
+// Calls body for each object inside of `what`
+def for_objects_in(b:: BusEndpoint, what: ObjId, body):
    return
 
 // Calls body(ObjId, ObjectSpec) for all lights that are on the
@@ -309,3 +318,17 @@ def collect_objects_at(p: xy_i, predfn) -> [ObjId]:
 
    return rv
 
+// Calls body for each object inside of `what`
+def for_objects_in(what: ObjId, body):
+   Endpoints[what.system].for_objects_in(what, body)
+
+// Returns the object that contains `what` or nil if it's on the map
+// and not in a container.
+def container_of(what: ObjId) -> ObjId?:
+   for(Endpoints) ep:
+      let o = ep.container_of(what)
+
+      if o:
+         return o
+
+   return nil

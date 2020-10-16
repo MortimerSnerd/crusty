@@ -114,14 +114,12 @@ def notify_deleting(b: MapEndpoint, what: ObjId):
 
 def notify_take(b: MapEndpoint, who: ObjId, what: ObjId):
    let wf, wpos = pos(who)
-   let r = Rectf{gridToWorld(wpos - xy_i{1,1}), gridToWorld(wpos + xy_i{1,1})}
+   let r = Rect{wpos, wpos}
 
    for_items_within(Objects, r) p, oid:
       if oid == what:
          remove_item(Objects, p, oid)
          return
-
-   assert "could not find object to take" == ""
 
 def notify_spawn(ep: MapEndpoint, o: ObjId, parent: ObjId?, pos: xy_i):
    if not parent:

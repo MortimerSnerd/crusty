@@ -20,11 +20,13 @@ enum ActionResultKinds:
    arNotOpenable, 
    arAlreadyOpen,
    arAlreadyClosed,
-   arCanNotReach
+   arCanNotReach, 
+   arCanNotTakeAnything, 
+   arCanNotTake
 
 class ActionResult:
    kind: ActionResultKinds
-   other: ObjId?
+   other: ObjId? = nil
 
 let GoodResult = ActionResult{kind: arOk, other: InvalidObject}
 
@@ -112,6 +114,30 @@ def execute(a:: OpenAction):
       modify_object_state(what) st: st & ~StateFlags_Open
       notify_animation(what, time, open_close_animation_name("close", what))
 
+class TakeAction : ActionBase
+   what: ObjId
+
+def take_action(span: TurnSpan, now: float, who: ObjId, what: ObjId) -> ActionResult, TakeAction?:
+   let what_parent = container_of(what)
+   if not what_parent and at_same_location(who, what):
+      let spec = object_spec(what)
+      if spec.flags & ItemFlags_Immobile or spec.flags & ItemFlags_Living:
+         return ActionResult{kind: arCanNotTake, other: what}, nil
+      elif not spec.flags & ItemFlags_Container:
+         return ActionResult{kind: arCanNotTakeAnything}, nil
+      else:
+         return GoodResult, TakeAction{who: who, time: now, what: what, duration: 0.3}
+   elif what_parent and not container_of(what_parent) and at_same_location(who, what_parent):
+      if object_state(what_parent) & StateFlags_Open: 
+         return GoodResult, TakeAction{who: who, time: now, what: what, duration: 0.3}
+      else:
+         return ActionResult{kind: arCanNotReach, other: what}, nil
+   else:
+      return ActionResult{kind: arCanNotReach, other: what}, nil
+
+def execute(act:: TakeAction):
+   notify_take(who, what)
+
 enum_flags ActionCategory:
    acTurn, acMoveFwd, acMoveBkwd, acStrafe, acObjectInteractions
 
@@ -179,3 +205,8 @@ def for_possible_actions(span: TurnSpan, who: ObjId, now: float,
 
             if closeact:
                bodyfn(closeact)
+
+            let tr, ta = take_action(span, now, who, o)
+
+            if ta:
+               bodyfn(ta)

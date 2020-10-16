@@ -7,7 +7,7 @@ enum_flags LogLevel:
    Debug, 
    Timings
 
-var LoggingLevel = Error
+var LoggingLevel: int = Error
 
 def warn(f):
    if LoggingLevel & Warning:
@@ -18,7 +18,7 @@ def error(f):
       print("ERROR: " + f())
 
 def debug(f):
-   if (LoggingLevel & Debug) != 0:
+   if LoggingLevel & Debug:
       print("DEBUG: " + f())
 
 def timing(f):

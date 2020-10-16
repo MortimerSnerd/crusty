@@ -44,14 +44,14 @@ private def prompt_handler():
 
    return rv
 
-private def prompt_for_object(player: ObjId, title: string, choices: ObjList, action: PromptAction):
+private def prompt_for_object(player: ObjId, title: string, choices: ObjList, skip_one: bool, action: PromptAction):
    assert CurPrompt == nil
    if count(choices) > 0:
       CurPrompt = PromptState{action: action, 
                               objs: choices, 
                               title: title, 
                               player: player}
-      if count(choices) == 19:
+      if skip_one and count(choices) == 1:
          let o = first(choices)
 
          if o:
@@ -106,6 +106,8 @@ private def closed_containers_at(p: xy_i) -> ObjList:
 
    add_section(rv, "What have we here?")
    for_objects_at(p) o:
+      //TODO instead of flag test, should we check with close action, so we always use the
+      //    same criteria?
       if o and object_spec(o).flags & ItemFlags_Container and not (object_state(o) & StateFlags_Open):
          add_object(rv, o)
 
@@ -115,8 +117,43 @@ private def opened_containers_at(p: xy_i) -> ObjList:
    let rv = ObjList{options: olAddChoiceLetter}
 
    for_objects_at(p) o:
+      //TODO instead of flag test, should we check with open action, so we always use the
+      //    same criteria?
       if o and object_spec(o).flags & ItemFlags_Container and (object_state(o) & StateFlags_Open):
          add_object(rv, o)
+
+   return rv
+
+private def grabbable_objs_at(player: ObjId, p: xy_i) -> ObjList:
+   let rv = ObjList{options: olAddChoiceLetter}
+   let containers = []
+   add_section(rv, "On ground")
+   for_objects_at(p) o:
+      if o:
+         let r, act = take_action(FakeTurnSpan, GameTime, player, o)
+
+         if act:
+            add_object(rv, o)
+         elif object_spec(o).flags & ItemFlags_Container:
+            push(containers, o)
+
+
+   for(containers) o:
+      add_section(rv, "In " + object_spec(o).short_name)
+      for_objects_in(o) io:
+         let r0, act0 = take_action(FakeTurnSpan, GameTime, player, io)
+
+         if act0:
+            add_object(rv, io)
+
+   return rv
+
+private def held_objects(player: ObjId) -> ObjList:
+   let rv = ObjList{options: olAddChoiceLetter|olGroup}
+
+   add_section(rv, "In inventory")
+   for_objects_in(player) o:
+      add_object(rv, o)
 
    return rv
 
@@ -150,28 +187,46 @@ def player_init():
       let cands = closed_containers_at(p)
 
       if count(cands) > 0:
-         prompt_for_object(player, "Open what?", cands) o:
+         prompt_for_object(player, "Open what?", cands, true) o:
             if CurPrompt: 
                let r, act = open_action(FakeTurnSpan, GameTime, CurPrompt.player, o)
                CurPrompt.result = act
                CurPrompt.done = true
-         nil
-      else:
-         nil
+      nil
 
    bind("c", "Close") player, now:
       let f, p = pos(player)
       let cands = opened_containers_at(p)
 
       if count(cands) > 0:
-         prompt_for_object(player, "Close what?", cands) o:
+         prompt_for_object(player, "Close what?", cands, true) o:
             if CurPrompt:
                let r, act = close_action(FakeTurnSpan, GameTime, CurPrompt.player, o)
                CurPrompt.result = act
                CurPrompt.done = true
-         nil
-      else:
-         nil
+      nil
+
+
+   bind("g", "Take") player, now:
+      let f, p = pos(player)
+      let cands = grabbable_objs_at(player, p)
+
+      if count(cands) > 0:
+         prompt_for_object(player, "Take what?", cands, false) o:
+            if CurPrompt:
+               let r, act = take_action(FakeTurnSpan, GameTime, CurPrompt.player, o)
+               CurPrompt.result = act
+               CurPrompt.done = true
+      nil
+
+   bind("i", "Inventory") player, now: 
+      let cands = held_objects(player)
+
+      if count(cands) > 0:
+         prompt_for_object(player, "Inventory", cands, false) o:
+            if CurPrompt:
+               CurPrompt.done = true
+      nil
 
    animations_turn_begin()
 

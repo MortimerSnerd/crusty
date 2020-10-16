@@ -44,6 +44,8 @@ def go():
       else:
          print("unknown argument " + a + ", ignoring.")
 
+   print("LOGGING " + LoggingLevel)
+
    if do_tests:
       algs_tests()
       grids_tests()

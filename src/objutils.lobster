@@ -106,7 +106,7 @@ def display_list(ol:: ObjList) -> DisplayListStatus, ObjId?:
       var rv = objs[x].name
 
       if length(objs[x].grouped) > 1:
-         rv = string(length(objs[x].grouped)) + plural(rv)
+         rv = string(length(objs[x].grouped)) + " " + plural(rv)
 
       if options & olAddChoiceLetter:
          rv = choice_letter(item_index) + ")  " + rv

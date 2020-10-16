@@ -224,7 +224,11 @@ def game_init():
       error(): "No spawn found."
 
    for_map_features_named("Dresser") dloc:
-      gobjs_spawn(ObjectKind_Dresser, dloc.pos, dloc.orientation)
+      let d = gobjs_spawn(ObjectKind_Dresser, dloc.pos, dloc.orientation)
+      gobjs_spawn(ObjectKind_FalseTeeth, xy_i{0, 0}, North, d)
+
+   for_map_features_named("Cheese") dloc:
+      gobjs_spawn(ObjectKind_Cheese, dloc.pos, North)
 
    //maps_load_debug_level(MapTexture, ppos)
    bind("space", "Decompose gracefully") player, now: 

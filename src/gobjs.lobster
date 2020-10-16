@@ -36,9 +36,14 @@ class GOAnim:
 // For now we just use the flatbuffer instance.  Hooray laziness.
 private let OSpecs : [ObjectSpec] = []
 private var ObjTx : GridTiledTexture? = nil
-
 private let Animations: [GOAnim] = []
 private let GOInstances = EmbeddedCircList<GOInst>{head: nil}
+
+def to_string(o: GOInst) -> string:
+   if o.kind_idx < 0:
+      return "{InvalidGObj}"
+   else:
+      return "{" + OSpecs[o.kind_idx].kind() + ":" + o.id + "}"
 
 def gobj_short_name(o: GOInst?) -> string:
    if o:
@@ -99,7 +104,7 @@ def gobjs_draw(now: float, view: Rectf):
 
 private var IdCounter = 1
                   
-def gobjs_spawn(okind: ObjectKind, pos: xy_i, dir: Directions) -> ObjId:
+def gobjs_spawn(okind: ObjectKind, pos: xy_i, dir: Directions, parent: ObjId? = nil) -> ObjId:
    let found, ki = binary_search_by_key(OSpecs, int(okind)) a, b:
       int(a.kind) - b
 
@@ -111,7 +116,7 @@ def gobjs_spawn(okind: ObjectKind, pos: xy_i, dir: Directions) -> ObjId:
                       dir: dir, 
                       curTile: OSpecs[ki].static_tile, 
                       kind_idx: ki, 
-                      parent: nil, 
+                      parent: parent, 
                       state: OSpecs[ki].initial_state}
       ++IdCounter
       dl_add(GOInstances, rv)
@@ -195,6 +200,17 @@ def modify_object_state(b: GobjEndpoint, what: ObjId, body):
    if what is GOInst:
       what.state = body(what.state)
 
+def for_objects_in(b:: GobjEndpoint, what: ObjId, body):
+   dl_foreach(GOInstances) o:
+      if o.parent == what:
+         body(o)
+
+def container_of(b: GobjEndpoint, what: ObjId) -> ObjId?:
+   if what is GOInst:
+      return what.parent
+   else:
+      return nil
+
 def notify_deleting(ep: GobjEndpoint, o: ObjId):
    if o and o is GOInst:
       debug(): "GObjSystem removing " + to_string(o)
@@ -202,13 +218,14 @@ def notify_deleting(ep: GobjEndpoint, o: ObjId):
 
    remove_callbacks_for(o)
 
+def notify_take(b:: GobjEndpoint, who: ObjId, what: ObjId):
+   if what is GOInst and who != what:
+      debug(): "GObjSystem " + to_string(who) + " taking " + to_string(what)
+      what.parent = who
+
 def notify_turning(ep:: GobjEndpoint, o: ObjId, startT: float, endT: float, startDir: Directions, endDir: Directions):
    if o is GOInst:
       o.dir = endDir
-
-def notify_take(ep: GobjEndpoint, who: ObjId, what: ObjId):
-   if what is GOInst:
-      what.parent = who
 
 def object_spec(ep:: GobjEndpoint, o: ObjId) -> ObjectSpec:
    if o is GOInst:
