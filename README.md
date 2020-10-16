@@ -112,10 +112,6 @@ the player know they can hit 'o' to open the safe)
 # TODO
 - Fix Rect and Rectf and assoc fns to use exclusive bounds. I think some usage of those
   already use it that way out of habit.
-- Move layer depth constants out into common file, need to be referenced
-  in a few places.
-- port over munificent visibility algo
-- can seen but not lit be masked with stipple pattern?  Probably looks ugly, but try.
 - Remove TileName from the config?  Was going to be for animations, and
   for testing, but TileKit can do the animations, and tiles can be
   looked up or classified by tags.
