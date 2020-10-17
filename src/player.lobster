@@ -6,62 +6,52 @@ import gobjs
 import imgui
 import maps
 import objutils
-
+import uitools
 
 enum PlayStates:
    WaitingForInput, Stepping
 
-def PromptAction(o: ObjId) -> void
 def PromptHandler() -> DisplayListStatus
+                                    
+def PromptAction(data: UserData) -> ActionBase?
 
-class PromptState:
-   handler: PromptHandler
-   action: PromptAction
+class ObjPromptData : UserData
    objs: ObjList = ObjList{options: olAddChoiceLetter}
-   title: string = ""
-   result: ActionBase? = nil
-   done: bool = false
    player: ObjId
+   action: PromptAction
+   picked: ObjId? = nil
 
 // Stack of prompt states.  Topmost is active.
-private var CurPrompt: [PromptState] = []
 private var PlayerState = WaitingForInput
 private var TurnTime = TurnSpan{0.0, 0.0} // Valid when PlayerState == Stepping
 private var GameTime : float = 0    // Abs game time.  (ie, total time stepping, not waiting for input)
 
-private def prompt_active():
-   return length(CurPrompt) > 0
+private def obj_prompt_handler(data: UserData?) -> InteractionStatus:
+   var rv = Working
 
-private def obj_prompt_handler():
-   var rv = dlsOk
-
-   if prompt_active():
-      let prompt = top(CurPrompt)
+   if data and data is ObjPromptData:
       let ws = gl_window_size().to_f * xy_f{0.4, 0.5} 
       im_set_next_window_pos(ws, im_cond_first_use_ever, xy_f{0.5, 0.5})
-      im_window(prompt.title, 0):
-         let status, picked = display_list(prompt.objs)
+      im_window(data.title, 0):
+         let status, picked = display_list(data.objs)
 
          if status == dlsCancel:
-            rv = status
+            rv = Cancelled
          elif picked:
-            let act = prompt.action
-            act(picked)
+            data.picked = picked
+            rv = Finished
 
    return rv
+   
+def prompt_for_object(player: ObjId, title: string, cands: ObjList, skip_one: bool, action):
+   let data = ObjPromptData{title: title, objs: cands, player: player, action: action}  
 
-private def prompt_for_object(player: ObjId, title: string, choices: ObjList, skip_one: bool, action: PromptAction):
-   if count(choices) > 0:
-      push(CurPrompt, PromptState{action: action, 
-                                  handler: (fn(): obj_prompt_handler()),
-                                  objs: choices, 
-                                  title: title, 
-                                  player: player})
-      if skip_one and count(choices) == 1:
-         let o = first(choices)
-
-         if o:
-            action(o)
+   if skip_one and count(cands) == 1:
+      // Just one, so perform the action without a prompt.
+      data.picked = first(cands)
+      start_interaction(data, (fn(a: UserData?): obj_prompt_handler(a)), Finished)
+   else:
+      start_interaction(data, (fn(a: UserData?): obj_prompt_handler(a)))
 
 def game_time() -> float:
    return GameTime
@@ -130,6 +120,15 @@ private def opened_containers_at(p: xy_i) -> ObjList:
 
    return rv
 
+// Adds a section for any items inside of a container `o` to `list`.
+private def add_container_objects(player: ObjId, list: ObjList, o: ObjId):
+   add_section(list, "In " + object_spec(o).short_name)
+   for_objects_in(o) io:
+      let r0, act0 = take_action(FakeTurnSpan, GameTime, player, io)
+
+      if act0:
+         add_object(list, io)
+
 private def grabbable_objs_at(player: ObjId, p: xy_i) -> ObjList:
    let rv = ObjList{options: olAddChoiceLetter}
    let containers = []
@@ -145,12 +144,7 @@ private def grabbable_objs_at(player: ObjId, p: xy_i) -> ObjList:
 
 
    for(containers) o:
-      add_section(rv, "In " + object_spec(o).short_name)
-      for_objects_in(o) io:
-         let r0, act0 = take_action(FakeTurnSpan, GameTime, player, io)
-
-         if act0:
-            add_object(rv, io)
+      add_container_objects(player, rv, o)
 
    return rv
 
@@ -193,12 +187,13 @@ def player_init():
       let cands = closed_containers_at(p)
 
       if count(cands) > 0:
-         prompt_for_object(player, "Open what?", cands, true) o:
-            if prompt_active(): 
-               let prompt = top(CurPrompt)
-               let r, act = open_action(FakeTurnSpan, GameTime, prompt.player, o)
-               prompt.result = act
-               prompt.done = true
+         prompt_for_object(player, "Open what?", cands, true) data:
+            if data is ObjPromptData and data.picked:
+               let r, act = open_action(FakeTurnSpan, GameTime, data.player, 
+                                        data.picked)
+               act
+            else:
+               nil
       nil
 
    bind("c", "Close") player, now:
@@ -206,12 +201,13 @@ def player_init():
       let cands = opened_containers_at(p)
 
       if count(cands) > 0:
-         prompt_for_object(player, "Close what?", cands, true) o:
-            if prompt_active():
-               let prompt = top(CurPrompt)
-               let r, act = close_action(FakeTurnSpan, GameTime, prompt.player, o)
-               prompt.result = act
-               prompt.done = true
+         prompt_for_object(player, "Close what?", cands, true) data:
+            if data is ObjPromptData and data.picked:
+               let r, act = close_action(FakeTurnSpan, GameTime, data.player, 
+                                         data.picked)
+               act
+            else:
+               nil
       nil
 
 
@@ -220,21 +216,21 @@ def player_init():
       let cands = grabbable_objs_at(player, p)
 
       if count(cands) > 0:
-         prompt_for_object(player, "Take what?", cands, false) o:
-            if prompt_active():
-               let prompt = top(CurPrompt)
-               let r, act = take_action(FakeTurnSpan, GameTime, prompt.player, o)
-               prompt.result = act
-               prompt.done = true
+         prompt_for_object(player, "Take what?", cands, false) data:
+            if data is ObjPromptData and data.picked:
+               let r, act = take_action(FakeTurnSpan, GameTime, data.player, 
+                                        data.picked)
+               act
+            else:
+               nil
       nil
 
    bind("i", "Inventory") player, now: 
       let cands = held_objects(player)
 
       if count(cands) > 0:
-         prompt_for_object(player, "Inventory", cands, false) o:
-            if prompt_active():
-                top(CurPrompt).done = true
+         prompt_for_object(player, "Inventory", cands, false) data:
+            nil
       nil
 
    animations_turn_begin()
@@ -246,24 +242,18 @@ def player_init():
 // the actions are subclasses of ActionBase rather than
 // being a case object like in previous Nim impl.
 def for_player_actions(player: ObjId, now: float, body):
-   let saved_sz = length(CurPrompt)
+   //for(Bindings) b:
+      //let ff = b.afn
+      //let act = ff(player, now)
+      //
+      //if act:
+      //   body(b.key, b.desc)
+      //elif length(CurPrompt) > saved_sz:
+      //   // Well, close enough they need to prompt.
+      //   body(b.key, b.desc)
+      //   restore_prompts()
+   body("Escape", "Abandon all hope")
 
-   def restore_prompts():
-      while length(CurPrompt) > saved_sz:
-         pop(CurPrompt)
-
-   for(Bindings) b:
-      let ff = b.afn
-      let act = ff(player, now)
-
-      if act:
-         body(b.key, b.desc)
-      elif length(CurPrompt) > saved_sz:
-         // Well, close enough they need to prompt.
-         body(b.key, b.desc)
-         restore_prompts()
-
-   restore_prompts()
 
 enum HandleInputResult:
    Good, GoodSteppingEnded, GoodTurnBegins, ExitMainLoop
@@ -272,27 +262,30 @@ def player_handle_input(player: ObjId):
    var rv = Good
 
    def check_prompted_action():
-      if prompt_active() and top(CurPrompt).done:
-         let prompt = top(CurPrompt)
-         if prompt.result:
-            perform_action(prompt.result)
-            rv = GoodTurnBegins
-         else:
-            print("BAD ACTION")
+      var handled = false
+      let intr = finished_interaction()
 
-         pop(CurPrompt)
-         return not prompt_active()
+      if intr and intr.status == Finished:
+         if intr.data and intr.data is ObjPromptData:
+            let act = intr.data.action
 
-      else:
-         return prompt_active()
+            let uact = act(intr.data)
+
+            if uact:
+               perform_action(uact)
+               rv = GoodTurnBegins
+
+            handled = true
+
+      return handled
 
    maps_frame()
-   if not prompt_active() and gl_button("escape") == 1:
+   if not interaction_active() and gl_button("escape") == 1:
       rv = ExitMainLoop
    else:
       switch PlayerState:
          case WaitingForInput:
-            if not check_prompted_action():
+            if not check_prompted_action() and not interaction_active():
                for(Bindings) b:
                   if gl_button(b.key) == 1:
                      let mkact = b.afn
@@ -326,8 +319,4 @@ def player_handle_input(player: ObjId):
 // Called when it's ok to do imgui UI drawing.
 // The projection is already set up for pixel coords.
 def player_handle_ui():
-   if prompt_active():
-      let hand = top(CurPrompt).handler
-      
-      if hand() == dlsCancel:
-         pop(CurPrompt)
+   noop()

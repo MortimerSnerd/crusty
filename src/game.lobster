@@ -12,6 +12,7 @@ import gobjs
 import imgui
 import player
 import std
+import uitools
 import vec
 
 let tile_size = 64
@@ -323,20 +324,34 @@ def game_frame(do_debug) -> bool, Rectf:
             gl_ortho()
             im_frame():
                let num_live, num_dead = num_live_groundhogs()
-               im_window("HARARRRRRR", im_window_no_titlebar):
+               im_window("HARARRRRRR", im_window_no_titlebar|im_window_always_autoresize):
                  im_text("# left in wave: " + num_live)
                  im_text("# groundhogs stabbed: " + num_dead)
                  im_set_next_item_open(true, im_cond_once)
                  im_treenode("Possible Moves"):
                     for_player_actions(Player, now) key, desc:
-                       im_text(key + " - " + desc)
+                       im_selectable(key + " - " + desc, false, 0, xy_0)
 
+               im_window("test layout", im_window_always_autoresize):
+                  im_widget_group():
+                     im_treenode("Carrying"):
+                        im_text("a) balls")
+                        im_text("b) false teeth")
+                  im_same_line()
+                  im_widget_group():
+                     im_text("PUT>")
+                  im_same_line()
+                  im_widget_group():
+                     im_treenode("On ground"):
+                        im_text("a dead cat")
+                  
                if do_debug:
                   im_window("Realtime Debugger", im_window_always_autoresize):
                       im_show_engine_stats()
                       im_show_vars()
 
                player_handle_ui()
+               uitools_render()
 
                //im_window("Holy craps", im_window_no_titlebar | im_window_always_autoresize):
                //   im_button("one"): print("one msg")
