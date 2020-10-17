@@ -46,12 +46,14 @@ def count(ol:: ObjList) -> int:
 
    return rv
 
-def first(ol:: ObjList) -> ObjId?:
+// Returns first item from ObjList.  Should only be called
+// if count() > 0!
+def first(ol:: ObjList) -> ObjId:
    for(objs) o:
       if not o.section and length(o.grouped) > 0:
          return o.grouped[0]
 
-   return nil
+   fatal_exit("first called without checking count()")
 
 // Adds a section header for the object list.  Empty section
 // headers are automatically removed.

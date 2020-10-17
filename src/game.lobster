@@ -233,7 +233,7 @@ def game_init():
       gobjs_spawn(ObjectKind_FalseTeeth, dloc.pos, North)
 
    //maps_load_debug_level(MapTexture, ppos)
-   bind("space", "Decompose gracefully") player, now: 
+   bind("space", "Decompose gracefully") player, now, prompt: 
       let r, act = decompose_action(FakeTurnSpan, now, player)
       act
 

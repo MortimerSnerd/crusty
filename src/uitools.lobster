@@ -56,3 +56,7 @@ def finished_interaction() -> Interaction?:
    else:
       return nil
 
+
+// Prompting to pick an object
+//
+

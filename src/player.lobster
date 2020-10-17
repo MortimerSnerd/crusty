@@ -21,7 +21,6 @@ class ObjPromptData : UserData
    action: PromptAction
    picked: ObjId? = nil
 
-// Stack of prompt states.  Topmost is active.
 private var PlayerState = WaitingForInput
 private var TurnTime = TurnSpan{0.0, 0.0} // Valid when PlayerState == Stepping
 private var GameTime : float = 0    // Abs game time.  (ie, total time stepping, not waiting for input)
@@ -56,10 +55,6 @@ def prompt_for_object(player: ObjId, title: string, cands: ObjList, skip_one: bo
 def game_time() -> float:
    return GameTime
 
-//TODO player object pieces should go in game module.  
-//     code for dealing with turns should stay.  And input
-//     mapping here?
-
 // For player actions, don't scale the time of the action - the time of the
 // action will be the span that all other actions will need to scale to.
 let FakeTurnSpan = TurnSpan{0.0, 999999999990.0}
@@ -79,7 +74,9 @@ private def perform_action(act):
    else:
       warn(): "Can\'t move "
 
-def PlayerAction(player: ObjId, now: float) -> ActionBase?
+// `prompt` - if false, the action should pick an item to make an 
+//            action for.  Mainly used to check for valid player actions.
+def PlayerAction(player: ObjId, now: float, prompt: bool) -> ActionBase?
 
 class Binding:
    key: string
@@ -158,77 +155,94 @@ private def held_objects(player: ObjId) -> ObjList:
    return rv
 
 def player_init():
-   bind("w", "Move forward") player, now:
+   bind("w", "Move forward") player, now, prompt:
       let f, p = pos(player)
       let f1, diri = direction(player)
       let r, act = move_action(FakeTurnSpan, GameTime, player, p, p + all_dirs[diri])
       act
 
-   bind("s", "Move back") player, now:
+   bind("s", "Move back") player, now, prompt:
       let f, p = pos(player)
       let f1, diri = direction(player)
       let r, act = move_action(FakeTurnSpan, GameTime, player, p, p + all_dirs[diri]*-1)
       act
 
-   bind("a", "Turn left") player, now:
+   bind("a", "Turn left") player, now, prompt:
       let f, dir = direction(player)
       let diri = turned_left(dir)
       let r, act = turn_action(FakeTurnSpan, GameTime, player, dir, diri)
       act
 
-   bind("d", "Turn right") player, now:
+   bind("d", "Turn right") player, now, prompt:
       let f, dir = direction(player)
       let diri = turned_right(dir)
       let r, act = turn_action(FakeTurnSpan, GameTime, player, dir, diri)
       act
 
-   bind("o", "Open") player, now:
+   bind("o", "Open") player, now, prompt:
       let f, p = pos(player)
       let cands = closed_containers_at(p)
+      var rv = nil
 
       if count(cands) > 0:
-         prompt_for_object(player, "Open what?", cands, true) data:
-            if data is ObjPromptData and data.picked:
-               let r, act = open_action(FakeTurnSpan, GameTime, data.player, 
-                                        data.picked)
-               act
-            else:
-               nil
-      nil
+         if prompt:
+            prompt_for_object(player, "Open what?", cands, true) data:
+               if data is ObjPromptData and data.picked:
+                  let r, act = open_action(FakeTurnSpan, GameTime, data.player, 
+                                           data.picked)
+                  act
+               else:
+                  nil
+         else:
+            let r, act = open_action(FakeTurnSpan, GameTime, player, 
+                                     first(cands))
+            rv = act
+      rv
 
-   bind("c", "Close") player, now:
+   bind("c", "Close") player, now, prompt:
       let f, p = pos(player)
       let cands = opened_containers_at(p)
+      var rv = nil
 
       if count(cands) > 0:
-         prompt_for_object(player, "Close what?", cands, true) data:
-            if data is ObjPromptData and data.picked:
-               let r, act = close_action(FakeTurnSpan, GameTime, data.player, 
-                                         data.picked)
-               act
-            else:
-               nil
-      nil
+         if prompt:
+            prompt_for_object(player, "Close what?", cands, true) data:
+               if data is ObjPromptData and data.picked:
+                  let r, act = close_action(FakeTurnSpan, GameTime, data.player, 
+                                            data.picked)
+                  act
+               else:
+                  nil
+         else:
+            let r, act = close_action(FakeTurnSpan, GameTime, player, 
+                                      first(cands))
+            rv = act
+      rv
 
-
-   bind("g", "Take") player, now:
+   bind("g", "Take") player, now, prompt:
       let f, p = pos(player)
       let cands = grabbable_objs_at(player, p)
+      var rv = nil
 
       if count(cands) > 0:
-         prompt_for_object(player, "Take what?", cands, false) data:
-            if data is ObjPromptData and data.picked:
-               let r, act = take_action(FakeTurnSpan, GameTime, data.player, 
-                                        data.picked)
-               act
-            else:
-               nil
-      nil
+         if prompt:
+            prompt_for_object(player, "Take what?", cands, false) data:
+               if data is ObjPromptData and data.picked:
+                  let r, act = take_action(FakeTurnSpan, GameTime, data.player, 
+                                           data.picked)
+                  act
+               else:
+                  nil
+         else:
+            let r, act = take_action(FakeTurnSpan, GameTime, player, 
+                                     first(cands))
+            rv = act
+      rv
 
-   bind("i", "Inventory") player, now: 
+   bind("i", "Inventory") player, now, prompt: 
       let cands = held_objects(player)
 
-      if count(cands) > 0:
+      if count(cands) > 0 and prompt:
          prompt_for_object(player, "Inventory", cands, false) data:
             nil
       nil
@@ -242,18 +256,12 @@ def player_init():
 // the actions are subclasses of ActionBase rather than
 // being a case object like in previous Nim impl.
 def for_player_actions(player: ObjId, now: float, body):
-   //for(Bindings) b:
-      //let ff = b.afn
-      //let act = ff(player, now)
-      //
-      //if act:
-      //   body(b.key, b.desc)
-      //elif length(CurPrompt) > saved_sz:
-      //   // Well, close enough they need to prompt.
-      //   body(b.key, b.desc)
-      //   restore_prompts()
-   body("Escape", "Abandon all hope")
+   for(Bindings) b:
+      let ff = b.afn
+      let act = ff(player, now, false)
 
+      if act:
+         body(b.key, b.desc)
 
 enum HandleInputResult:
    Good, GoodSteppingEnded, GoodTurnBegins, ExitMainLoop
@@ -289,7 +297,7 @@ def player_handle_input(player: ObjId):
                for(Bindings) b:
                   if gl_button(b.key) == 1:
                      let mkact = b.afn
-                     let act = mkact(player, GameTime)
+                     let act = mkact(player, GameTime, true)
                      if act:
                         perform_action(act)
                         rv = GoodTurnBegins
