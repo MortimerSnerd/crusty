@@ -666,16 +666,17 @@ def to_f(p: xy_i):
    return xy_f{float(p.x), float(p.y)}
 
 // Return a letter choice for a list of choices.  Practically limited to 
-// 26 + 10 digits, since we can't do uppercase.
+// 26 + 10 digits, since we can't do uppercase.  We return "" the limits
+// are exceeded.
 def choice_letter(i: int):
-   let rv = " "
+   var rv = " "
 
    if i >= 0 and i < 25:
       rv.write_int8_le(0, i + 97)
    elif i >= 26 and i < 36:
       rv.write_int8_le(0, i - 26 + 48)
    else:
-      assert false //exceeded #choices
+      rv = ""
 
    return rv
 

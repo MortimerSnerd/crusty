@@ -57,6 +57,45 @@ def finished_interaction() -> Interaction?:
       return nil
 
 
-// Prompting to pick an object
 //
+// Simple object prompt
+//
+def PromptHandler() -> DisplayListStatus
+                                    
+def PromptAction(data: UserData) -> ActionBase?
+
+class ObjPromptData : UserData
+   objs: ObjList = ObjList{options: olAddChoiceLetter}
+   player: ObjId
+   action: PromptAction
+   picked: ObjId? = nil
+
+private def obj_prompt_handler(data: UserData?) -> InteractionStatus:
+   var rv = Working
+
+   if data and data is ObjPromptData:
+      let ws = gl_window_size().to_f * xy_f{0.4, 0.5} 
+      im_set_next_window_pos(ws, im_cond_first_use_ever, xy_f{0.5, 0.5})
+      im_window(data.title, 0):
+         let status, picked, si, ii = display_list(data.objs)
+
+         if status == dlsCancel:
+            rv = Cancelled
+         elif picked:
+            data.picked = picked
+            rv = Finished
+
+   return rv
+
+// Starts an object prompt.  Poll with finished_interaction() to find out
+// when it is complete.
+def prompt_for_object(player: ObjId, title: string, cands: ObjList, skip_one: bool, action):
+   let data = ObjPromptData{title: title, objs: cands, player: player, action: action}  
+
+   if skip_one and count(cands) == 1:
+      // Just one, so perform the action without a prompt.
+      data.picked = first(cands)
+      start_interaction(data, (fn(a: UserData?): obj_prompt_handler(a)), Finished)
+   else:
+      start_interaction(data, (fn(a: UserData?): obj_prompt_handler(a)))
 

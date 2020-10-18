@@ -1,4 +1,6 @@
+import from "../../../src/crusty/src/"
 import algs
+import config_generated
 import imgui
 
 enum ObjectSystem:
@@ -21,7 +23,10 @@ def to_string(o: ObjId) -> string:
 private class ObjGroup:
    name: string
    grouped: [ObjId] = []
-   section: bool = false
+
+private class ObjSection:
+   name: string
+   items: [ObjGroup] = []
 
 enum_flags ObjListOptions:
    olNone = 0, 
@@ -33,64 +38,105 @@ enum_flags ObjListOptions:
 // When there are sections, can be rendered as a tree, with each 
 // section as a treenode.
 class ObjList:
-   objs: [ObjGroup] = []
-   last_section: int = -1
+   sects: [ObjSection] = []
    options: ObjListOptions = olNone
 
-def count(ol:: ObjList) -> int:
-   var rv = 0
+// Returns section count, item count
+def count_all(ol:: ObjList) -> int, int:
+   var nitems = 0
 
-   for(objs) o:
-      if not o.section:
-         ++rv
+   for(sects) s:
+      nitems += length(s.items)
 
-   return rv
+   return length(sects), nitems
+
+// Returns number of items in the list, not
+// counting sections.
+def count(ol: ObjList) -> int:
+   let ns, ni = count_all(ol)
+
+   return ni
 
 // Returns first item from ObjList.  Should only be called
 // if count() > 0!
 def first(ol:: ObjList) -> ObjId:
-   for(objs) o:
-      if not o.section and length(o.grouped) > 0:
-         return o.grouped[0]
+   for(sects) sect:
+      for(sect.items) item:
+         if length(item.grouped) > 0:
+            return item.grouped[0]
 
    fatal_exit("first called without checking count()")
 
 // Adds a section header for the object list.  Empty section
 // headers are automatically removed.
 def add_section(ol:: ObjList, sname: string):
-   if last_section >= 0 and last_section == length(objs)-1:
+   let lasti = length(sects) - 1
+   if lasti >= 0 and length(sects[lasti].items) == 0:
       // Previous section empty, lose it.
-      pop(objs)
+      pop(sects)
 
-   last_section = length(objs)
-   push(objs,ObjGroup{name: sname, section: true})
+   push(sects, ObjSection{name: sname})
 
 private def find_in_cur_section(ol:: ObjList, pred):
-   var i = length(objs) - 1
+   let lasti = length(sects) - 1
 
-   while i > last_section:
-      if pred(objs[i]):
-         return i
+   if lasti >= 0:
+      return find(sects[lasti].items, pred)
+   else:
+      return -1
 
-      --i
+private def atleast_one_section(ol:: ObjList):
+   if length(sects) == 0:
+      push(sects, ObjSection{name: ""})
 
-   return -1
-
-// Adds a object to the list.  
+// Adds a object to the list, to the last section added.  
 def add_object(ol:: ObjList, obj: ObjId):
    def add_it():
-      push(objs, ObjGroup{name: object_spec(obj).short_name, grouped: [obj]})
+      push(sects[length(sects)-1].items, 
+           ObjGroup{name: object_spec(obj).short_name, grouped: [obj]})
 
+   atleast_one_section(ol)
    if olGroup & options:
       let match = object_spec(obj).short_name
       let i = find_in_cur_section() g: g.name == match
 
       if i >= 0:
-         push(objs[i].grouped, obj)
+         push(sects[length(sects)-1].items[i].grouped, obj)
       else:
          add_it()
    else:
       add_it()
+
+// Returns (index of section, index of item) for item in `sectno`
+// matching the predicate.  If not found, returns (-1, -1)
+private def find_in_section(ol:: ObjList, sectno: int, pred):
+   for(sects) sect, si:
+      for(si.items) item, ii:
+         if sectno == si and pred(item):
+            return si, ii
+         elif si  > sectno:
+            break
+
+   return -1, -1
+
+// Adds an item to an existing section.  Used more for changing
+// an existing list than building a new one, use add_object(ol, item)
+// for building a new list section by section.
+def add_object(ol:: ObjList, item: ObjId, sectno: int):
+   def insert_at(name: string, sno: int):
+      push(sects[sno].items, ObjGroup{name: name, grouped: [item]})
+
+   if olGroup & options:
+      let match = object_spec(item).short_name
+      let si, ii = find_in_section(ol, sectno) x: x.name == match
+
+      if ii >= 0:
+         push(sects[si].items[ii].grouped, item)
+      else:
+         insert_at(match, sectno)
+
+   else:
+      insert_at(object_spec(item).short_name, sectno)
 
 enum DisplayListStatus:
    dlsOk, 
@@ -98,71 +144,71 @@ enum DisplayListStatus:
 
 // Displays the list via im_gui, returning any object that was chosen.
 // Expects a im_window or some other container has already been opened.
-def display_list(ol:: ObjList) -> DisplayListStatus, ObjId?:
+// Returns status, picked_obj_or_nil, section_index, item_index
+def display_list(ol:: ObjList) -> DisplayListStatus, ObjId?, int, int:
    var item_index = 0
 
    //TODO this is not right
    def plural(s: string): return s+"s"
 
-   def item_name(x) -> string:
-      var rv = objs[x].name
+   def item_name(si, ii) -> string:
+      let grp = sects[si].items[ii]
+      var rv = grp.name
 
-      if length(objs[x].grouped) > 1:
-         rv = string(length(objs[x].grouped)) + " " + plural(rv)
+      if length(grp.grouped) == 0:
+         // Leave an empty space for items where the
+         // group has been emptied, so the choice letters 
+         // won't change for everything coming after it.
+         rv = ""
+      else:
+         if length(grp.grouped) > 1:
+            rv = string(length(grp.grouped)) + " " + plural(rv)
 
-      if options & olAddChoiceLetter:
-         rv = choice_letter(item_index) + ")  " + rv
+         if options & olAddChoiceLetter:
+            rv = choice_letter(item_index) + ")  " + rv
 
       return rv
 
    var picked: ObjId? = nil
-   var in_node = false
-   var i = 0
+   var picked_si = -1
+   var picked_ii = -1
 
-   def maybe_close_node():
-      if in_node:
+   for(sects) sect, si:
+      var open = true
+
+      if sect.name != "": 
+         im_set_next_item_open(true, im_cond_always)
+         open = im_treenode_start(sect.name) 
+
+      if open:
+         for(sect.items) item, ii:
+            im_group(string(si) + "_" + string(ii)):
+               if im_button(item_name(si, ii)):
+                  if length(item.grouped) > 0:
+                     picked = item.grouped[0]
+                     picked_si = si
+                     picked_ii = ii
+
+      if sect.name != "":
          im_treenode_end()
-         in_node = false
 
-   while i < length(objs):
-      let g = objs[i]
-
-      if g.section:
-         maybe_close_node()
-         im_set_next_item_open(true, im_cond_appearing)
-         let open = im_treenode_start(g.name)
-
-         ++i
-         if open:
-            in_node = true
-         else:
-            while i < length(objs) and not objs[i].section:
-               ++i
-               ++item_index
-      else:
-         im_group(string(i)):
-            if im_button(item_name(i)):
-               picked = objs[i].grouped[0]
-
-         ++i
-         ++item_index
-
-   maybe_close_node()
    var status = dlsOk
    if not picked:
+      // Check for key inputs.
       if gl_button("escape") == 1:
          status = dlsCancel
       else:
          item_index = 0
-         for(objs) o:
-            if not o.section:
-               if gl_button(choice_letter(item_index)) == 1:
-                  picked = o.grouped[0]
-                  break
+         for(sects) sect, si:
+            for(sect.items) item, ii:
+               if length(item.grouped) > 0:
+                  if gl_button(choice_letter(item_index)) == 1:
+                     picked = item.grouped[0]
+                     picked_si = si
+                     picked_ii = ii
+                     break
 
-               ++item_index
-
-   return status, picked
+   return status, picked, picked_si, picked_ii
 
 
 //TODO: keypress choice

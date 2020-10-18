@@ -11,46 +11,9 @@ import uitools
 enum PlayStates:
    WaitingForInput, Stepping
 
-def PromptHandler() -> DisplayListStatus
-                                    
-def PromptAction(data: UserData) -> ActionBase?
-
-class ObjPromptData : UserData
-   objs: ObjList = ObjList{options: olAddChoiceLetter}
-   player: ObjId
-   action: PromptAction
-   picked: ObjId? = nil
-
 private var PlayerState = WaitingForInput
 private var TurnTime = TurnSpan{0.0, 0.0} // Valid when PlayerState == Stepping
 private var GameTime : float = 0    // Abs game time.  (ie, total time stepping, not waiting for input)
-
-private def obj_prompt_handler(data: UserData?) -> InteractionStatus:
-   var rv = Working
-
-   if data and data is ObjPromptData:
-      let ws = gl_window_size().to_f * xy_f{0.4, 0.5} 
-      im_set_next_window_pos(ws, im_cond_first_use_ever, xy_f{0.5, 0.5})
-      im_window(data.title, 0):
-         let status, picked = display_list(data.objs)
-
-         if status == dlsCancel:
-            rv = Cancelled
-         elif picked:
-            data.picked = picked
-            rv = Finished
-
-   return rv
-   
-def prompt_for_object(player: ObjId, title: string, cands: ObjList, skip_one: bool, action):
-   let data = ObjPromptData{title: title, objs: cands, player: player, action: action}  
-
-   if skip_one and count(cands) == 1:
-      // Just one, so perform the action without a prompt.
-      data.picked = first(cands)
-      start_interaction(data, (fn(a: UserData?): obj_prompt_handler(a)), Finished)
-   else:
-      start_interaction(data, (fn(a: UserData?): obj_prompt_handler(a)))
 
 def game_time() -> float:
    return GameTime
@@ -106,13 +69,16 @@ private def closed_containers_at(p: xy_i) -> ObjList:
 
    return rv
 
+private def is_open_container(o: ObjId):
+   return object_spec(o).flags & ItemFlags_Container and (object_state(o) & StateFlags_Open)
+
 private def opened_containers_at(p: xy_i) -> ObjList:
    let rv = ObjList{options: olAddChoiceLetter}
 
    for_objects_at(p) o:
       //TODO instead of flag test, should we check with open action, so we always use the
       //    same criteria?
-      if o and object_spec(o).flags & ItemFlags_Container and (object_state(o) & StateFlags_Open):
+      if o and is_open_container(o):
          add_object(rv, o)
 
    return rv
@@ -136,7 +102,7 @@ private def grabbable_objs_at(player: ObjId, p: xy_i) -> ObjList:
 
          if act:
             add_object(rv, o)
-         elif object_spec(o).flags & ItemFlags_Container:
+         elif is_open_container(o):
             push(containers, o)
 
 

@@ -149,7 +149,8 @@ the player know they can hit 'o' to open the safe)
    For all of these, probably buttons with hotkeys at the bottom to change
    what you want to do:
 
-       |Get F1| |Put F1| |Use F3| |Drop F4|
+       |Get F1| |Put F1| |Use F3| |Drop F4| |Inspect|
+
    Need:
       to be able to count and reference sections in ObjList
       give ObjList a start index for letters for choices
