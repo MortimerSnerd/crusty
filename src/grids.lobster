@@ -18,142 +18,186 @@ class SparseGrid<T>:
    ents: [SGEnt<T>] // Entries at a grid location.
    new_ents: [SGEnt<T>] // Unordered ents added by `set`.
    
-// Can be called at the end of a batch of changes
-// to "reindex" so lookups can be as fast as possible.
-def end_changes<T>(g:: SparseGrid<T>):
-   if length(new_ents) > 0:
-      ents = append(ents, new_ents)
-      new_ents = []
+   // Can be called at the end of a batch of changes
+   // to "reindex" so lookups can be as fast as possible.
+   def end_changes():
+      if length(new_ents) > 0:
+         ents = append(ents, new_ents)
+         new_ents = []
 
-      // Order so we can lookup based on y.
-      // We rig the compare function to make any entries
-      // with the `missingVal` percolate to the back of the
-      // array, where we can pop them off.
-      qsort_in_place(ents) a, b:
-         if a.loc == missingVal:
-            false
-         elif b.loc == missingVal:
-            true
-         else:
-            a.pos.y < b.pos.y
+         // Order so we can lookup based on y.
+         // We rig the compare function to make any entries
+         // with the `missingVal` percolate to the back of the
+         // array, where we can pop them off.
+         qsort_in_place(ents) a, b:
+            if a.loc == missingVal:
+               false
+            elif b.loc == missingVal:
+               true
+            else:
+               a.pos.y < b.pos.y
 
-      // Goodbye default entries.
-      while length(ents) > 0 and ents[length(ents)-1].loc == missingVal:
-         pop(ents)
+         // Goodbye default entries.
+         while length(ents) > 0 and ents[length(ents)-1].loc == missingVal:
+            pop(ents)
 
-// Modifications to the grid should be done within
-// `f`.  Allows pre and post processing to be done.
-def modifying<T>(g::SparseGrid<T>, f):
-   f()
-   end_changes(g)
+   // Modifications to the grid should be done within
+   // `f`.  Allows pre and post processing to be done.
+   def modifying(f):
+      f()
+      end_changes()
 
-// Calls bodyfn(pos, index) for all non-missing items
-// within the given rectangle.
-def for_items_within<T>(g::SparseGrid<T>, r: Rect, bodyfn):
-   assert length(new_ents) == 0 // No changes outside of modify, right?
-   var found, idx = binary_search_by_key(g.ents, r.topLeft.y) sgl, k: 
-                      k = sgl.pos.y - k
+   // Calls bodyfn(pos, index) for all non-missing items
+   // within the given rectangle.
+   def for_items_within(r: Rect, bodyfn):
+      assert length(new_ents) == 0 // No changes outside of modify, right?
+      var found, idx = binary_search_by_key(ents, r.topLeft.y) sgl, k: 
+                         k = sgl.pos.y - k
 
-   while idx < length(ents) and ents[idx].pos.y <= r.bottomRight.y:
-      let lx = ents[idx].pos.x
+      while idx < length(ents) and ents[idx].pos.y <= r.bottomRight.y:
+         let lx = ents[idx].pos.x
 
-      if lx >= r.topLeft.x and lx <= r.bottomRight.x:
-         bodyfn(ents[idx].pos, ents[idx].loc)
-      ++idx
+         if lx >= r.topLeft.x and lx <= r.bottomRight.x:
+            bodyfn(ents[idx].pos, ents[idx].loc)
+         ++idx
 
-// Calls bodyfn(arr, ix) for all entries where the entry pos == pos.
-// There can be more than one if there are duplicates.
-private def withPosLoc<T>(g::SparseGrid<T>, pos: xy_i, bodyfn):
-   // Check unordered batch adds first.
-   var found = false
+   // Calls bodyfn(arr, ix) for all entries where the entry pos == pos.
+   // There can be more than one if there are duplicates.
+   private def withPosLoc(pos: xy_i, bodyfn):
+      // Check unordered batch adds first.
+      var found = false
 
-   for(new_ents) l, i:
-      if l.pos == pos:
-         bodyfn(new_ents, i)
+      for(new_ents) l, i:
+         if l.pos == pos:
+            bodyfn(new_ents, i)
 
-   let bsfound, ix = binary_search_by_key(ents, pos.y) sgl, k: k = sgl.pos.y - k
-   
-   if bsfound:
-      var p = ix
+      let bsfound, ix = binary_search_by_key(ents, pos.y) sgl, k: k = sgl.pos.y - k
+      
+      if bsfound:
+         var p = ix
 
-      while p < length(ents) and ents[p].pos.y == pos.y and ents[p].pos.x != pos.x:
-         ++p
+         while p < length(ents) and ents[p].pos.y == pos.y and ents[p].pos.x != pos.x:
+            ++p
 
-      while p < length(ents) and ents[p].pos.y == pos.y:
-         if ents[p].pos == pos:
-            found = true
-            bodyfn(ents, p)
-         ++p
-               
-   return found
+         while p < length(ents) and ents[p].pos.y == pos.y:
+            if ents[p].pos == pos:
+               found = true
+               bodyfn(ents, p)
+            ++p
+                  
+      return found
 
-// Sets the item at grid location `pos` to `index`.
-// Use this and get() if you want to enforce there only
-// being one item possible at a given position.
-def set<T>(g::SparseGrid<T>, pos: xy_i, val: T):
-   //NB We allow setting an existing item to missingVal, 
-   //   because we know the post step of modifying() will
-   //   take care of those when things are reordered.
-   //   But we never add a entry for a missing val to 
-   //   new_ents.
-   let found = withPosLoc(g, pos) arr, ix:
-      arr[ix] = SGEnt<T>{pos: pos, loc: val}
-   
-   if not found and val != missingVal:
-      push(new_ents, SGEnt<T>{pos: pos, loc: val})
+   // Sets the item at grid location `pos` to `index`.
+   // Use this and get() if you want to enforce there only
+   // being one item possible at a given position.
+   def set(pos: xy_i, val: T):
+      //NB We allow setting an existing item to missingVal, 
+      //   because we know the post step of modifying() will
+      //   take care of those when things are reordered.
+      //   But we never add a entry for a missing val to 
+      //   new_ents.
+      let found = withPosLoc(pos) arr, ix:
+         arr[ix] = SGEnt<T>{pos: pos, loc: val}
+      
+      if not found and val != missingVal:
+         push(new_ents, SGEnt<T>{pos: pos, loc: val})
 
-// Returns the index set at `pos`, or the default 
-// value if no index was set there.  Use this and set()
-// if you want to enforce there only being one item possible
-// at a given position.
-def get<T>(g::SparseGrid<T>, pos: xy_i) -> T:
-   withPosLoc(g, pos) arr, ix:
-      return arr[ix].loc
+   // Returns the index set at `pos`, or the default 
+   // value if no index was set there.  Use this and set()
+   // if you want to enforce there only being one item possible
+   // at a given position.
+   def get(pos: xy_i) -> T:
+      withPosLoc(pos) arr, ix:
+         return arr[ix].loc
 
-   return missingVal
+      return missingVal
 
-// Discards any items where predfn(i) == true.
-def discard<T>(g:: SparseGrid<T>, predfn):
-   new_ents = filter(new_ents) x: not predfn(x.loc)
-   ents = filter(ents) x: not predfn(x.loc)
+   // Discards any items where predfn(i) == true.
+   def discard(predfn):
+      new_ents = filter(new_ents) x: not predfn(x.loc)
+      ents = filter(ents) x: not predfn(x.loc)
 
-// If you support multiple items at a single position, this function
-// allows you to call bodyfn(T) with them all
-def for_items_at<T>(g::SparseGrid<T>, pos: xy_i, bodyfn):
-   withPosLoc(g, pos) arr, ix:
-      bodyfn(arr[ix].loc)
+   // If you support multiple items at a single position, this function
+   // allows you to call bodyfn(T) with them all
+   def for_items_at(pos: xy_i, bodyfn):
+      withPosLoc(pos) arr, ix:
+         bodyfn(arr[ix].loc)
 
-def any_items_at<T>(g::SparseGrid<T>, pos: xy_i, predfn) -> bool:
-   withPosLoc(g, pos) arr, ix:
-      if predfn(arr[ix].loc):
-         return true
+   def any_items_at(pos: xy_i, predfn) -> bool:
+      withPosLoc(pos) arr, ix:
+         if predfn(arr[ix].loc):
+            return true
 
-   return false
+      return false
 
-// Adds a item at the given position, in a way that allows
-// multiple items at the same position.  See for_items_at to get 
-// at the added entries.
-def add<T>(g::SparseGrid<T>, pos: xy_i, v: T):
-   push(new_ents, SGEnt<T>{pos: pos, loc: v})
+   // Adds a item at the given position, in a way that allows
+   // multiple items at the same position.  See for_items_at to get 
+   // at the added entries.
+   def add(pos: xy_i, v: T):
+      push(new_ents, SGEnt<T>{pos: pos, loc: v})
 
-// For grids where there can more than one item at a location, 
-// this allows you to remove a particular item.  If there are 
-// duplicate values at `pos`, only one gets removed.
-def remove_item<T>(g::SparseGrid<T>, pos: xy_i, v: T):
-   withPosLoc(g, pos) arr, ix:
-      if arr[ix].loc == v:
-         remove(arr, ix)
-         return
+   // For grids where there can more than one item at a location, 
+   // this allows you to remove a particular item.  If there are 
+   // duplicate values at `pos`, only one gets removed.
+   def remove_item(pos: xy_i, v: T):
+      withPosLoc(pos) arr, ix:
+         if arr[ix].loc == v:
+            remove(arr, ix)
+            return
 
 def mkSparseGrid<T>(missingVal: T, estEnts = 100):
    return SparseGrid<T>{missingVal: missingVal, 
                         ents: vector_reserve(typeof [SGEnt<T>], estEnts), 
                         new_ents: vector_reserve(typeof [SGEnt<T>], estEnts)}
 
+// Calculates index of (x,y) in elems, with no checks to see 
+// if they fall in the dimensions of the grids, since this will
+// be called a lot.  Checks need to be done by callers.
+private def index(dims: xy_i, x: int, y: int) -> int:
+   return x + y*dims.x
+
+// Clips a point to the boundaries of the grid.
+private def clip_to_dims(dims: xy_i, p: xy_i) -> xy_i:
+   return xy_i{min(max(0, p.x), dims.x - 1),
+               min(max(0, p.y), dims.y - 1)}
+
+   
 class DenseGrid<T>:
    dims: xy_i    // Have to specify the dimensions.  Implied 0,0 topLeft.
    elems: [T]
    defaultVal: T
+
+   def contains(p: xy_i) -> bool:
+      return p.x >= 0 and p.x < dims.x and p.y >= 0 and p.y < dims.y
+
+   // Calls bodyfn(pos, index) for issing items within the given rectangle.
+   def for_items_within(r: Rect, bodyfn):
+      let tl = clip_to_dims(dims, r.topLeft)
+      let br = clip_to_dims(dims, r.bottomRight)
+      var y = tl.y
+
+      while y <= br.y:
+         var x = tl.x
+
+         while x <= br.x:
+            bodyfn(xy_i{x, y}, elems[index(dims, x, y)])
+            ++x
+
+         ++y
+
+   // Returns the item at `pos`.  If `pos` is out of bounds, 
+   // will return the default value passed into mk_dense_grid.
+   def get(pos: xy_i) -> T:
+      if this.contains(pos):
+         return elems[index(dims, pos.x, pos.y)]
+      else:
+         return defaultVal
+
+   // Sets the value at `pos`.  Does nothing if `pos` 
+   // is out of the grid's bounds.
+   def set(pos: xy_i, val: T):
+      if this.contains(pos):
+         elems[index(dims, pos.x, pos.y)] = val
 
 def mk_dense_grid<T>(dims: xy_i, defaultVal: T) -> DenseGrid<T>:
    assert dims.x > 0 and dims.y > 0
@@ -166,49 +210,6 @@ def mk_dense_grid<T>(dims: xy_i, defaultVal: T) -> DenseGrid<T>:
 
    return rv
 
-// Calculates index of (x,y) in elems, with no checks to see 
-// if they fall in the dimensions of the grids, since this will
-// be called a lot.  Checks need to be done by callers.
-private def index(g, x: int, y: int) -> int:
-   return x + y*g.dims.x
-
-// Clips a point to the boundaries of the grid.
-private def clip_to_dims(g, p: xy_i) -> xy_i:
-   return xy_i{min(max(0, p.x), g.dims.x - 1),
-               min(max(0, p.y), g.dims.y - 1)}
-
-// Calls bodyfn(pos, index) for issing items within the given rectangle.
-def for_items_within<T>(g::DenseGrid<T>, r: Rect, bodyfn):
-   let tl = clip_to_dims(g, r.topLeft)
-   let br = clip_to_dims(g, r.bottomRight)
-   var y = tl.y
-
-   while y <= br.y:
-      var x = tl.x
-
-      while x <= br.x:
-         bodyfn(xy_i{x, y}, g.elems[index(g, x, y)])
-         ++x
-
-      ++y
-
-def contains(g, p: xy_i) -> bool:
-   return p.x >= 0 and p.x < g.dims.x and p.y >= 0 and p.y < g.dims.y
-   
-// Returns the item at `pos`.  If `pos` is out of bounds, 
-// will return the default value passed into mk_dense_grid.
-def get<T>(g::DenseGrid<T>, pos: xy_i) -> T:
-   if g.contains(pos):
-      return g.elems[index(g, pos.x, pos.y)]
-   else:
-      return g.defaultVal
-
-// Sets the value at `pos`.  Does nothing if `pos` 
-// is out of the grid's bounds.
-def set<T>(g::DenseGrid<T>, pos: xy_i, val: T):
-   if g.contains(pos):
-      g.elems[index(g, pos.x, pos.y)] = val
-
 enum_flags VisFlag:
    vfLit,              //  Has light
    vfVisible,          // Visible to player
@@ -217,6 +218,81 @@ enum_flags VisFlag:
 class VizSet:
    dims: xy_i  // Dimensions of grid covered.
    elems: [int] // 3 bit per 64 bit int makes me sad.
+
+   def contains(p: xy_i) -> bool:
+      return p.x >= 0 and p.x < dims.x and p.y >= 0 and p.y < dims.y
+
+   // Marks a grid as lit, seen, etc...
+   def mark(p: xy_i, flags: VisFlag):
+      if this.contains(p):
+         let i = index(dims, p.x, p.y)
+
+         elems[i] |= flags
+
+   // Returns true if all the flags in `flags` at `p` 
+   // are set.
+   def test(p: xy_i, flags: int) -> bool:
+      var rv = false
+
+      if this.contains(p):
+         let b = elems[index(dims, p.x, p.y)]
+
+         rv = (b & flags) == flags
+
+      return rv
+
+   // Returns true if any the flags in `flags` at `p` 
+   // are set.
+   def has(p: xy_i, flags: int) -> bool:
+      var rv = false
+
+      if this.contains(p):
+         let b = elems[index(dims, p.x, p.y)]
+
+         rv = (b & flags) != 0
+
+      return rv
+
+   // Clears the visible and lit flags, leaving
+   // vfSeen untouched.
+   def clear():
+      for(length(elems)) i:
+         elems[i] &= ~(vfLit | vfVisible)
+
+   def get(p: xy_i) -> int:
+      if this.contains(p):
+         return elems[index(dims, p.x, p.y)]
+      else:
+         return 0
+
+   // Updates light information for the viz set.
+   def update_lights(clear_viz: bool = false):
+      let t = stopwatch():
+         if clear_viz:
+            clear()
+
+         for_all_enabled_lights() obj, spec:
+            let r = spec.light_radius()
+            let r2 = r * r
+            let f, ps = pos(obj)
+
+            if f:
+               var y = ps.y - r
+               let br = xy_i{ps.x + r, ps.y + r}
+
+               while y <= br.y:
+                  var x = ps.x - r
+
+                  while x <= br.x:
+                     let dx = x - ps.x
+                     let dy = y - ps.y
+
+                     if (dx*dx + dy*dy) < r2:
+                        mark(xy_i{x, y}, vfLit)
+                     ++x
+                  ++y
+
+      timing(): "update_lights: " + t
 
 // Creates a set for recording visibility for a grid.
 def mk_viz_set(dim: xy_i) -> VizSet:
@@ -230,77 +306,6 @@ def mk_viz_set(dim: xy_i) -> VizSet:
 
    return rv
 
-// Marks a grid as lit, seen, etc...
-def mark(v: VizSet, p: xy_i, flags: VisFlag):
-   if v.contains(p):
-      let i = index(v, p.x, p.y)
-
-      v.elems[i] |= flags
-
-// Returns true if all the flags in `flags` at `p` 
-// are set.
-def test(v: VizSet, p: xy_i, flags: int) -> bool:
-   var rv = false
-
-   if v.contains(p):
-      let b = v.elems[index(v, p.x, p.y)]
-
-      rv = (b & flags) == flags
-
-   return rv
-
-// Returns true if any the flags in `flags` at `p` 
-// are set.
-def has(v: VizSet, p: xy_i, flags: int) -> bool:
-   var rv = false
-
-   if v.contains(p):
-      let b = v.elems[index(v, p.x, p.y)]
-
-      rv = (b & flags) != 0
-
-   return rv
-
-// Clears the visible and lit flags, leaving
-// vfSeen untouched.
-def clear(v: VizSet):
-   for(length(v.elems)) i:
-      v.elems[i] &= ~(vfLit | vfVisible)
-
-def get(v: VizSet, p: xy_i) -> int:
-   if v.contains(p):
-      return v.elems[index(v, p.x, p.y)]
-   else:
-      return 0
-
-// Updates light information for the viz set.
-def update_lights(v: VizSet, clear_viz: bool = false):
-   let t = stopwatch():
-      if clear_viz:
-         clear(v)
-
-      for_all_enabled_lights() obj, spec:
-         let r = spec.light_radius()
-         let r2 = r * r
-         let f, ps = pos(obj)
-
-         if f:
-            var y = ps.y - r
-            let br = xy_i{ps.x + r, ps.y + r}
-
-            while y <= br.y:
-               var x = ps.x - r
-
-               while x <= br.x:
-                  let dx = x - ps.x
-                  let dy = y - ps.y
-
-                  if (dx*dx + dy*dy) < r2:
-                     mark(v, xy_i{x, y}, vfLit)
-                  ++x
-               ++y
-
-   timing(): "update_lights: " + t
 
 def grids_tests():
    let rv = mkSparseGrid(0)
