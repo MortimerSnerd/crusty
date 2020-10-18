@@ -180,14 +180,15 @@ class ObjList:
             im_set_next_item_open(true, im_cond_always)
             open = im_treenode_start(sect.name) 
 
-         if open:
-            for(sect.items) item, ii:
+         for(sect.items) item, ii:
+            if open:
                im_group(string(si) + "_" + string(ii)):
                   if im_button(item_name(si, ii)):
                      if length(item.grouped) > 0:
                         picked = item.grouped[0]
                         picked_si = si
                         picked_ii = ii
+            ++item_index
 
          if sect.name != "":
             im_treenode_end()
@@ -207,6 +208,7 @@ class ObjList:
                         picked_si = si
                         picked_ii = ii
                         break
+                     ++item_index
 
       return status, picked, picked_si, picked_ii
 
