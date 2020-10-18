@@ -293,4 +293,4 @@ def player_handle_input(player: ObjId):
 // Called when it's ok to do imgui UI drawing.
 // The projection is already set up for pixel coords.
 def player_handle_ui():
-   noop()
+   pass()

@@ -46,6 +46,84 @@ enum_flags TileFlags:
    tfBlocksLight, tfBlocksMovement, tfFloor
 
 class MapEndpoint : BusEndpoint
+   def move_is_allowed(now: float, o: ObjId, destPos: xy_i) -> bool:
+      if not FloorLayer.contains(destPos):
+         return false
+
+      let spec = object_spec(o)
+
+      if wall_blocks_move(destPos):
+         return false
+
+      let found, cpos = pos(o)
+
+      if found and crosses_wall_diagonal(cpos, destPos):
+         return false
+
+      let liv = get(Living, destPos)
+
+      if spec.flags & ItemFlags_Living:
+         if liv != InvalidObject:
+            return false
+
+         let blocked = any_items_at(Objects, destPos) it: 
+            if it:
+               object_spec(it).flags & ItemFlags_BlocksLiving != 0
+            else:
+               false
+
+         if blocked:
+            return false
+      elif spec.flags & ItemFlags_BlocksLiving:
+         if liv != InvalidObject:
+            return false
+
+      return true
+
+   def notify_deleting(what: ObjId):
+      // Calling pos() won't necessarily work at this point, 
+      // so discard the items directly from our grids.
+      debug(): "Maps: removing " + to_string(what)
+      discard(Objects) x: x == what
+      discard(Living) x: x == what
+
+
+   def notify_take(who: ObjId, what: ObjId):
+      let wf, wpos = pos(who)
+      let r = Rect{wpos, wpos}
+
+      for_items_within(Objects, r) p, oid:
+         if oid == what:
+            remove_item(Objects, p, oid)
+            return
+
+   def notify_spawn(o: ObjId, parent: ObjId?, pos: xy_i):
+      if not parent:
+         // Not contained by another object, so this is on a map.
+         if object_spec(o).flags & ItemFlags_Living:
+            assert get(Living, pos) == InvalidObject
+            set(Living, pos, o)
+         else:
+            add(Objects, pos, o)
+
+   def notify_moving(o: ObjId, startT: float, endT: float, 
+                     start: xy_i, end: xy_i) -> void:
+      if object_spec(o).flags & ItemFlags_Living:
+         remove_item(Living, start, o)
+         assert get(Living, end) == InvalidObject
+         set(Living, end, o)
+      else:
+         remove_item(Objects, start, o)
+         add(Objects, end, o)
+
+   def for_objects_at(p: xy_i, body):
+      for_items_at(Objects, p) o:
+         body(o)
+
+      let lv = get(Living, p)
+      if lv != InvalidObject:
+         body(lv)
+
 
 private def wall_blocks_move(pos: xy_i) -> bool:
    let t = get(WallLayer, pos)
@@ -69,84 +147,6 @@ def crosses_wall_diagonal(start: xy_i, end: xy_i) -> bool:
          return true
 
    return false
-
-def move_is_allowed(ep: MapEndpoint, now: float, o: ObjId, destPos: xy_i) -> bool:
-   if not FloorLayer.contains(destPos):
-      return false
-
-   let spec = object_spec(o)
-
-   if wall_blocks_move(destPos):
-      return false
-
-   let found, cpos = pos(o)
-
-   if found and crosses_wall_diagonal(cpos, destPos):
-      return false
-
-   let liv = get(Living, destPos)
-
-   if spec.flags & ItemFlags_Living:
-      if liv != InvalidObject:
-         return false
-
-      let blocked = any_items_at(Objects, destPos) it: 
-         if it:
-            object_spec(it).flags & ItemFlags_BlocksLiving != 0
-         else:
-            false
-
-      if blocked:
-         return false
-   elif spec.flags & ItemFlags_BlocksLiving:
-      if liv != InvalidObject:
-         return false
-
-   return true
-
-def notify_deleting(b: MapEndpoint, what: ObjId):
-   // Calling pos() won't necessarily work at this point, 
-   // so discard the items directly from our grids.
-   debug(): "Maps: removing " + to_string(what)
-   discard(Objects) x: x == what
-   discard(Living) x: x == what
-
-
-def notify_take(b: MapEndpoint, who: ObjId, what: ObjId):
-   let wf, wpos = pos(who)
-   let r = Rect{wpos, wpos}
-
-   for_items_within(Objects, r) p, oid:
-      if oid == what:
-         remove_item(Objects, p, oid)
-         return
-
-def notify_spawn(ep: MapEndpoint, o: ObjId, parent: ObjId?, pos: xy_i):
-   if not parent:
-      // Not contained by another object, so this is on a map.
-      if object_spec(o).flags & ItemFlags_Living:
-         assert get(Living, pos) == InvalidObject
-         set(Living, pos, o)
-      else:
-         add(Objects, pos, o)
-
-def notify_moving(ep: MapEndpoint, o: ObjId, startT: float, endT: float, 
-                  start: xy_i, end: xy_i) -> void:
-   if object_spec(o).flags & ItemFlags_Living:
-      remove_item(Living, start, o)
-      assert get(Living, end) == InvalidObject
-      set(Living, end, o)
-   else:
-      remove_item(Objects, start, o)
-      add(Objects, end, o)
-
-def for_objects_at(b:: MapEndpoint, p: xy_i, body):
-   for_items_at(Objects, p) o:
-      body(o)
-
-   let lv = get(Living, p)
-   if lv != InvalidObject:
-      body(lv)
 
 private def create_level_mesh(estSize: int = 100):
    let ps = vector_reserve(typeof [xyz_f], estSize * 4)  
