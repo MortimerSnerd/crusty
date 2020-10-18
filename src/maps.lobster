@@ -131,7 +131,7 @@ def notify_spawn(ep: MapEndpoint, o: ObjId, parent: ObjId?, pos: xy_i):
          add(Objects, pos, o)
 
 def notify_moving(ep: MapEndpoint, o: ObjId, startT: float, endT: float, 
-                  start: xy_i, end: xy_i):
+                  start: xy_i, end: xy_i) -> void:
    if object_spec(o).flags & ItemFlags_Living:
       remove_item(Living, start, o)
       assert get(Living, end) == InvalidObject

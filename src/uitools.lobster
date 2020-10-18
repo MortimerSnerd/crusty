@@ -1,5 +1,7 @@
 // Code for ui.  Split out from player module, as it was starting to get
 // messy.
+import from "../../../src/crusty/src/"
+import actions
 import algs
 import bus
 import config_generated
@@ -70,6 +72,9 @@ class ObjPromptData : UserData
    action: PromptAction
    picked: ObjId? = nil
 
+   def balls(op: ObjPromptData):
+      print(op.player.id)
+
 private def obj_prompt_handler(data: UserData?) -> InteractionStatus:
    var rv = Working
 
@@ -98,4 +103,10 @@ def prompt_for_object(player: ObjId, title: string, cands: ObjList, skip_one: bo
       start_interaction(data, (fn(a: UserData?): obj_prompt_handler(a)), Finished)
    else:
       start_interaction(data, (fn(a: UserData?): obj_prompt_handler(a)))
+
+
+//
+// Item interaction dialog.
+//
+
 

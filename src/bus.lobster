@@ -91,7 +91,7 @@ class BusEndpoint:
    // Should be called by actions that move objects, to notify
    // any interested systems.  Gets called for all systems, not
    // just the owner.
-   def notify_moving(o: ObjId, startT: float, endT: float, start: xy_i, end: xy_i):
+   def notify_moving(o: ObjId, startT: float, endT: float, start: xy_i, end: xy_i) -> void:
       return
 
    // Should be called by actions that change the tiles on objects, 

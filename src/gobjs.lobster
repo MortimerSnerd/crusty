@@ -132,106 +132,105 @@ def gobjs_tests():
 
 // Bus endpoint implementation.
 class GobjEndpoint : BusEndpoint
+   def for_all_enabled_lights(body):
+      dl_foreach(GOInstances) o:
+         if not o.parent and OSpecs[o.kind_idx].flags & ItemFlags_EmitsLight:
+            body(o, OSpecs[o.kind_idx])
 
-def for_all_enabled_lights(b:: GobjEndpoint, body):
-   dl_foreach(GOInstances) o:
-      if not o.parent and OSpecs[o.kind_idx].flags & ItemFlags_EmitsLight:
-         body(o, OSpecs[o.kind_idx])
-
-def tile(b: GobjEndpoint, what: ObjId) -> int:
-   if what is GOInst:
-      return what.curTile
-   else:
-      return 0
-
-def change_tile(b:: GobjEndpoint, o: ObjId, tile: TileName):
-   if o is GOInst:
-      o.curTile = tile
-      // If a tile is set manually, cancel animation.
-      o.playing_anim = -1
-
-def pos(ep:: GobjEndpoint, what: ObjId) -> bool, xy_i:
-   if what is GOInst:
-      return true, what.pos
-   else:
-      return false, xy_i{0,0}
-
-def direction(ep:: GobjEndpoint, what: ObjId) -> bool, Directions:
-   if what is GOInst:
-      return true, what.dir
-   else:
-      return false, East
-
-def for_objects_intersecting(ep:: GobjEndpoint, now: float, r: Rectf, body):
-   dl_foreach(GOInstances) ob:
-      let p = gridToWorld(ob.pos)
-      let bb = mkRectfRel(p - xy_h, xy_1)
-
-      if bb.overlaps(r):
-         body(ob, bb)
-
-def think(ep:: GobjEndpoint, span: TurnSpan, who: ObjId, now: float):
-   // We should't have any calls scheduled.
-   return
-
-def notify_moving(ep:: GobjEndpoint, o: ObjId, startT: float, endT: float, start: xy_i, end: xy_i):
-   if o is GOInst:
-      o.pos = end
-
-def play_animation(ep: GobjEndpoint, obj: ObjId, name: string):
-   if obj is GOInst:
-      let ai = find_animation(name)
-
-      if ai >= 0:
-         obj.playing_anim = ai
-         obj.frame_idx = 0
-         obj.frame_left = Animations[ai].frames[0].duration
-         obj.curTile = Animations[ai].frames[0].frame
+   def tile(what: ObjId) -> int:
+      if what is GOInst:
+         return what.curTile
       else:
-         warn(): "animation not found: " + name
+         return 0
 
-def object_state(b::GobjEndpoint, what: ObjId) -> StateFlags:
-   if what is GOInst:
-      return what.state
-   else:
-      return StateFlags(0)
+   def change_tile(o: ObjId, tile: TileName):
+      if o is GOInst:
+         o.curTile = tile
+         // If a tile is set manually, cancel animation.
+         o.playing_anim = -1
 
-def modify_object_state(b: GobjEndpoint, what: ObjId, body):
-   if what is GOInst:
-      what.state = body(what.state)
+   def pos(what: ObjId) -> bool, xy_i:
+      if what is GOInst:
+         return true, what.pos
+      else:
+         return false, xy_i{0,0}
 
-def for_objects_in(b:: GobjEndpoint, what: ObjId, body):
-   dl_foreach(GOInstances) o:
-      if o.parent == what:
-         body(o)
+   def direction(what: ObjId) -> bool, Directions:
+      if what is GOInst:
+         return true, what.dir
+      else:
+         return false, East
 
-def container_of(b: GobjEndpoint, what: ObjId) -> ObjId?:
-   if what is GOInst:
-      return what.parent
-   else:
-      return nil
+   def for_objects_intersecting(now: float, r: Rectf, body):
+      dl_foreach(GOInstances) ob:
+         let p = gridToWorld(ob.pos)
+         let bb = mkRectfRel(p - xy_h, xy_1)
 
-def notify_deleting(ep: GobjEndpoint, o: ObjId):
-   if o and o is GOInst:
-      debug(): "GObjSystem removing " + to_string(o)
-      dl_remove(GOInstances, o) 
+         if bb.overlaps(r):
+            body(ob, bb)
 
-   remove_callbacks_for(o)
+   def think(span: TurnSpan, who: ObjId, now: float):
+      // We should't have any calls scheduled.
+      return
 
-def notify_take(b:: GobjEndpoint, who: ObjId, what: ObjId):
-   if what is GOInst and who != what:
-      debug(): "GObjSystem " + to_string(who) + " taking " + to_string(what)
-      what.parent = who
+   def notify_moving(o: ObjId, startT: float, endT: float, start: xy_i, end: xy_i) -> void:
+      if o is GOInst:
+         o.pos = end
 
-def notify_turning(ep:: GobjEndpoint, o: ObjId, startT: float, endT: float, startDir: Directions, endDir: Directions):
-   if o is GOInst:
-      o.dir = endDir
+   def play_animation(obj: ObjId, name: string):
+      if obj is GOInst:
+         let ai = find_animation(name)
 
-def object_spec(ep:: GobjEndpoint, o: ObjId) -> ObjectSpec:
-   if o is GOInst:
-      return OSpecs[o.kind_idx]
-   else:
-      return EmptyObjectSpec
+         if ai >= 0:
+            obj.playing_anim = ai
+            obj.frame_idx = 0
+            obj.frame_left = Animations[ai].frames[0].duration
+            obj.curTile = Animations[ai].frames[0].frame
+         else:
+            warn(): "animation not found: " + name
+
+   def object_state(what: ObjId) -> StateFlags:
+      if what is GOInst:
+         return what.state
+      else:
+         return StateFlags(0)
+
+   def modify_object_state(what: ObjId, body):
+      if what is GOInst:
+         what.state = body(what.state)
+
+   def for_objects_in(what: ObjId, body):
+      dl_foreach(GOInstances) o:
+         if o.parent == what:
+            body(o)
+
+   def container_of(what: ObjId) -> ObjId?:
+      if what is GOInst:
+         return what.parent
+      else:
+         return nil
+
+   def notify_deleting(o: ObjId):
+      if o and o is GOInst:
+         debug(): "GObjSystem removing " + to_string(o)
+         dl_remove(GOInstances, o) 
+
+      remove_callbacks_for(o)
+
+   def notify_take(who: ObjId, what: ObjId):
+      if what is GOInst and who != what:
+         debug(): "GObjSystem " + to_string(who) + " taking " + to_string(what)
+         what.parent = who
+
+   def notify_turning(o: ObjId, startT: float, endT: float, startDir: Directions, endDir: Directions):
+      if o is GOInst:
+         o.dir = endDir
+
+   def object_spec(o: ObjId) -> ObjectSpec:
+      if o is GOInst:
+         return OSpecs[o.kind_idx]
+      else:
+         return EmptyObjectSpec
    
 def gobjs_init():
    let txtfile = "dist/sprites.png"
