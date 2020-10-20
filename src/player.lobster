@@ -18,10 +18,6 @@ private var GameTime : float = 0    // Abs game time.  (ie, total time stepping,
 def game_time() -> float:
    return GameTime
 
-// For player actions, don't scale the time of the action - the time of the
-// action will be the span that all other actions will need to scale to.
-let FakeTurnSpan = TurnSpan{0.0, 999999999990.0}
-
 private def perform_action(act):
    if act:
       debug(): "Player turn execute"
@@ -57,68 +53,6 @@ private let pl_fwd_action = fn(player: ObjId, now: float) -> ActionBase?:
 
 def bind(key, desc, afn): push(Bindings, Binding{key: key, desc: desc, afn: afn})
 
-private def closed_containers_at(p: xy_i) -> ObjList:
-   let rv = ObjList{options: olAddChoiceLetter}
-
-   add_section(rv, "What have we here?")
-   for_objects_at(p) o:
-      //TODO instead of flag test, should we check with close action, so we always use the
-      //    same criteria?
-      if o and object_spec(o).flags & ItemFlags_Container and not (object_state(o) & StateFlags_Open):
-         add_object(rv, o)
-
-   return rv
-
-private def is_open_container(o: ObjId):
-   return object_spec(o).flags & ItemFlags_Container and (object_state(o) & StateFlags_Open)
-
-private def opened_containers_at(p: xy_i) -> ObjList:
-   let rv = ObjList{options: olAddChoiceLetter}
-
-   for_objects_at(p) o:
-      //TODO instead of flag test, should we check with open action, so we always use the
-      //    same criteria?
-      if o and is_open_container(o):
-         add_object(rv, o)
-
-   return rv
-
-// Adds a section for any items inside of a container `o` to `list`.
-private def add_container_objects(player: ObjId, list: ObjList, o: ObjId):
-   add_section(list, "In " + object_spec(o).short_name)
-   for_objects_in(o) io:
-      let r0, act0 = take_action(FakeTurnSpan, GameTime, player, io)
-
-      if act0:
-         add_object(list, io)
-
-private def grabbable_objs_at(player: ObjId, p: xy_i) -> ObjList:
-   let rv = ObjList{options: olAddChoiceLetter}
-   let containers = []
-   add_section(rv, "On ground")
-   for_objects_at(p) o:
-      if o:
-         let r, act = take_action(FakeTurnSpan, GameTime, player, o)
-
-         if act:
-            add_object(rv, o)
-         elif is_open_container(o):
-            push(containers, o)
-
-
-   for(containers) o:
-      add_container_objects(player, rv, o)
-
-   return rv
-
-private def held_objects(player: ObjId) -> ObjList:
-   let rv = ObjList{options: olAddChoiceLetter|olGroup}
-
-   add_section(rv, "In inventory")
-   for_objects_in(player) o:
-      add_object(rv, o)
-
-   return rv
 
 def player_init():
    bind("w", "Move forward") player, now, prompt:
@@ -250,6 +184,14 @@ def player_handle_input(player: ObjId):
                rv = GoodTurnBegins
 
             handled = true
+      else:
+         let act = poll_item_interaction_action()
+
+         if act:
+            act.time = GameTime  // Patch in right time, ui module doesn't know.
+            perform_action(act)
+            rv = GoodTurnBegins
+            handled = true
 
       return handled
 
@@ -273,8 +215,9 @@ def player_handle_input(player: ObjId):
                         check_prompted_action()
                      break
 
-            if gl_button("Q") == 1:
+            if gl_button("q") == 1:
                play_wav("dist/ouch3.wav")
+               start_item_interaction(player, iiGet)
 
          case Stepping:
             let dT = gl_delta_time() * animations_time_scale()
@@ -286,6 +229,9 @@ def player_handle_input(player: ObjId):
                PlayerState = WaitingForInput
                rv = GoodSteppingEnded
 
+               // If the last action was for an item interaction dialog, 
+               // let the dialog know the deed is done.
+               player_action_done()
 
         // process_callbacks(now)
    return rv

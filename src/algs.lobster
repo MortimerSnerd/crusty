@@ -463,6 +463,10 @@ struct TurnSpan:
    start: float
    end: float
 
+// Used for player actions.  The span gets adjusted to the real action
+// time onece the action is presented.
+let FakeTurnSpan = TurnSpan{0.0, 999999999990.0}
+
 def mag(t:: TurnSpan) -> float:
    assert t.end >= t.start
    return end - start

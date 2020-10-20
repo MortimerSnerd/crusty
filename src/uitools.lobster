@@ -58,6 +58,81 @@ def finished_interaction() -> Interaction?:
    else:
       return nil
 
+//
+// Utility functions for building up ObjLists used by UI tools.
+//
+
+def is_open_container(o: ObjId):
+   return object_spec(o).flags & ItemFlags_Container and (object_state(o) & StateFlags_Open)
+
+def is_closed_container(o: ObjId):
+   return object_spec(o).flags & ItemFlags_Container and not (object_state(o) & StateFlags_Open)
+
+def closed_containers_at(p: xy_i) -> ObjList:
+   let rv = ObjList{options: olAddChoiceLetter}
+
+   add_section(rv, "What have we here?")
+   for_objects_at(p) o:
+      //TODO instead of flag test, should we check with close action, so we always use the
+      //    same criteria?
+      if o and is_closed_container(o):
+         add_object(rv, o)
+
+   return rv
+
+def opened_containers_at(p: xy_i) -> ObjList:
+   let rv = ObjList{options: olAddChoiceLetter}
+
+   for_objects_at(p) o:
+      //TODO instead of flag test, should we check with open action, so we always use the
+      //    same criteria?
+      if o and is_open_container(o):
+         add_object(rv, o)
+
+   return rv
+
+// Adds a section for any items inside of a container `o` to `list`.
+private def add_container_objects(player: ObjId, list: ObjList, o: ObjId):
+   add_section(list, "In " + object_spec(o).short_name)
+   for_objects_in(o) io:
+      let r0, act0 = take_action(FakeTurnSpan, 0, player, io)
+
+      if act0:
+         add_object(list, io)
+
+// Populate `rv` with the objects on the floor at `p`.  Returns 
+// any open container objects as an array.
+private def get_floor_objs(rv: ObjList, player: ObjId, p: xy_i):
+   let containers = [] 
+   add_section(rv, "On ground")
+   for_objects_at(p) o:
+      if o:
+         let r, act = take_action(FakeTurnSpan, 0, player, o)
+
+         if act:
+            add_object(rv, o)
+         elif is_open_container(o):
+            push(containers, o)
+
+   return containers
+
+def grabbable_objs_at(player: ObjId, p: xy_i, options: ObjListOptions = olAddChoiceLetter) -> ObjList:
+   let rv = ObjList{options: options}
+   let containers = get_floor_objs(rv, player, p)
+
+   for(containers) o:
+      add_container_objects(player, rv, o)
+
+   return rv
+
+def held_objects(player: ObjId, options: ObjListOptions = olAddChoiceLetter|olGroup) -> ObjList:
+   let rv = ObjList{options: options}
+
+   add_section(rv, "In inventory")
+   for_objects_in(player) o:
+      add_object(rv, o)
+
+   return rv
 
 //
 // Simple object prompt
@@ -109,4 +184,190 @@ def prompt_for_object(player: ObjId, title: string, cands: ObjList, skip_one: bo
 // Item interaction dialog.
 //
 
+// Represents pairs of item sources and/or destinations.
+enum IIModes:
+   iiGet, 
+   iiPut
 
+// Represents the location that a ObjList or ObjList section
+// is populated from.
+enum LocationKind:
+   PlayerInventory,   
+   Ground,           
+   Container
+
+private class Location:
+   kind: LocationKind
+   // Container object for kind=Container
+   obj: ObjId? = nil       
+
+
+private def lhs_options(m: IIModes):
+   switch m:
+      case iiGet: 
+         return olNone
+
+      case iiPut:
+         return olAddChoiceLetter
+
+   return olNone
+
+private def rhs_options(m: IIModes):
+   return switch m:
+      case iiGet:
+          olAddChoiceLetter|olGroup
+
+      case iiPut:
+          olNone
+
+      default:
+         return olNone
+
+private def mode_label(m: IIModes):
+   return switch m:
+      case iiGet:
+         "< Get <"
+      
+      case iiPut:
+         "> Put >"
+
+      default:
+         return "<>"
+
+// Encapsulates the data to perform additions and removals to an ObjList
+class ListUpdate:
+   left_sect: int = -1
+   left_item: int = -1
+   right_sect: int = -1
+   right_item: int = -1
+
+class IIData : UserData
+   player: ObjId
+   player_pos: xy_i
+   mode: IIModes
+   lhs: ObjList = ObjList{options: olNone}
+   rhs: ObjList = ObjList{options: olNone}
+   // Maps from section number to Location for the ObjLists
+   lhs_locs: [Location] = []
+   rhs_locs: [Location] = []
+
+   // Index to the current section.
+   rhs_cur_section: int = -1 
+
+   // Action for player module to execute.  While this is non-nil, 
+   // we ignore input.  It will be set back to nil once the player
+   // module has executed the action, and the turn is finished.
+   player_action: ActionBase? = nil
+   post_action_update: ListUpdate? = nil
+
+   private def init_mode(new_mode: IIModes):
+      mode = new_mode
+      lhs_locs = []
+      rhs_locs = []
+      rhs_cur_section = -1
+
+
+      switch mode:
+         case iiGet:
+            lhs = held_objects(player, lhs_options(mode))
+            lhs_locs = [Location{kind: PlayerInventory}]
+
+            rhs = ObjList{options: rhs_options(mode)}
+            let containers = get_floor_objs(rhs, player, player_pos)
+            
+            rhs_locs = [Location{kind: Ground}]
+            for(containers) c: 
+               add_container_objects(player, rhs, c)
+               push(rhs_locs, Location{kind: Container, obj: c})
+            rhs_cur_section = 0
+
+         case iiPut:
+            pass()
+   
+def execute(self:: ListUpdate, data: IIData):
+   switch data.mode:
+      case iiGet:
+         let obj = remove_obj(data.rhs, right_sect, right_item)
+
+         if obj:
+            add_object(data.lhs, obj, 0)
+
+      case iiPut:
+         pass()
+
+private def waiting_for_action(data: IIData):
+   return data.player_action != nil
+
+private def ii_handler(data: UserData?):
+   var rv = Working
+   if data and data is IIData:
+      im_window(data.title, 0):
+         im_widget_group():
+            let st, oid, si, ii = display_list(data.lhs)
+
+            if not waiting_for_action(data):
+               if st == dlsCancel:
+                  rv = Cancelled
+               elif oid:
+                  switch data.mode:
+                     case iiGet:
+                        pass()
+
+                     case iiPut:
+                        pass()
+
+         im_same_line()
+         im_widget_group():
+            im_text(mode_label(data.mode))
+
+         im_same_line()
+         im_widget_group():
+            let st, oid, si, ii = display_list(data.rhs)
+
+            if not waiting_for_action(data):
+               if st == dlsCancel:
+                  rv = Cancelled
+               elif oid:
+                  switch data.mode:
+                     case iiGet:
+                        data.post_action_update = ListUpdate{
+                           right_sect: si, 
+                           right_item: ii
+                        }
+                        let ar, act = take_action(FakeTurnSpan, 0, 
+                                                  data.player, oid)
+                        //TODO report ar
+                        data.player_action = act
+
+                     case iiPut:
+                        pass()
+
+   return rv
+
+def start_item_interaction(player: ObjId, mode: IIModes):
+   let f, ppos = pos(player)
+   let data = IIData{title: "Interaction", player: player, player_pos: ppos, 
+                     mode: mode}
+   
+   init_mode(data, mode)
+   start_interaction(data, 
+                     (fn(d: UserData?): ii_handler(d)))
+
+
+// Returns any action the player module needs to execute
+// in response to a command in the item interaction dialog.
+def poll_item_interaction_action() -> ActionBase?:
+   if Acts and Acts.data is IIData:
+      return Acts.data.player_action
+   else:
+      return nil
+
+// Should be called by the player module when after an action taken 
+// from poll_item_interaction_action() has been executed, and the turn
+// is done.
+def player_action_done():
+   if Acts and Acts.data is IIData:
+      Acts.data.player_action = nil
+      if Acts.data.post_action_update:
+         Acts.data.post_action_update.execute(Acts.data)
+         Acts.data.post_action_update = nil

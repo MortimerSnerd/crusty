@@ -61,6 +61,21 @@ class ObjList:
 
       return ni
 
+   // Removes an item from the given location, and
+   // returns an ObjId.  Returns nil if there's nothing
+   // there.
+   def remove_obj(sectno: int, itemno: int) -> ObjId?:
+      if sectno < length(sects):
+         let sect = sects[sectno]
+
+         if itemno < length(sect.items):
+            let grp = sect.items[itemno]
+
+            if length(grp.grouped) > 0:
+               return pop(grp.grouped)
+
+      return nil
+
    // Returns first item from ObjList.  Should only be called
    // if count() > 0!
    def first() -> ObjId:
@@ -115,7 +130,7 @@ class ObjList:
    // matching the predicate.  If not found, returns (-1, -1)
    private def find_in_section(sectno: int, pred):
       for(sects) sect, si:
-         for(si.items) item, ii:
+         for(sect.items) item, ii:
             if sectno == si and pred(item):
                return si, ii
             elif si  > sectno:
@@ -185,7 +200,7 @@ class ObjList:
                im_group(string(si) + "_" + string(ii)):
                   if im_button(item_name(si, ii)):
                      if length(item.grouped) > 0:
-                        picked = item.grouped[0]
+                        picked = item.grouped[length(item.grouped)-1]
                         picked_si = si
                         picked_ii = ii
             ++item_index
@@ -204,11 +219,11 @@ class ObjList:
                for(sect.items) item, ii:
                   if length(item.grouped) > 0:
                      if gl_button(choice_letter(item_index)) == 1:
-                        picked = item.grouped[0]
+                        picked = item.grouped[length(item.grouped)-1]
                         picked_si = si
                         picked_ii = ii
                         break
-                     ++item_index
+                  ++item_index
 
       return status, picked, picked_si, picked_ii
 
