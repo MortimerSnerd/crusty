@@ -22,7 +22,8 @@ enum ActionResultKinds:
    arAlreadyClosed,
    arCanNotReach, 
    arCanNotTakeAnything, 
-   arCanNotTake
+   arCanNotTake, 
+   arCanNotPut
 
 class ActionResult:
    kind: ActionResultKinds
@@ -117,13 +118,18 @@ private def open_close_animation_name(action: string, what: ObjId):
 
 class TakeAction : ActionBase
    what: ObjId
+   // If `what` is being taken from a container instead of the ground, 
+   // this field holds it.
+   where: ObjId? = nil
 
    def execute():
-      notify_take(who, what)
+      if where:
+         notify_take_out(time, who, what, where)
+      else:
+         notify_take(who, what)
 
-def take_action(span: TurnSpan, now: float, who: ObjId, what: ObjId) -> ActionResult, TakeAction?:
-   let what_parent = container_of(what)
-   if not what_parent and at_same_location(who, what):
+def take_action(span: TurnSpan, now: float, who: ObjId, what: ObjId, from_where: ObjId? = nil) -> ActionResult, TakeAction?:
+   if not from_where and at_same_location(who, what):
       let spec = object_spec(what)
       if spec.flags & ItemFlags_Immobile or spec.flags & ItemFlags_Living:
          return ActionResult{kind: arCanNotTake, other: what}, nil
@@ -131,18 +137,57 @@ def take_action(span: TurnSpan, now: float, who: ObjId, what: ObjId) -> ActionRe
          return ActionResult{kind: arCanNotTakeAnything}, nil
       else:
          return GoodResult, TakeAction{who: who, time: now, what: what, duration: 0.3}
-   elif what_parent and not container_of(what_parent) and at_same_location(who, what_parent):
-      if object_state(what_parent) & StateFlags_Open: 
-         return GoodResult, TakeAction{who: who, time: now, what: what, duration: 0.3}
+   elif from_where and not container_of(from_where) and at_same_location(who, from_where):
+      if object_state(from_where) & StateFlags_Open: 
+         return GoodResult, TakeAction{who: who, time: now, what: what, where: from_where, 
+                                       duration: 0.3}
       else:
          return ActionResult{kind: arCanNotReach, other: what}, nil
    else:
       return ActionResult{kind: arCanNotReach, other: what}, nil
 
+// Place an item either on the ground, or in a open container 
+// at the same location.
+class PutAction : ActionBase
+   what: ObjId
+   where: ObjId? = nil
+   // Grid location if `where` is nil.
+   loc: xy_i  = xy_i{0,0}  
+
+   def execute():
+      if where:
+         notify_put(time, who, what, where)
+      else:
+         notify_drop(time, who, what, loc)
+
+def put_action(span: TurnSpan, now: float, who: ObjId, what: ObjId, where: ObjId? = nil) -> ActionResult, PutAction?:
+   if where:
+      if at_same_location(who, where):
+         let spec = object_spec(where)
+         let state = object_state(where)
+
+         if spec.flags & ItemFlags_Container and state & StateFlags_Open:
+            //TODO container capactity checks, etc...
+            return GoodResult, PutAction{
+               who: who, time: now, what: what, where: where, duration: 0.3}
+         else:
+            return ActionResult{kind: arCanNotPut, other: where}, nil
+      else:
+         return ActionResult{kind: arCanNotReach, other: where}, nil
+   else:
+      // Just dropping it on the floor.
+      let found, wpos = pos(who)
+
+      if found:
+         return GoodResult, PutAction{
+            who: who, time: now, what: what, loc: wpos, duration: 0.3}
+      else:
+         return ActionResult{kind: arCanNotReach}, nil
+
 enum_flags ActionCategory:
    acTurn, acMoveFwd, acMoveBkwd, acStrafe, acObjectInteractions
 
-let AllCategories = acTurn | acMoveFwd | acMoveBkwd | acStrafe
+let AllCategories = acTurn | acMoveFwd | acMoveBkwd | acStrafe | acObjectInteractions
 
 // Calls bodyfn() for each legal action that can currently be
 // performed by `who`.

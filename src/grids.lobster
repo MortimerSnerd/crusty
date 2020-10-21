@@ -76,9 +76,6 @@ class SparseGrid<T>:
       if bsfound:
          var p = ix
 
-         while p < length(ents) and ents[p].pos.y == pos.y and ents[p].pos.x != pos.x:
-            ++p
-
          while p < length(ents) and ents[p].pos.y == pos.y:
             if ents[p].pos == pos:
                found = true

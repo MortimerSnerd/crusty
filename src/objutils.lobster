@@ -67,12 +67,10 @@ class ObjList:
    def remove_obj(sectno: int, itemno: int) -> ObjId?:
       if sectno < length(sects):
          let sect = sects[sectno]
+         let grp = sect.items[itemno]
 
-         if itemno < length(sect.items):
-            let grp = sect.items[itemno]
-
-            if length(grp.grouped) > 0:
-               return pop(grp.grouped)
+         if length(grp.grouped) > 0:
+            return pop(grp.grouped)
 
       return nil
 
@@ -86,14 +84,8 @@ class ObjList:
 
       fatal_exit("first called without checking count()")
 
-   // Adds a section header for the object list.  Empty section
-   // headers are automatically removed.
+   // Adds a section header for the object list.
    def add_section(sname: string):
-      let lasti = length(sects) - 1
-      if lasti >= 0 and length(sects[lasti].items) == 0:
-         // Previous section empty, lose it.
-         pop(sects)
-
       push(sects, ObjSection{name: sname})
 
    private def find_in_cur_section(pred):
@@ -213,7 +205,7 @@ class ObjList:
          // Check for key inputs.
          if gl_button("escape") == 1:
             status = dlsCancel
-         else:
+         elif options & olAddChoiceLetter:
             item_index = 0
             for(sects) sect, si:
                for(sect.items) item, ii:
@@ -223,7 +215,12 @@ class ObjList:
                         picked_si = si
                         picked_ii = ii
                         break
+
                   ++item_index
+
+               if picked:
+                  break
+
 
       return status, picked, picked_si, picked_ii
 

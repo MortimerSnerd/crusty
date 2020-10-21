@@ -77,7 +77,7 @@ private def maybe_sword_groundhog(now: float):
             let f, gpos = pos(gh.graphic)
             maybe_sword_groundhog(gh, gpos, now)
 
-def notify_deleting(s: SwerdFeesh, o: ObjId) -> void:
+def notify_deleting_impl(s: SwerdFeesh, o: ObjId) -> void:
    debug(): "SwerdFeesh: removing " + to_string(o)
    if o.system == GObjSystem:
       let bi = dl_find(Bullets) x: x.graphic == o
@@ -91,7 +91,7 @@ def notify_deleting(s: SwerdFeesh, o: ObjId) -> void:
       // graphics have disappeared.
       notify_deleting(o.graphic)
 
-def notify_moving(s: SwerdFeesh, o: ObjId, startT: float, endT: float, start: xy_i, end: xy_i) -> void:
+def notify_moving_impl(s: SwerdFeesh, o: ObjId, startT: float, endT: float, start: xy_i, end: xy_i) -> void:
    if Player and o == Player:
       let pdf, pdir = direction(Player)
 
@@ -101,7 +101,7 @@ def notify_moving(s: SwerdFeesh, o: ObjId, startT: float, endT: float, start: xy
          notify_moving(Carrying, startT, endT, opos, end + all_dirs[pdir])
          maybe_sword_groundhog(endT)
 
-def notify_turning(s: SwerdFeesh, o: ObjId, startT: float, endT: float, startDir: Directions, endDir: Directions):
+def notify_turning_impl(s: SwerdFeesh, o: ObjId, startT: float, endT: float, startDir: Directions, endDir: Directions):
    if o == Player:
       if Carrying and Player:
          let pf, ppos = pos(Player)
@@ -111,7 +111,7 @@ def notify_turning(s: SwerdFeesh, o: ObjId, startT: float, endT: float, startDir
          notify_turning(Carrying, startT, endT, startDir, endDir)
          maybe_sword_groundhog(endT)
 
-def move_is_allowed(s: SwerdFeesh, now: float, o: ObjId, destPos: xy_i) -> bool:
+def move_is_allowed_impl(s: SwerdFeesh, now: float, o: ObjId, destPos: xy_i) -> bool:
    if Player and o == Player and Carrying:
       // Don't allow sword to go through walls
       let pf, pdir = direction(Player)
@@ -122,7 +122,7 @@ def move_is_allowed(s: SwerdFeesh, now: float, o: ObjId, destPos: xy_i) -> bool:
 
    return true
 
-def turn_is_allowed(s: SwerdFeesh, now: float, o: ObjId, destDir: Directions) -> bool:
+def turn_is_allowed_impl(s: SwerdFeesh, now: float, o: ObjId, destDir: Directions) -> bool:
    if o == Player:
       if Player and Carrying:
          let pf, ppos = pos(Player)
@@ -144,7 +144,7 @@ def make_bullet(now: float, bpos: xy_i, dir: Directions):
    dl_add(Bullets, bul)
    schedule_callback(bul, now)
    
-def think(sf: SwerdFeesh, span: TurnSpan, who: ObjId, now: float):
+def think_impl(sf: SwerdFeesh, span: TurnSpan, who: ObjId, now: float):
    // Wander aimlessly.
    if who is Bullet and Player:
       let df, dir = direction(who.graphic)
@@ -302,9 +302,9 @@ def game_frame(do_debug) -> bool, Rectf:
                for(12) i:
                   let pos = xy_rndi(20)
                   if not living_at(pos):
-                     let gh = GroundhogRec{graphic: gobjs_spawn(ObjectKind_Groundhog, 
+                     let gh = GroundhogRec{graphic: gobjs_spawn(ObjectKind_Groundhog,
                                                                           pos, East),
-                                           dead: false, 
+                                           dead: false,
                                            system: SwerdFeeshSystem}
                      dl_add(Groundhogs, gh)
                      schedule_callback(gh, now)

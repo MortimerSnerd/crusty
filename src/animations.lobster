@@ -231,7 +231,7 @@ def anim_render_move_lines(now: float):
 
       timing(): "anim trail render: " + t
 
-def anim_pos(ep: AnimEndpoint, what: ObjId, now: float) -> xy_f:
+def anim_pos_impl(ep: AnimEndpoint, what: ObjId, now: float) -> xy_f:
    let i = find_obj_lane(what, anMove, now)
 
    if i >= 0:
@@ -244,7 +244,7 @@ def anim_pos(ep: AnimEndpoint, what: ObjId, now: float) -> xy_f:
      else:
        return xy_0
 
-def anim_tile(ep: AnimEndpoint, what: ObjId, now: float) -> int:
+def anim_tile_impl(ep: AnimEndpoint, what: ObjId, now: float) -> int:
    let i = find_obj_lane(what, anTileChange, now)
 
    if i >= 0:
@@ -255,11 +255,11 @@ def anim_tile(ep: AnimEndpoint, what: ObjId, now: float) -> int:
    else:
      return tile(what)
 
-def notify_deleting(ep: AnimEndpoint, o: ObjId):
+def notify_deleting_impl(ep: AnimEndpoint, o: ObjId):
    debug(): "animations removing " + to_string(o)
    Lanes = filter(Lanes) x: x.who != o
 
-def anim_angle(ep: AnimEndpoint, what: ObjId, now: float) -> float:
+def anim_angle_impl(ep: AnimEndpoint, what: ObjId, now: float) -> float:
    let i = find_obj_lane(what, anTurn, now)
 
    if i >= 0:
@@ -272,7 +272,7 @@ def anim_angle(ep: AnimEndpoint, what: ObjId, now: float) -> float:
      else:
        return 0
 
-def notify_animation(e: AnimEndpoint, o: ObjId, startT: float, name: string):
+def notify_animation_impl(e: AnimEndpoint, o: ObjId, startT: float, name: string):
    push(Lanes, 
         AnimStep{who: o, 
                  kind: anPlayAnimation, 
@@ -281,7 +281,7 @@ def notify_animation(e: AnimEndpoint, o: ObjId, startT: float, name: string):
                  oneShotName: name, 
                  oneShotTriggered: false})
 
-def notify_sfx(e: AnimEndpoint, o: ObjId, startT: float, sfx: string, vol: float):
+def notify_sfx_impl(e: AnimEndpoint, o: ObjId, startT: float, sfx: string, vol: float):
    push(Lanes, 
         AnimStep{who: o, 
                  kind: anSound, 
@@ -291,21 +291,21 @@ def notify_sfx(e: AnimEndpoint, o: ObjId, startT: float, sfx: string, vol: float
                  soundVol: vol, 
                  oneShotTriggered: false})
 
-def notify_moving(e: AnimEndpoint, o: ObjId, startT: float, endT: float, start: xy_i, end: xy_i):
+def notify_moving_impl(e: AnimEndpoint, o: ObjId, startT: float, endT: float, start: xy_i, end: xy_i):
    push(Lanes, 
         AnimStep{who: o, 
                  kind: anMove, 
                  movLerp: mkLERP(startT, endT, 
                                  gridToWorld(start), gridToWorld(end))})
 
-def notify_turning(b: AnimEndpoint, o: ObjId, startT: float, endT: float, startDir: Directions, endDir: Directions):
+def notify_turning_impl(b: AnimEndpoint, o: ObjId, startT: float, endT: float, startDir: Directions, endDir: Directions):
    push(Lanes, 
         AnimStep{who: o, 
                  kind: anTurn, 
                  turnLerp: mkAngleLERP(startT, endT, 
                                        dir_angles[startDir], dir_angles[endDir])})
 
-def notify_tile_change(b: AnimEndpoint, o: ObjId, startT: float, startTile: int, endTile: int):
+def notify_tile_change_impl(b: AnimEndpoint, o: ObjId, startT: float, startTile: int, endTile: int):
    push(Lanes, 
         AnimStep{who: o, 
                  kind: anTileChange, 

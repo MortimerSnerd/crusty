@@ -95,7 +95,7 @@ def opened_containers_at(p: xy_i) -> ObjList:
 private def add_container_objects(player: ObjId, list: ObjList, o: ObjId):
    add_section(list, "In " + object_spec(o).short_name)
    for_objects_in(o) io:
-      let r0, act0 = take_action(FakeTurnSpan, 0, player, io)
+      let r0, act0 = take_action(FakeTurnSpan, 0, player, io, o)
 
       if act0:
          add_object(list, io)
@@ -146,9 +146,6 @@ class ObjPromptData : UserData
    player: ObjId
    action: PromptAction
    picked: ObjId? = nil
-
-   def balls(op: ObjPromptData):
-      print(op.player.id)
 
 private def obj_prompt_handler(data: UserData?) -> InteractionStatus:
    var rv = Working
@@ -205,10 +202,10 @@ private class Location:
 private def lhs_options(m: IIModes):
    switch m:
       case iiGet: 
-         return olNone
+         return olGroup
 
       case iiPut:
-         return olAddChoiceLetter
+         return olAddChoiceLetter|olGroup
 
    return olNone
 
@@ -218,7 +215,7 @@ private def rhs_options(m: IIModes):
           olAddChoiceLetter|olGroup
 
       case iiPut:
-          olNone
+          olGroup
 
       default:
          return olNone
@@ -268,7 +265,7 @@ class IIData : UserData
 
 
       switch mode:
-         case iiGet:
+         case iiGet, iiPut:
             lhs = held_objects(player, lhs_options(mode))
             lhs_locs = [Location{kind: PlayerInventory}]
 
@@ -279,10 +276,11 @@ class IIData : UserData
             for(containers) c: 
                add_container_objects(player, rhs, c)
                push(rhs_locs, Location{kind: Container, obj: c})
-            rhs_cur_section = 0
 
-         case iiPut:
-            pass()
+            if mode == iiPut:
+               rhs_cur_section = 0
+            else:
+               rhs_cur_section = -1
    
 def execute(self:: ListUpdate, data: IIData):
    switch data.mode:
@@ -293,7 +291,10 @@ def execute(self:: ListUpdate, data: IIData):
             add_object(data.lhs, obj, 0)
 
       case iiPut:
-         pass()
+         let obj = remove_obj(data.lhs, left_sect, left_item)
+
+         if obj:
+            add_object(data.rhs, obj, 0)
 
 private def waiting_for_action(data: IIData):
    return data.player_action != nil
@@ -314,7 +315,18 @@ private def ii_handler(data: UserData?):
                         pass()
 
                      case iiPut:
-                        pass()
+                        data.post_action_update = ListUpdate{
+                           left_sect: si, 
+                           left_item: ii, 
+                           right_sect: data.rhs_cur_section
+                        }
+
+                        let rloc = data.rhs_locs[data.rhs_cur_section]
+
+                        let ar, act = put_action(FakeTurnSpan, 0, data.player, 
+                                                 oid, rloc.obj)
+                        //TODO report ar
+                        data.player_action = act
 
          im_same_line()
          im_widget_group():
@@ -334,13 +346,25 @@ private def ii_handler(data: UserData?):
                            right_sect: si, 
                            right_item: ii
                         }
+
+                        let rloc = data.rhs_locs[si]
+
                         let ar, act = take_action(FakeTurnSpan, 0, 
-                                                  data.player, oid)
+                                                  data.player, oid, rloc.obj)
                         //TODO report ar
                         data.player_action = act
 
                      case iiPut:
                         pass()
+
+         im_widget_group():
+            if im_button(mode_label(iiGet)) and data.mode != iiGet:
+               data.init_mode(iiGet)
+         im_same_line()          
+
+         im_widget_group():
+            if im_button(mode_label(iiPut)) and data.mode != iiPut:
+               data.init_mode(iiPut)
 
    return rv
 

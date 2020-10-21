@@ -132,36 +132,36 @@ def gobjs_tests():
 
 // Bus endpoint implementation.
 class GobjEndpoint : BusEndpoint
-   def for_all_enabled_lights(body):
+   def for_all_enabled_lights_impl(body):
       dl_foreach(GOInstances) o:
          if not o.parent and OSpecs[o.kind_idx].flags & ItemFlags_EmitsLight:
             body(o, OSpecs[o.kind_idx])
 
-   def tile(what: ObjId) -> int:
+   def tile_impl(what: ObjId) -> int:
       if what is GOInst:
          return what.curTile
       else:
          return 0
 
-   def change_tile(o: ObjId, tile: TileName):
+   def change_tile_impl(o: ObjId, tile: TileName):
       if o is GOInst:
          o.curTile = tile
          // If a tile is set manually, cancel animation.
          o.playing_anim = -1
 
-   def pos(what: ObjId) -> bool, xy_i:
+   def pos_impl(what: ObjId) -> bool, xy_i:
       if what is GOInst:
          return true, what.pos
       else:
          return false, xy_i{0,0}
 
-   def direction(what: ObjId) -> bool, Directions:
+   def direction_impl(what: ObjId) -> bool, Directions:
       if what is GOInst:
          return true, what.dir
       else:
          return false, East
 
-   def for_objects_intersecting(now: float, r: Rectf, body):
+   def for_objects_intersecting_impl(now: float, r: Rectf, body):
       dl_foreach(GOInstances) ob:
          let p = gridToWorld(ob.pos)
          let bb = mkRectfRel(p - xy_h, xy_1)
@@ -169,15 +169,15 @@ class GobjEndpoint : BusEndpoint
          if bb.overlaps(r):
             body(ob, bb)
 
-   def think(span: TurnSpan, who: ObjId, now: float):
+   def think_impl(span: TurnSpan, who: ObjId, now: float):
       // We should't have any calls scheduled.
       return
 
-   def notify_moving(o: ObjId, startT: float, endT: float, start: xy_i, end: xy_i) -> void:
+   def notify_moving_impl(o: ObjId, startT: float, endT: float, start: xy_i, end: xy_i) -> void:
       if o is GOInst:
          o.pos = end
 
-   def play_animation(obj: ObjId, name: string):
+   def play_animation_impl(obj: ObjId, name: string):
       if obj is GOInst:
          let ai = find_animation(name)
 
@@ -189,44 +189,60 @@ class GobjEndpoint : BusEndpoint
          else:
             warn(): "animation not found: " + name
 
-   def object_state(what: ObjId) -> StateFlags:
+   def object_state_impl(what: ObjId) -> StateFlags:
       if what is GOInst:
          return what.state
       else:
          return StateFlags(0)
 
-   def modify_object_state(what: ObjId, body):
+   def modify_object_state_impl(what: ObjId, body):
       if what is GOInst:
          what.state = body(what.state)
 
-   def for_objects_in(what: ObjId, body):
+   def for_objects_in_impl(what: ObjId, body):
       dl_foreach(GOInstances) o:
          if o.parent == what:
             body(o)
 
-   def container_of(what: ObjId) -> ObjId?:
+   def container_of_impl(what: ObjId) -> ObjId?:
       if what is GOInst:
          return what.parent
       else:
          return nil
 
-   def notify_deleting(o: ObjId):
+   def notify_deleting_impl(o: ObjId):
       if o and o is GOInst:
          debug(): "GObjSystem removing " + to_string(o)
          dl_remove(GOInstances, o) 
 
       remove_callbacks_for(o)
 
-   def notify_take(who: ObjId, what: ObjId):
+   def notify_take_impl(who: ObjId, what: ObjId):
       if what is GOInst and who != what:
          debug(): "GObjSystem " + to_string(who) + " taking " + to_string(what)
+         // Taking from ground only.
+         assert what.parent == nil
          what.parent = who
 
-   def notify_turning(o: ObjId, startT: float, endT: float, startDir: Directions, endDir: Directions):
+   def notify_take_out_impl(startT: float, who: ObjId, what: ObjId, from_where:ObjId):
+      if what is GOInst and who != what:
+         assert what.parent == from_where
+         what.parent = who
+
+   def notify_drop_impl(startT: float, who: ObjId, what: ObjId, where: xy_i):
+      if what is GOInst:
+         what.pos = where
+         what.parent = nil
+
+   def notify_put_impl(startT: float, who: ObjId, what: ObjId, where: ObjId):
+      if what is GOInst:
+         what.parent = where
+
+   def notify_turning_impl(o: ObjId, startT: float, endT: float, startDir: Directions, endDir: Directions):
       if o is GOInst:
          o.dir = endDir
 
-   def object_spec(o: ObjId) -> ObjectSpec:
+   def object_spec_impl(o: ObjId) -> ObjectSpec:
       if o is GOInst:
          return OSpecs[o.kind_idx]
       else:

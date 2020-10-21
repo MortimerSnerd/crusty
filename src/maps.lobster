@@ -46,7 +46,7 @@ enum_flags TileFlags:
    tfBlocksLight, tfBlocksMovement, tfFloor
 
 class MapEndpoint : BusEndpoint
-   def move_is_allowed(now: float, o: ObjId, destPos: xy_i) -> bool:
+   def move_is_allowed_impl(now: float, o: ObjId, destPos: xy_i) -> bool:
       if not FloorLayer.contains(destPos):
          return false
 
@@ -80,24 +80,31 @@ class MapEndpoint : BusEndpoint
 
       return true
 
-   def notify_deleting(what: ObjId):
+   def notify_deleting_impl(what: ObjId):
       // Calling pos() won't necessarily work at this point, 
       // so discard the items directly from our grids.
       debug(): "Maps: removing " + to_string(what)
       discard(Objects) x: x == what
       discard(Living) x: x == what
 
-
-   def notify_take(who: ObjId, what: ObjId):
+   def notify_take_impl(who: ObjId, what: ObjId):
       let wf, wpos = pos(who)
       let r = Rect{wpos, wpos}
 
       for_items_within(Objects, r) p, oid:
          if oid == what:
-            remove_item(Objects, p, oid)
+            remove_item(Objects, wpos, oid)
             return
 
-   def notify_spawn(o: ObjId, parent: ObjId?, pos: xy_i):
+      assert "" == "Could not find item to be taken on map."
+
+   def notify_drop_impl(startT: float, who: ObjId, what: ObjId, where: xy_i):
+      // We assume something that is being dropped is not living.
+      debug(): "Maps: " + to_string(who) + " dropping " + to_string(what) + " at" + where
+      assert object_spec(what).flags & ItemFlags_Living == 0
+      add(Objects, where, what)
+
+   def notify_spawn_impl(o: ObjId, parent: ObjId?, pos: xy_i):
       if not parent:
          // Not contained by another object, so this is on a map.
          if object_spec(o).flags & ItemFlags_Living:
@@ -106,7 +113,7 @@ class MapEndpoint : BusEndpoint
          else:
             add(Objects, pos, o)
 
-   def notify_moving(o: ObjId, startT: float, endT: float, 
+   def notify_moving_impl(o: ObjId, startT: float, endT: float, 
                      start: xy_i, end: xy_i) -> void:
       if object_spec(o).flags & ItemFlags_Living:
          remove_item(Living, start, o)
@@ -116,7 +123,7 @@ class MapEndpoint : BusEndpoint
          remove_item(Objects, start, o)
          add(Objects, end, o)
 
-   def for_objects_at(p: xy_i, body):
+   def for_objects_at_impl(p: xy_i, body):
       for_items_at(Objects, p) o:
          body(o)
 
