@@ -100,11 +100,13 @@ private def add_container_objects(player: ObjId, list: ObjList, o: ObjId):
       if act0:
          add_object(list, io)
 
+private let GroundSection = "On ground"
+
 // Populate `rv` with the objects on the floor at `p`.  Returns 
 // any open container objects as an array.
 private def get_floor_objs(rv: ObjList, player: ObjId, p: xy_i):
    let containers = [] 
-   add_section(rv, "On ground")
+   add_section(rv, GroundSection)
    for_objects_at(p) o:
       if o:
          let r, act = take_action(FakeTurnSpan, 0, player, o)
@@ -257,6 +259,27 @@ class IIData : UserData
    player_action: ActionBase? = nil
    post_action_update: ListUpdate? = nil
 
+   private def sect_name(i, name):
+      let next_section = (rhs_cur_section + 1) % length(rhs_locs)
+
+      if rhs_cur_section < 0:
+         return name
+      elif i == rhs_cur_section:
+         return "<" + name + ">"
+      elif i == next_section:
+         return name + " [Tab]"
+      else:
+         return name
+
+   private def set_rhs_section_names():
+      for(rhs_locs) loc, i:
+         if loc.kind == Ground:
+            rename_section(rhs, i, sect_name(i, GroundSection))
+         elif loc.obj:
+            rename_section(rhs, i, sect_name(i, object_spec(loc.obj).short_name))
+         else:
+            rename_section(rhs, i, sect_name(i, "in some conatainer?"))
+
    private def init_mode(new_mode: IIModes):
       mode = new_mode
       lhs_locs = []
@@ -281,6 +304,8 @@ class IIData : UserData
                rhs_cur_section = 0
             else:
                rhs_cur_section = -1
+
+            set_rhs_section_names()
    
 def execute(self:: ListUpdate, data: IIData):
    switch data.mode:
@@ -294,7 +319,7 @@ def execute(self:: ListUpdate, data: IIData):
          let obj = remove_obj(data.lhs, left_sect, left_item)
 
          if obj:
-            add_object(data.rhs, obj, 0)
+            add_object(data.rhs, obj, right_sect)
 
 private def waiting_for_action(data: IIData):
    return data.player_action != nil
@@ -302,6 +327,10 @@ private def waiting_for_action(data: IIData):
 private def ii_handler(data: UserData?):
    var rv = Working
    if data and data is IIData:
+      if data.rhs_cur_section >= 0 and gl_button("tab") == 1:
+         data.rhs_cur_section = (data.rhs_cur_section + 1) % length(data.rhs_locs)
+         data.set_rhs_section_names()
+
       im_window(data.title, 0):
          im_widget_group():
             let st, oid, si, ii = display_list(data.lhs)

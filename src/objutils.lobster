@@ -74,6 +74,9 @@ class ObjList:
 
       return nil
 
+   def rename_section(sectno: int, name: string):
+      sects[sectno].name = name
+
    // Returns first item from ObjList.  Should only be called
    // if count() > 0!
    def first() -> ObjId:
