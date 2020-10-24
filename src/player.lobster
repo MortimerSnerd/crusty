@@ -126,25 +126,33 @@ def player_init():
 
       if count(cands) > 0:
          if prompt:
-            prompt_for_object(player, "Take what?", cands, false) data:
-               if data is ObjPromptData and data.picked:
-                  let r, act = take_action(FakeTurnSpan, GameTime, data.player, 
-                                           data.picked)
-                  act
-               else:
-                  nil
+            start_item_interaction(player, iiGet)
          else:
+            let obj = first(cands)
             let r, act = take_action(FakeTurnSpan, GameTime, player, 
-                                     first(cands))
+                                     obj, container_of(obj))
+
+            rv = act
+
+      rv
+
+   bind("x", "Drop") player, now, prompt:
+      let cands = held_objects(player)
+      var rv = nil
+
+      if count(cands) > 0:
+         if prompt:
+            start_item_interaction(player, iiPut)
+         else:
+            let r, act = put_action(FakeTurnSpan, GameTime, player, 
+                                    first(cands), nil)
+
             rv = act
       rv
 
    bind("i", "Inventory") player, now, prompt: 
-      let cands = held_objects(player)
-
-      if count(cands) > 0 and prompt:
-         prompt_for_object(player, "Inventory", cands, false) data:
-            nil
+      if prompt:
+         start_item_interaction(player, iiPut)
       nil
 
    animations_turn_begin()
@@ -214,10 +222,6 @@ def player_handle_input(player: ObjId):
                         // prompt.
                         check_prompted_action()
                      break
-
-            if gl_button("q") == 1:
-               play_wav("dist/ouch3.wav")
-               start_item_interaction(player, iiGet)
 
          case Stepping:
             let dT = gl_delta_time() * animations_time_scale()

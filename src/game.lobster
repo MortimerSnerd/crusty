@@ -332,19 +332,6 @@ def game_frame(do_debug) -> bool, Rectf:
                     for_player_actions(Player, now) key, desc:
                        im_selectable(key + " - " + desc, false, 0, xy_0)
 
-               im_window("test layout", im_window_always_autoresize):
-                  im_widget_group():
-                     im_treenode("Carrying"):
-                        im_text("a) balls")
-                        im_text("b) false teeth")
-                  im_same_line()
-                  im_widget_group():
-                     im_text("PUT>")
-                  im_same_line()
-                  im_widget_group():
-                     im_treenode("On ground"):
-                        im_text("a dead cat")
-                  
                if do_debug:
                   im_window("Realtime Debugger", im_window_always_autoresize):
                       im_show_engine_stats()
