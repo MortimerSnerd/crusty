@@ -4,6 +4,7 @@ import from "../../../src/crusty/src/"
 import actions
 import algs
 import bus
+import color
 import config_generated
 import imgui
 import objutils
@@ -271,13 +272,16 @@ class IIData : UserData
 
    private def sect_name(i, name):
       let next_section = (rhs_cur_section + 1) % length(rhs_locs)
+      let prev_section = (rhs_cur_section + 1) % length(rhs_locs)
 
       if rhs_cur_section < 0:
          return name
       elif i == rhs_cur_section:
-         return "<" + name + ">"
+         return ">> " + name 
       elif i == next_section:
-         return name + " [Tab]"
+         return name + " [Tab] [Down]"
+      elif i == prev_section:
+         return name + " [Up]"
       else:
          return name
 
@@ -337,13 +341,20 @@ private def waiting_for_action(data: IIData):
 private def ii_handler(data: UserData?):
    var rv = Working
    if data and data is IIData:
-      if data.rhs_cur_section >= 0 and gl_button("tab") == 1:
-         data.rhs_cur_section = (data.rhs_cur_section + 1) % length(data.rhs_locs)
-         data.set_rhs_section_names()
-      elif gl_button("f1") == 1:
+      if data.rhs_cur_section >= 0:
+         if  gl_button("tab") == 1 or gl_button("down") == 1:
+            data.rhs_cur_section = (data.rhs_cur_section + 1) % length(data.rhs_locs)
+            data.set_rhs_section_names()
+         elif gl_button("up") == 1: 
+            data.rhs_cur_section = (data.rhs_cur_section - 1) % length(data.rhs_locs)
+            data.set_rhs_section_names()
+
+      if gl_button("f1") == 1:
          data.init_mode(iiGet)
       elif gl_button("f2") == 1:
          data.init_mode(iiPut)
+
+      data.rhs.highlighted_section = data.rhs_cur_section
 
       im_window(data.title, im_window_always_autoresize):
          im_separator()

@@ -1,5 +1,6 @@
 import from "../../../src/crusty/src/"
 import algs
+import color
 import config_generated
 import imgui
 
@@ -46,6 +47,8 @@ private let DummyListEnt = repeat_string(" ", 50)
 class ObjList:
    sects: [ObjSection] = []
    options: ObjListOptions = olNone
+   highlighted_section: int = -1
+   highlight_color: color = color_yellow
 
    // Returns section count, item count
    def count_all() -> int, int:
@@ -179,7 +182,7 @@ class ObjList:
             if options & olAddChoiceLetter:
                rv = choice_letter(item_index) + ")  " + rv
 
-         return rv
+         return "    " + rv  // More indent
 
       var picked: ObjId? = nil
       var picked_si = -1
@@ -191,6 +194,12 @@ class ObjList:
          if sect.name != "": 
             im_set_next_item_open(true, im_cond_always)
             open = im_treenode_start(sect.name) 
+            if si == highlighted_section:
+               let pmin = im_get_item_rect_min() - xy_1
+               let pmax = im_get_item_rect_max() + xy_1
+
+               im_drawlist_add_rect(0, pmin, pmax, highlight_color, 
+                                    0.0, 0, 1.0)
 
          for(sect.items) item, ii:
             if open:
