@@ -37,6 +37,8 @@ enum DisplayListStatus:
    dlsOk, 
    dlsCancel
 
+private let DummyListEnt = repeat_string(" ", 50)
+
 // A list of objects, optionally divided into sections, and
 // with duplicates optionally grouped together within a section.
 // When there are sections, can be rendered as a tree, with each 
@@ -155,7 +157,7 @@ class ObjList:
    // Displays the list via im_gui, returning any object that was chosen.
    // Expects a im_window or some other container has already been opened.
    // Returns status, picked_obj_or_nil, section_index, item_index
-   def display_list() -> DisplayListStatus, ObjId?, int, int:
+   def display_list(min_items: int = 26) -> DisplayListStatus, ObjId?, int, int:
       var item_index = 0
 
       //TODO this is not right
@@ -193,7 +195,8 @@ class ObjList:
          for(sect.items) item, ii:
             if open:
                im_group(string(si) + "_" + string(ii)):
-                  if im_button(item_name(si, ii)):
+                  if im_selectable(item_name(si, ii), false, 
+                                   im_selectable_none, xy_0):
                      if length(item.grouped) > 0:
                         picked = item.grouped[length(item.grouped)-1]
                         picked_si = si
@@ -202,6 +205,13 @@ class ObjList:
 
          if sect.name != "":
             im_treenode_end()
+
+      while item_index < min_items:
+         // imgui::spacing might be better?
+         // But this also helps force a column size if there are no items
+         // in this list.
+         im_text(DummyListEnt)
+         ++item_index
 
       var status = dlsOk
       if not picked:

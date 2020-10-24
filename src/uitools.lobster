@@ -233,6 +233,16 @@ private def mode_label(m: IIModes):
       default:
          return "<>"
 
+private def mode_button_label(m: IIModes):
+   return switch m:
+      case iiGet:
+         "Get [F1]"
+
+      case iiPut:
+         "Put [F2]"
+
+      default:
+         ""
 // Encapsulates the data to perform additions and removals to an ObjList
 class ListUpdate:
    left_sect: int = -1
@@ -330,70 +340,90 @@ private def ii_handler(data: UserData?):
       if data.rhs_cur_section >= 0 and gl_button("tab") == 1:
          data.rhs_cur_section = (data.rhs_cur_section + 1) % length(data.rhs_locs)
          data.set_rhs_section_names()
+      elif gl_button("f1") == 1:
+         data.init_mode(iiGet)
+      elif gl_button("f2") == 1:
+         data.init_mode(iiPut)
 
-      im_window(data.title, 0):
-         im_widget_group():
-            let st, oid, si, ii = display_list(data.lhs)
+      im_window(data.title, im_window_always_autoresize):
+         im_separator()
+         im_columns(3, "interact", true):
+            im_column():
+               let st, oid, si, ii = display_list(data.lhs)
 
-            if not waiting_for_action(data):
-               if st == dlsCancel:
+               if not waiting_for_action(data):
+                  if st == dlsCancel:
+                     rv = Cancelled
+                  elif oid:
+                     switch data.mode:
+                        case iiGet:
+                           pass()
+
+                        case iiPut:
+                           data.post_action_update = ListUpdate{
+                              left_sect: si, 
+                              left_item: ii, 
+                              right_sect: data.rhs_cur_section
+                           }
+
+                           let rloc = data.rhs_locs[data.rhs_cur_section]
+
+                           let ar, act = put_action(FakeTurnSpan, 0, data.player, 
+                                                    oid, rloc.obj)
+                           //TODO report ar
+                           data.player_action = act
+
+            im_column():
+               im_set_column_width(-1, 50)
+               im_text(mode_label(data.mode))
+
+            im_column():
+               let st, oid, si, ii = display_list(data.rhs)
+
+               if not waiting_for_action(data):
+                  if st == dlsCancel:
+                     rv = Cancelled
+                  elif oid:
+                     switch data.mode:
+                        case iiGet:
+                           data.post_action_update = ListUpdate{
+                              right_sect: si, 
+                              right_item: ii
+                           }
+
+                           let rloc = data.rhs_locs[si]
+
+                           let ar, act = take_action(FakeTurnSpan, 0, 
+                                                     data.player, oid, rloc.obj)
+                           //TODO report ar
+                           data.player_action = act
+
+                        case iiPut:
+                           pass()
+
+         im_separator()
+         im_spacing()
+
+         im_columns(3, "buttons", false):
+            im_column():
+               if im_button(mode_button_label(iiGet)) and data.mode != iiGet:
+                  data.init_mode(iiGet)
+
+            im_column():
+               if im_button(mode_button_label(iiPut)) and data.mode != iiPut:
+                  data.init_mode(iiPut)
+
+            im_column():
+               if im_button("Dismiss [Esc]"):
                   rv = Cancelled
-               elif oid:
-                  switch data.mode:
-                     case iiGet:
-                        pass()
 
-                     case iiPut:
-                        data.post_action_update = ListUpdate{
-                           left_sect: si, 
-                           left_item: ii, 
-                           right_sect: data.rhs_cur_section
-                        }
-
-                        let rloc = data.rhs_locs[data.rhs_cur_section]
-
-                        let ar, act = put_action(FakeTurnSpan, 0, data.player, 
-                                                 oid, rloc.obj)
-                        //TODO report ar
-                        data.player_action = act
-
-         im_same_line()
-         im_widget_group():
-            im_text(mode_label(data.mode))
-
-         im_same_line()
-         im_widget_group():
-            let st, oid, si, ii = display_list(data.rhs)
-
-            if not waiting_for_action(data):
-               if st == dlsCancel:
-                  rv = Cancelled
-               elif oid:
-                  switch data.mode:
-                     case iiGet:
-                        data.post_action_update = ListUpdate{
-                           right_sect: si, 
-                           right_item: ii
-                        }
-
-                        let rloc = data.rhs_locs[si]
-
-                        let ar, act = take_action(FakeTurnSpan, 0, 
-                                                  data.player, oid, rloc.obj)
-                        //TODO report ar
-                        data.player_action = act
-
-                     case iiPut:
-                        pass()
-
-         im_widget_group():
-            if im_button(mode_label(iiGet)) and data.mode != iiGet:
-               data.init_mode(iiGet)
-         im_same_line()          
-
-         im_widget_group():
-            if im_button(mode_label(iiPut)) and data.mode != iiPut:
-               data.init_mode(iiPut)
+         // Workaround for autoresize not setting the width correctly for 
+         // columns.  The item lists should be a constant height due to 
+         // the min_items parameter to display_list(), so we can set
+         // the width to a nice proprotion.
+         let c0 = im_get_cursor_pos()
+   
+         im_set_cursor_pos(xy_f{c0.y * 1.618, c0.y})
 
    return rv
 

@@ -209,7 +209,7 @@ def game_init():
    rnd_seed(product(date_time()))
    gl_load_materials("dist/crusty.materials")
    im_init(false)
-   assert im_add_font("data/fonts/Droid_Sans/DroidSans.ttf", 12.0)
+   assert im_add_font("data/fonts/Zapato/greensboro.ttf", 16.0)
    bus_register_endpoint(SwerdFeesh{system: SwerdFeeshSystem})
 
    load_map("dist/testmap.json")
