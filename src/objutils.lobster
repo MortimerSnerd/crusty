@@ -199,7 +199,7 @@ class ObjList:
                let pmax = im_get_item_rect_max() + xy_1
 
                im_drawlist_add_rect(0, pmin, pmax, highlight_color, 
-                                    0.0, 0, 1.0)
+                                    1.0, im_draw_corner_all, 1.0)
 
          for(sect.items) item, ii:
             if open:

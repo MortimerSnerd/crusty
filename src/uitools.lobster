@@ -264,6 +264,9 @@ class IIData : UserData
    // Index to the current section.
    rhs_cur_section: int = -1 
 
+   // Record of window width from last frame.
+   last_window_width: float = -1.0
+
    // Action for player module to execute.  While this is non-nil, 
    // we ignore input.  It will be set back to nil once the player
    // module has executed the action, and the turn is finished.
@@ -293,6 +296,18 @@ class IIData : UserData
             rename_section(rhs, i, sect_name(i, object_spec(loc.obj).short_name))
          else:
             rename_section(rhs, i, sect_name(i, "in some conatainer?"))
+
+   private def mode_help():
+      return switch mode:
+         case iiGet:
+            "Pick up items from the ground or from containers." 
+
+         case iiPut:
+            "Drop items on the ground, or put them in a container." + 
+            " A yellow box higlights where the item will go."
+
+         default: 
+            ""
 
    private def init_mode(new_mode: IIModes):
       mode = new_mode
@@ -415,6 +430,14 @@ private def ii_handler(data: UserData?):
          im_separator()
          im_spacing()
 
+         if data.last_window_width > 0:
+            im_text_wrap(data.last_window_width - 40):
+               im_text(data.mode_help())
+            im_spacing()
+
+         im_separator()
+         im_spacing()
+
          im_columns(3, "buttons", false):
             im_column():
                if im_button(mode_button_label(iiGet)) and data.mode != iiGet:
@@ -433,8 +456,10 @@ private def ii_handler(data: UserData?):
          // the min_items parameter to display_list(), so we can set
          // the width to a nice proprotion.
          let c0 = im_get_cursor_pos()
+         let wrapx = c0.y * 1.618
    
-         im_set_cursor_pos(xy_f{c0.y * 1.618, c0.y})
+         im_set_cursor_pos(xy_f{wrapx, c0.y})
+         data.last_window_width = wrapx
 
    return rv
 
