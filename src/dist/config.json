@@ -11,13 +11,15 @@
             static_tile: Fish,
             flags: "Living EmitsLight",
             right_rotation: 0,
-            light_radius: 5
+            light_radius: 5, 
+            stat_base: Human
         }, 
         {
             kind: Groundhog, 
             short_name: "Phuxatawny Phil",
             static_tile: Groundhog, 
-            flags: "Living AnimTrail"
+            flags: "Living AnimTrail",
+            stat_base: Groundhog
         },
         {
             kind: Bullet, 
@@ -78,5 +80,26 @@
             kind: OneShot, 
             frames: [ {frame: Dresser, duration: 1} ]
         } 
+    ], 
+
+    "stat_templates": [
+        {
+            name: Human, 
+            str: {lo: 10.0, hi: 10.0}, 
+            ag: {lo: 10.0, hi: 10.0}, 
+            dex: {lo: 10.0, hi: 10.0}, 
+            will: {lo: 10.0, hi: 10.0}, 
+            wit: {lo: 10.0, hi: 10.0}, 
+            per: {lo: 10.0, hi: 10.0} 
+        }, 
+        {
+            name: Groundhog, 
+            str: {lo: 1.0, hi: 2.0}, 
+            ag: {lo: 4.0, hi: 8.0}, 
+            dex: {lo: 1.0, hi: 1.0}, 
+            will: {lo: 1.0, hi: 1.0}, 
+            wit: {lo: 1.0, hi: 1.0}, 
+            per: {lo: 8.0, hi: 10.0} 
+        }
     ]
 }

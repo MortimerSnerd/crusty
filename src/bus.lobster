@@ -44,6 +44,11 @@ class BusEndpoint:
    def object_state_impl(what: ObjId) -> StateFlags:
       return StateFlags(0)
 
+   // Returns [StatEnt] for the object.  Will be empty if the object
+   // doesn't have stats.
+   def object_stats_impl(what: ObjId) -> [StatEnt]:
+      return []
+
    // Passes in the current state to body, and updates it with
    // whatever body returns.
    def modify_object_state_impl(what: ObjId, body):
@@ -361,3 +366,9 @@ def container_of(what: ObjId) -> ObjId?:
          return o
 
    return nil
+
+// Returns [StatEnt] for the object.  Will be empty if the object
+// doesn't have stats.
+def object_stats(what: ObjId) -> [StatEnt]:
+   return Endpoints[what.system].object_stats_impl(what)
+

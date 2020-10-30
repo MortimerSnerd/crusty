@@ -1,3 +1,28 @@
+enum LivingStats : uint8
+{
+   Str, Ag, Dex, Will, Wit, Per, NumStats
+}
+
+struct StatRange {
+    lo: float; 
+    hi: float;
+}
+
+// Base stats that can be referenced by a living object.
+enum StatTemplateName : uint16 {
+    NoStats, Human, Groundhog
+}
+
+table StatTemplate {
+    name: StatTemplateName; 
+    str: StatRange;   // Physical strength
+    ag: StatRange;    // Physical speed. 
+    dex: StatRange;   // Physical precision
+    will: StatRange;  // Mental strength
+    wit: StatRange;   // Mental speed 
+    per: StatRange;   // Perception, mental precision? 
+}
+
 enum ObjectKind:short { Invalid = 0, 
   Player, 
   Sword,
@@ -25,7 +50,6 @@ enum TileName:int32 {
   Cheese = 13
 }
 
-
 enum ItemFlags : uint32 (bit_flags)
 {
     Living,
@@ -52,6 +76,7 @@ table ObjectSpec {
    light_radius: int = 0;
    dir_offset: float = 0.0;  // For AbutsWall, amount of offset in the direction the object is facing. 1 == 1 grid.
    initial_state: StateFlags = 0;
+   stat_base: StatTemplateName = NoStats;
 } 
 
 enum AnimationKind : uint8
@@ -74,6 +99,7 @@ table SpriteAnim {
 table ConfigRoot {
    objtypes: [ObjectSpec];
    animations: [SpriteAnim];
+   stat_templates: [StatTemplate];
 }
     
 root_type ConfigRoot;

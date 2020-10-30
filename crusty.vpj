@@ -47,7 +47,7 @@
                 RunFromDir="%rw"
                 CaptureOutputWith="ProcessBuffer"
                 ClearProcessBuffer="1">
-                <Exec CmdLine="lobster %rwsrc/crusty.lobster --"/>
+                <Exec CmdLine="lobster-release %rwsrc/crusty.lobster --"/>
             </Target>
         </Menu>
     </Config>
@@ -73,8 +73,6 @@
             Filters=""
             GUID="{484E623C-5737-431B-9477-251B0CF483C9}"></Folder>
     </CustomFolders>
-    <List Name="RTE">
-    </List>
     <Files AutoFolders="DirectoryView">
         <Folder Name="../../.slickedit">
             <Folder Name="25.0.0">
@@ -109,4 +107,6 @@
             Excludes=".git/;.idea/"
             L="1"/>
     </Files>
+    <List Name="RTE">
+    </List>
 </Project>

@@ -4,6 +4,7 @@ import bus
 import config
 import logging
 import objutils
+import stats
 
 class ActionBase:
    who: ObjId
@@ -45,8 +46,10 @@ def move_action(span: TurnSpan, now: float, who: ObjId, start: xy_i, end: xy_i) 
    if not move_is_allowed(now, who, end):
       return ActionResult{kind: arBlocked, other: InvalidObject}, nil
 
+   let dist = magnitude(xy_f{end.x - start.x, end.y - start.y})
+
    return GoodResult, MoveAction{who: who, time: now, start: start, end: end, 
-                                 duration: 0.5}  //TODO calc duration based on stats.
+                                 duration: move_action_duration(who, now, dist)}  //TODO calc duration based on stats.
 
 class TurnAction : ActionBase
    start: Directions

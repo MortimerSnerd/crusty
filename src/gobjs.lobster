@@ -23,6 +23,7 @@ class GOInst : ObjId
    frame_idx: int = 0 
    frame_left: float = 0.0
    state: StateFlags = StateFlags(0)
+   stats: [StatEnt] = []  // Not all objects can have stats, but we take the small cost anyway.
 
 struct GOFrame:
    frame: TileName
@@ -44,6 +45,19 @@ def to_string(o: GOInst) -> string:
       return "{InvalidGObj}"
    else:
       return "{" + OSpecs[o.kind_idx].kind() + ":" + o.id + "}"
+
+// Call to work with item stats.  Will generate them if they
+// don't already exist.
+private def object_stats_private(o: GOInst) -> [StatEnt]:
+   let os = OSpecs[o.kind_idx]
+
+   if os.stat_base == StatTemplateName_NoStats:
+      return []
+   else:
+      if length(o.stats) == 0:
+         o.stats = generate_stats(os)
+
+      return o.stats
 
 def gobj_short_name(o: GOInst?) -> string:
    if o:
@@ -142,6 +156,12 @@ class GobjEndpoint : BusEndpoint
          return what.curTile
       else:
          return 0
+
+   def object_stats_impl(what: ObjId) -> [StatEnt]:
+      if what is GOInst:
+         return object_stats_private(what)
+      else:
+         return []
 
    def change_tile_impl(o: ObjId, tile: TileName):
       if o is GOInst:

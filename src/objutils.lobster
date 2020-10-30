@@ -1,8 +1,10 @@
 import from "../../../src/crusty/src/"
 import algs
 import color
+import config
 import config_generated
 import imgui
+import logging
 
 enum ObjectSystem:
    InvalidSystem, PlayerSystem, GObjSystem, MapSystem, AnimationSystem, 
@@ -21,6 +23,71 @@ let InvalidObject: ObjId? = nil
 def to_string(o: ObjId) -> string:
    return "{" + o.system + ":" + o.id + "}"
 
+// Where a component of a stat comes from.
+enum StatEntSource: 
+   Base,               // The base stat.
+   Equipment           //  From some equipment.
+   Condition           // Some sort of temporary condition.
+
+// Part of a stat for the stat named `name`.  The stats for an object
+// are summed over multiple stat ents, so base stats are kept separate from 
+// stat modifiers.
+struct StatEnt:
+   name: LivingStats
+   val: float
+   src: StatEntSource
+   life: float  = 0.0   // If src == Condition, time when this condition ends.
+
+// Calculates a value for a particular stat.
+def value(stats: [StatEnt], now: float, stat: LivingStats) -> float:
+   var rv = 0.0
+   for(stats) se:
+      if se.name == stat:
+         if se.src != Condition or now >= se.life:
+            rv += se.val
+
+   return rv
+
+// Returns base value of a stat, without any modifiers.
+def base_value(stats: StatEnt, stat: LivingStats) -> float:
+   for(stats) se:
+      if se.name == stat and se.src == Base:
+         return se.val
+   error(): "No base stat found for " + stat
+   return 0.0
+
+// Create concrete stats for a (presumably new) object.
+def generate_stats(os: ObjectSpec) -> [StatEnt]:
+   // While the stats are floats, we presume that 
+   // base stats are rounded, while modifiers might add
+   // fractional bits.  
+   def mkstat(sr: StatRange?) -> float:
+      if sr:
+         let r = sr.hi - sr.lo
+
+         assert r >= 0
+         let v = rnd_float() * r + sr.lo
+         return round(v)
+      else:
+         return 1.0
+
+   let tmpl = stat_template(os)
+
+   if tmpl:
+      let rv = vector_reserve(typeof return, LivingStats_NumStats)
+
+      push(rv, StatEnt{name: LivingStats_Str, val: mkstat(tmpl.str()), src: Base})
+      push(rv, StatEnt{name: LivingStats_Ag, val: mkstat(tmpl.ag()), src: Base})
+      push(rv, StatEnt{name: LivingStats_Dex, val: mkstat(tmpl.dex()), src: Base})
+      push(rv, StatEnt{name: LivingStats_Will, val: mkstat(tmpl.will()), src: Base})
+      push(rv, StatEnt{name: LivingStats_Wit, val: mkstat(tmpl.wit()), src: Base})
+      push(rv, StatEnt{name: LivingStats_Per, val: mkstat(tmpl.per()), src: Base})
+
+      assert length(rv) == LivingStats_NumStats  // Catch drift in defined stats.
+      return rv
+   else:
+      return []
+      
 private class ObjGroup:
    name: string
    grouped: [ObjId] = []

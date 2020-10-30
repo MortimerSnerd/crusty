@@ -47,3 +47,14 @@ private def mk_empty():
 
 // Empty object.  Can be used as a sentinel for 
 let EmptyObjectSpec:ObjectSpec = mk_empty()
+
+// Returns the stat template for the given ObjectSpec.
+def stat_template(os: ObjectSpec) -> StatTemplate?:
+   if os.stat_base() != StatTemplateName_NoStats:
+      let cfg = cur_config()
+      for(cfg.stat_templates_length()) i:
+         let st = cfg.stat_templates(i)
+         if os.stat_base() == st.name():
+            return st
+   
+   return nil
