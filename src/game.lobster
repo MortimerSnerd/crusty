@@ -33,150 +33,16 @@ class GroundhogRec : ObjId
    graphic: ObjId
    dead: bool
 
-class Bullet : ObjId
-   graphic: ObjId
-
-let Bullets = EmbeddedCircList<Bullet>{head: nil}
 let Groundhogs = EmbeddedCircList<GroundhogRec>{head: nil}
-
-var Carrying = InvalidObject
 
 let SwerdFeeshSystem = UserSystem1
 
 class SwerdFeesh : BusEndpoint
 
-private def maybe_pickup_sword(pickUpTime: float):
-   if Carrying == InvalidObject:
-      let pf, ppos = pos(Player)
-      let po, pdir = direction(Player)
-
-      for_objects_at(ppos) oid:
-         if oid:
-            if object_spec(oid).kind == ObjectKind_Sword:
-               Carrying = oid
-               notify_sfx(Player, pickUpTime, "dist/yoink.wav", 1.0)
-               return
-
-private def maybe_sword_groundhog(gh: ObjId, p: xy_i, now: float):
-   if gh is GroundhogRec:
-      if Carrying != InvalidObject and not gh.dead:
-         let cc, cpos = pos(Carrying)
-
-         if cpos == p:
-            let fx = rnd_pick(["dist/ouch1.wav", "dist/ouch2.wav", "dist/ouch3.wav"])
-            notify_sfx(gh.graphic, now, fx, 1.0)
-            gh.dead = true
-            notify_animation(gh.graphic, now, "groundhog_croaked")
-            //notify_tile_change(gh.graphic, now, tile(gh.graphic), TileName_DeadGroundhog)
-            //change_tile(gh.graphic, TileName_DeadGroundhog)
-
-private def maybe_sword_groundhog(now: float):
-   if Carrying != InvalidObject:
-      dl_foreach(Groundhogs) gh:
-         if not gh.dead:
-            let f, gpos = pos(gh.graphic)
-            maybe_sword_groundhog(gh, gpos, now)
-
-def notify_deleting_impl(s: SwerdFeesh, o: ObjId) -> void:
-   debug(): "SwerdFeesh: removing " + to_string(o)
-   if o.system == GObjSystem:
-      let bi = dl_find(Bullets) x: x.graphic == o
-
-      if bi:
-         // Delete associated bullet object.
-         dl_remove(Bullets, bi)
-
-   elif o is Bullet:
-      // Delegate to the arm above that cleans up bullets whose
-      // graphics have disappeared.
-      notify_deleting(o.graphic)
-
-def notify_moving_impl(s: SwerdFeesh, o: ObjId, startT: float, endT: float, start: xy_i, end: xy_i) -> void:
-   if Player and o == Player:
-      let pdf, pdir = direction(Player)
-
-      maybe_pickup_sword((startT + endT) / 2)
-      if Carrying:
-         let op, opos = pos(Carrying)
-         notify_moving(Carrying, startT, endT, opos, end + all_dirs[pdir])
-         maybe_sword_groundhog(endT)
-
-def notify_turning_impl(s: SwerdFeesh, o: ObjId, startT: float, endT: float, startDir: Directions, endDir: Directions):
-   if o == Player:
-      if Carrying and Player:
-         let pf, ppos = pos(Player)
-
-         maybe_pickup_sword(startT)
-         notify_moving(Carrying, startT, endT, ppos + all_dirs[startDir], ppos + all_dirs[endDir])
-         notify_turning(Carrying, startT, endT, startDir, endDir)
-         maybe_sword_groundhog(endT)
-
-def move_is_allowed_impl(s: SwerdFeesh, now: float, o: ObjId, destPos: xy_i) -> bool:
-   if Player and o == Player and Carrying:
-      // Don't allow sword to go through walls
-      let pf, pdir = direction(Player)
-
-      let sword_dest = destPos + all_dirs[pdir]
-
-      return move_is_allowed(now, Carrying, sword_dest)
-
-   return true
-
-def turn_is_allowed_impl(s: SwerdFeesh, now: float, o: ObjId, destDir: Directions) -> bool:
-   if o == Player:
-      if Player and Carrying:
-         let pf, ppos = pos(Player)
-         let sword_dest = ppos + all_dirs[destDir]
-
-         return move_is_allowed(now, Carrying, sword_dest)
-      else:
-         return true
-   else:
-      return true
-
-private var BulletCount = 0
-let BulletIdOffset = 100
-def make_bullet(now: float, bpos: xy_i, dir: Directions): 
-   let graphic = gobjs_spawn(ObjectKind_Bullet, bpos, dir)
-
-   ++BulletCount
-   let bul = Bullet{system: SwerdFeeshSystem, graphic: graphic}
-   dl_add(Bullets, bul)
-   schedule_callback(bul, now)
-   
 def think_impl(sf: SwerdFeesh, span: TurnSpan, who: ObjId, now: float):
    // Wander aimlessly.
-   if who is Bullet and Player:
-      let df, dir = direction(who.graphic)
-      let pf, bpos = pos(who.graphic)
-      let pp, player_pos = pos(Player) 
-      
-      if bpos == player_pos:
-         PlayerAboutToDie = true
-         notify_sfx(Player, now, "dist/pdead.wav", 1.0)
-
-      let ar, act = move_action(span, now, who.graphic, bpos, bpos + all_dirs[dir])
-      if act:
-         execute(act)
-         if bpos + all_dirs[dir] == player_pos:
-            PlayerAboutToDie = true
-            notify_sfx(Player, now, "dist/pdead.wav", 1.0)
-         schedule_callback(who, now + act.duration)
-         return
-      else:
-         notify_deleting(who)
-         return
-   
-   elif who is GroundhogRec:
+   if who is GroundhogRec:
       if not who.dead:
-         if rnd_float() < 0.05 and Bullets.count < 100:
-            let pf, ppos = pos(who.graphic)
-            let df, dir = direction(who.graphic)
-
-            make_bullet(now, ppos, opposite_dir[dir])
-            schedule_callback(who, now + 1.0)
-            return
-
          if rnd_float() < 0.45:
             for_possible_actions(span, who.graphic, now, acMoveFwd) act:
                act.duration *= 0.5
@@ -365,6 +231,5 @@ def game_frame(do_debug) -> bool, Rectf:
       return false, Rectf{xy_0, xy_0} 
    
 def game_shutdown():
-   dl_clear(Bullets)
    dl_clear(Groundhogs)
    gobjs_shutdown()

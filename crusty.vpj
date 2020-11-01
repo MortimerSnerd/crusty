@@ -73,6 +73,8 @@
             Filters=""
             GUID="{484E623C-5737-431B-9477-251B0CF483C9}"></Folder>
     </CustomFolders>
+    <List Name="RTE">
+    </List>
     <Files AutoFolders="DirectoryView">
         <Folder Name="../../.slickedit">
             <Folder Name="25.0.0">
@@ -101,12 +103,15 @@
                 </Folder>
             </Folder>
         </Folder>
+        <Folder Name="src">
+            <Folder Name="dist">
+                <F N="src/dist/config.fbs"/>
+            </Folder>
+        </Folder>
         <F
             N="*.lobster"
             Recurse="1"
             Excludes=".git/;.idea/"
             L="1"/>
     </Files>
-    <List Name="RTE">
-    </List>
 </Project>
