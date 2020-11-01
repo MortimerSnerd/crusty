@@ -34,7 +34,7 @@ def move_action_duration(who: ObjId, now: float, dist: float) -> float:
    let st = object_stats(who)
 
    if length(st) > 0:
-      let ag = value(st, now, LivingStats_Speed)
+      let ag = value(st, now, GameStats_Speed)
 
       //TODO encumberance, etc...
       let dur =  (avg_s_per_m / speed_factor(ag)) * dist

@@ -1,4 +1,4 @@
-enum LivingStats : uint8
+enum GameStats : uint8
 {
    Str, Speed, Will, Wit
 }
@@ -11,7 +11,7 @@ enum StatTemplateName : uint16 {
 }
 
 struct StatPair {
-    name: LivingStats;
+    name: GameStats;
     val: int;
 }
 

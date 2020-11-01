@@ -95,10 +95,10 @@
         {
             name: Groundhog, 
             stats: [
-                {name: Str, val: 10},
-                {name: Speed, val: 10},
-                {name: Will, val: 10}, 
-                {name: Wit, val: 10}
+                {name: Str, val: 3},
+                {name: Speed, val: 4},
+                {name: Will, val: 5}, 
+                {name: Wit, val: 1}
             ],
         }
     ]

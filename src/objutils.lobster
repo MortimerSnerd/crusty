@@ -33,13 +33,13 @@ enum StatEntSource:
 // are summed over multiple stat ents, so base stats are kept separate from 
 // stat modifiers.
 struct StatEnt:
-   name: LivingStats
+   name: GameStats
    val: int
    src: StatEntSource
    life: float  = 0.0   // If src == Condition, time when this condition ends.
 
 // Calculates a value for a particular stat.
-def value(stats: [StatEnt], now: float, stat: LivingStats) -> int:
+def value(stats: [StatEnt], now: float, stat: GameStats) -> int:
    var rv = 0
    for(stats) se:
       if se.name == stat:
@@ -49,7 +49,7 @@ def value(stats: [StatEnt], now: float, stat: LivingStats) -> int:
    return rv
 
 // Returns base value of a stat, without any modifiers.
-def base_value(stats: StatEnt, stat: LivingStats) -> int:
+def base_value(stats: StatEnt, stat: GameStats) -> int:
    let i = find(stats) x: x.name == stat and x.src == Base
    if i >= 0:
       return stats[i].val
