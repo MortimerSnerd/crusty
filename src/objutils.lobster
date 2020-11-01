@@ -34,13 +34,13 @@ enum StatEntSource:
 // stat modifiers.
 struct StatEnt:
    name: LivingStats
-   val: float
+   val: int
    src: StatEntSource
    life: float  = 0.0   // If src == Condition, time when this condition ends.
 
 // Calculates a value for a particular stat.
-def value(stats: [StatEnt], now: float, stat: LivingStats) -> float:
-   var rv = 0.0
+def value(stats: [StatEnt], now: float, stat: LivingStats) -> int:
+   var rv = 0
    for(stats) se:
       if se.name == stat:
          if se.src != Condition or now >= se.life:
@@ -49,45 +49,14 @@ def value(stats: [StatEnt], now: float, stat: LivingStats) -> float:
    return rv
 
 // Returns base value of a stat, without any modifiers.
-def base_value(stats: StatEnt, stat: LivingStats) -> float:
-   for(stats) se:
-      if se.name == stat and se.src == Base:
-         return se.val
-   error(): "No base stat found for " + stat
-   return 0.0
-
-// Create concrete stats for a (presumably new) object.
-def generate_stats(os: ObjectSpec) -> [StatEnt]:
-   // While the stats are floats, we presume that 
-   // base stats are rounded, while modifiers might add
-   // fractional bits.  
-   def mkstat(sr: StatRange?) -> float:
-      if sr:
-         let r = sr.hi - sr.lo
-
-         assert r >= 0
-         let v = rnd_float() * r + sr.lo
-         return round(v)
-      else:
-         return 1.0
-
-   let tmpl = stat_template(os)
-
-   if tmpl:
-      let rv = vector_reserve(typeof return, LivingStats_NumStats)
-
-      push(rv, StatEnt{name: LivingStats_Str, val: mkstat(tmpl.str()), src: Base})
-      push(rv, StatEnt{name: LivingStats_Ag, val: mkstat(tmpl.ag()), src: Base})
-      push(rv, StatEnt{name: LivingStats_Dex, val: mkstat(tmpl.dex()), src: Base})
-      push(rv, StatEnt{name: LivingStats_Will, val: mkstat(tmpl.will()), src: Base})
-      push(rv, StatEnt{name: LivingStats_Wit, val: mkstat(tmpl.wit()), src: Base})
-      push(rv, StatEnt{name: LivingStats_Per, val: mkstat(tmpl.per()), src: Base})
-
-      assert length(rv) == LivingStats_NumStats  // Catch drift in defined stats.
-      return rv
+def base_value(stats: StatEnt, stat: LivingStats) -> int:
+   let i = find(stats) x: x.name == stat and x.src == Base
+   if i >= 0:
+      return stats[i].val
    else:
-      return []
-      
+      error(): "No base stat found for " + stat
+      return 0
+
 private class ObjGroup:
    name: string
    grouped: [ObjId] = []

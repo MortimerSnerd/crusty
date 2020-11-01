@@ -40,6 +40,9 @@ private var ObjTx : GridTiledTexture? = nil
 private let Animations: [GOAnim] = []
 private let GOInstances = EmbeddedCircList<GOInst>{head: nil}
 
+// Indexed by StatTemplateName
+private let BaseStats : [[StatEnt]] = []
+
 def to_string(o: GOInst) -> string:
    if o.kind_idx < 0:
       return "{InvalidGObj}"
@@ -55,7 +58,7 @@ private def object_stats_private(o: GOInst) -> [StatEnt]:
       return []
    else:
       if length(o.stats) == 0:
-         o.stats = generate_stats(os)
+         o.stats = copy(BaseStats[os.stat_base])
 
       return o.stats
 
@@ -284,8 +287,9 @@ def gobjs_init():
    qsort_in_place(OSpecs) a, b: int(a.kind) < int(b.kind)
    bus_register_endpoint(GobjEndpoint{system: GObjSystem})
 
-   for(cur_config().animations_length()) i:
-      let a = cur_config().animations(i)
+   let cfg = cur_config()
+   for(cfg.animations_length()) i:
+      let a = cfg.animations(i)
       let anim = GOAnim{name: a.name(), 
                         kind: a.kind, 
                         frames: vector_reserve(typeof return, a.frames_length())}
@@ -296,6 +300,18 @@ def gobjs_init():
       push(Animations, anim)
 
    qsort_in_place(Animations) a, b: a.name < b.name
+
+   // Read in BaseStats for all of the StatsTemplates.
+   for(cfg.stat_templates_length()) i:
+      let tmp = cfg.stat_templates(i)
+      let barr = []
+      
+      for(tmp.stats_length()) j:
+         let st = tmp.stats(j)
+         
+         push(barr, StatEnt{name: st.name, val: st.val, src: Base}) 
+
+      BaseStats.eassign(tmp.name, barr, [])
 
 def gobjs_shutdown():
    dl_clear(GOInstances)

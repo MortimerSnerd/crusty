@@ -467,6 +467,15 @@ struct TurnSpan:
 // time onece the action is presented.
 let FakeTurnSpan = TurnSpan{0.0, 999999999990.0}
 
+// Assigns arr[idx] = val.  If length(arr) < idx, 
+// the array is extended with defval entries until it
+// is the correct size.
+def eassign(arr, idx, val, defval):
+   while length(arr) <= idx:
+      push(arr, defval)
+
+   arr[idx] = val
+
 def mag(t:: TurnSpan) -> float:
    assert t.end >= t.start
    return end - start

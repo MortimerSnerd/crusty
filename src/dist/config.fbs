@@ -1,26 +1,23 @@
 enum LivingStats : uint8
 {
-   Str, Ag, Dex, Will, Wit, Per, NumStats
-}
-
-struct StatRange {
-    lo: float; 
-    hi: float;
+   Str, Speed, Will, Wit
 }
 
 // Base stats that can be referenced by a living object.
 enum StatTemplateName : uint16 {
-    NoStats, Human, Groundhog
+    NoStats, Human, Groundhog, 
+
+    COUNT  // Used to size arrays indexed by this enum.
+}
+
+struct StatPair {
+    name: LivingStats;
+    val: int;
 }
 
 table StatTemplate {
     name: StatTemplateName; 
-    str: StatRange;   // Physical strength
-    ag: StatRange;    // Physical speed. 
-    dex: StatRange;   // Physical precision
-    will: StatRange;  // Mental strength
-    wit: StatRange;   // Mental speed 
-    per: StatRange;   // Perception, mental precision? 
+    stats: [StatPair];
 }
 
 enum ObjectKind:short { Invalid = 0, 

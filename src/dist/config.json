@@ -85,21 +85,21 @@
     "stat_templates": [
         {
             name: Human, 
-            str: {lo: 10.0, hi: 10.0}, 
-            ag: {lo: 10.0, hi: 10.0}, 
-            dex: {lo: 10.0, hi: 10.0}, 
-            will: {lo: 10.0, hi: 10.0}, 
-            wit: {lo: 10.0, hi: 10.0}, 
-            per: {lo: 10.0, hi: 10.0} 
+            stats: [
+                {name: Str, val: 10},
+                {name: Speed, val: 10},
+                {name: Will, val: 10}, 
+                {name: Wit, val: 10}
+            ],
         }, 
         {
             name: Groundhog, 
-            str: {lo: 1.0, hi: 2.0}, 
-            ag: {lo: 4.0, hi: 8.0}, 
-            dex: {lo: 1.0, hi: 1.0}, 
-            will: {lo: 1.0, hi: 1.0}, 
-            wit: {lo: 1.0, hi: 1.0}, 
-            per: {lo: 8.0, hi: 10.0} 
+            stats: [
+                {name: Str, val: 10},
+                {name: Speed, val: 10},
+                {name: Will, val: 10}, 
+                {name: Wit, val: 10}
+            ],
         }
     ]
 }

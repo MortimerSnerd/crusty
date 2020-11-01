@@ -3,17 +3,15 @@ import flatbuffers
 
 enum LivingStats:
     LivingStats_Str = 0
-    LivingStats_Ag = 1
-    LivingStats_Dex = 2
-    LivingStats_Will = 3
-    LivingStats_Wit = 4
-    LivingStats_Per = 5
-    LivingStats_NumStats = 6
+    LivingStats_Speed = 1
+    LivingStats_Will = 2
+    LivingStats_Wit = 3
 
 enum StatTemplateName:
     StatTemplateName_NoStats = 0
     StatTemplateName_Human = 1
     StatTemplateName_Groundhog = 2
+    StatTemplateName_COUNT = 3
 
 enum ObjectKind:
     ObjectKind_Invalid = 0
@@ -57,7 +55,7 @@ enum AnimationKind:
     AnimationKind_OneShot = 0
     AnimationKind_Loop = 1
 
-class StatRange
+class StatPair
 
 class StatTemplate
 
@@ -69,70 +67,45 @@ class SpriteAnim
 
 class ConfigRoot
 
-class StatRange : flatbuffers_handle
-    def lo():
-        return buf_.read_float32_le(pos_ + 0)
-    def hi():
-        return buf_.read_float32_le(pos_ + 4)
+class StatPair : flatbuffers_handle
+    def name():
+        return LivingStats(buf_.read_int8_le(pos_ + 0))
+    def val():
+        return buf_.read_int32_le(pos_ + 4)
 
-def CreateStatRange(b_:flatbuffers_builder, lo:float, hi:float):
+def CreateStatPair(b_:flatbuffers_builder, name:LivingStats, val:int):
     b_.Prep(4, 8)
-    b_.PrependFloat32(hi)
-    b_.PrependFloat32(lo)
+    b_.PrependInt32(val)
+    b_.Pad(3)
+    b_.PrependUint8(name)
     return b_.Offset()
 
 class StatTemplate : flatbuffers_handle
     def name():
         return StatTemplateName(buf_.flatbuffers_field_int16(pos_, 4, 0))
-    def str():
-        let o = buf_.flatbuffers_field_struct(pos_, 6)
-        return if o: StatRange { buf_, o } else: nil
-    def ag():
-        let o = buf_.flatbuffers_field_struct(pos_, 8)
-        return if o: StatRange { buf_, o } else: nil
-    def dex():
-        let o = buf_.flatbuffers_field_struct(pos_, 10)
-        return if o: StatRange { buf_, o } else: nil
-    def will():
-        let o = buf_.flatbuffers_field_struct(pos_, 12)
-        return if o: StatRange { buf_, o } else: nil
-    def wit():
-        let o = buf_.flatbuffers_field_struct(pos_, 14)
-        return if o: StatRange { buf_, o } else: nil
-    def per():
-        let o = buf_.flatbuffers_field_struct(pos_, 16)
-        return if o: StatRange { buf_, o } else: nil
+    def stats(i:int):
+        return StatPair { buf_, buf_.flatbuffers_field_vector(pos_, 6) + i * 8 }
+    def stats_length():
+        return buf_.flatbuffers_field_vector_len(pos_, 6)
 
 def GetRootAsStatTemplate(buf:string): return StatTemplate { buf, buf.flatbuffers_indirect(0) }
 
 struct StatTemplateBuilder:
     b_:flatbuffers_builder
     def start():
-        b_.StartObject(7)
+        b_.StartObject(2)
         return this
     def add_name(name:StatTemplateName):
         b_.PrependUint16Slot(0, name, 0)
         return this
-    def add_str(str:flatbuffers_offset):
-        b_.PrependStructSlot(1, str)
-        return this
-    def add_ag(ag:flatbuffers_offset):
-        b_.PrependStructSlot(2, ag)
-        return this
-    def add_dex(dex:flatbuffers_offset):
-        b_.PrependStructSlot(3, dex)
-        return this
-    def add_will(will:flatbuffers_offset):
-        b_.PrependStructSlot(4, will)
-        return this
-    def add_wit(wit:flatbuffers_offset):
-        b_.PrependStructSlot(5, wit)
-        return this
-    def add_per(per:flatbuffers_offset):
-        b_.PrependStructSlot(6, per)
+    def add_stats(stats:flatbuffers_offset):
+        b_.PrependUOffsetTRelativeSlot(1, stats)
         return this
     def end():
         return b_.EndObject()
+
+def StatTemplateStartStatsVector(b_:flatbuffers_builder, n_:int):
+    b_.StartVector(8, n_, 4)
 
 class ObjectSpec : flatbuffers_handle
     def kind():
