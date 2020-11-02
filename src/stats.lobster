@@ -43,3 +43,37 @@ def move_action_duration(who: ObjId, now: float, dist: float) -> float:
       warn(): "No stats for " + to_string(who)
       return 1.0 * dist
 
+private let SkillDie = 20
+
+// Rolls for success of skill a, 
+// and returns the margin of success (> 0) or 
+// error (<= 0).
+def roll_vs_skill(a: int) -> int:
+   return a - rnd(SkillDie)
+
+// Rolls for skill a being opposed by skill b.  
+// Returns margin of success (> 0) or failure
+// (< 0).  This works in a way that it still gives a 
+// useful result if one or both of the skills are > SkillDie 
+def opposed_skill_check(a: int, b: int) -> int:
+   return rnd(a) - rnd(b)
+
+def damage_roll(name: DmgRange) -> int:
+   switch name:
+      case DmgRange_Low2D6:
+         return min(rnd(6) + 1, rnd(6) + 1)
+
+      case DmgRange_Hi2D6:
+         return max(rnd(6) + 1, rnd(6) + 1)
+
+      case DmgRange_D6:
+         return rnd(6)
+
+      default:
+         error(): "Unknown range name " + name
+         return 1
+
+// Roll for damage for the given damage range.  Damage clamped positive.
+def damage_roll(r: DamageRange) -> int:
+   return max(0, damage_roll(r.name()) + r.plus())
+

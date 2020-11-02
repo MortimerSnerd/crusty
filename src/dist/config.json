@@ -3,7 +3,12 @@
         {
             kind: Sword, 
             short_name: "Sword Of Ass", 
-            static_tile: Sword
+            static_tile: Sword, 
+            weapon_stats: {
+                speed: 5, 
+                kind: Slashing, 
+                dmg: {range: Low2D6, plus: 0}
+            }
         },
         {
             kind: Player, 

@@ -1,6 +1,9 @@
 enum GameStats : uint8
 {
-   Str, Speed, Will, Wit
+   Str, Speed, Will, Wit,
+
+   // Skills
+   Melee, Defence, Dodge
 }
 
 // Base stats that can be referenced by a living object.
@@ -18,6 +21,32 @@ struct StatPair {
 table StatTemplate {
     name: StatTemplateName; 
     stats: [StatPair];
+}
+
+enum DmgRange : uint8 {
+   Low2D6,        // Mean towards 3 with occasional high excursions.
+   Hi2D6,         // Opposite of Low2D6
+   D6             // Flat damage range.
+}    
+
+// Support limited damage roll types so we can 
+// print them prettily, and not have the code vary
+// from the documentation without the work of keeping
+// them in a more complicated expression form that can 
+// be executed.
+struct DamageRange {
+   range: DmgRange;
+   plus: int = 0;
+}
+
+enum DmgType : uint8 {
+    Slashing, Stabbing, Impact
+}
+
+table WeaponStats {
+    speed: int;
+    kind: DmgType;
+    dmg: DamageRange;
 }
 
 enum ObjectKind:short { Invalid = 0, 
@@ -74,6 +103,7 @@ table ObjectSpec {
    dir_offset: float = 0.0;  // For AbutsWall, amount of offset in the direction the object is facing. 1 == 1 grid.
    initial_state: StateFlags = 0;
    stat_base: StatTemplateName = NoStats;
+   weapon_stats: WeaponStats;
 } 
 
 enum AnimationKind : uint8

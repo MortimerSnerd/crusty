@@ -6,12 +6,25 @@ enum GameStats:
     GameStats_Speed = 1
     GameStats_Will = 2
     GameStats_Wit = 3
+    GameStats_Melee = 4
+    GameStats_Defence = 5
+    GameStats_Dodge = 6
 
 enum StatTemplateName:
     StatTemplateName_NoStats = 0
     StatTemplateName_Human = 1
     StatTemplateName_Groundhog = 2
     StatTemplateName_COUNT = 3
+
+enum DmgRange:
+    DmgRange_Low2D6 = 0
+    DmgRange_Hi2D6 = 1
+    DmgRange_D6 = 2
+
+enum DmgType:
+    DmgType_Slashing = 0
+    DmgType_Stabbing = 1
+    DmgType_Impact = 2
 
 enum ObjectKind:
     ObjectKind_Invalid = 0
@@ -58,6 +71,10 @@ enum AnimationKind:
 class StatPair
 
 class StatTemplate
+
+class DamageRange
+
+class WeaponStats
 
 class ObjectSpec
 
@@ -107,6 +124,47 @@ struct StatTemplateBuilder:
 def StatTemplateStartStatsVector(b_:flatbuffers_builder, n_:int):
     b_.StartVector(8, n_, 4)
 
+class DamageRange : flatbuffers_handle
+    def range():
+        return DmgRange(buf_.read_int8_le(pos_ + 0))
+    def plus():
+        return buf_.read_int32_le(pos_ + 4)
+
+def CreateDamageRange(b_:flatbuffers_builder, range:DmgRange, plus:int):
+    b_.Prep(4, 8)
+    b_.PrependInt32(plus)
+    b_.Pad(3)
+    b_.PrependUint8(range)
+    return b_.Offset()
+
+class WeaponStats : flatbuffers_handle
+    def speed():
+        return buf_.flatbuffers_field_int32(pos_, 4, 0)
+    def kind():
+        return DmgType(buf_.flatbuffers_field_int8(pos_, 6, 0))
+    def dmg():
+        let o = buf_.flatbuffers_field_struct(pos_, 8)
+        return if o: DamageRange { buf_, o } else: nil
+
+def GetRootAsWeaponStats(buf:string): return WeaponStats { buf, buf.flatbuffers_indirect(0) }
+
+struct WeaponStatsBuilder:
+    b_:flatbuffers_builder
+    def start():
+        b_.StartObject(3)
+        return this
+    def add_speed(speed:int):
+        b_.PrependInt32Slot(0, speed, 0)
+        return this
+    def add_kind(kind:DmgType):
+        b_.PrependUint8Slot(1, kind, 0)
+        return this
+    def add_dmg(dmg:flatbuffers_offset):
+        b_.PrependStructSlot(2, dmg)
+        return this
+    def end():
+        return b_.EndObject()
+
 class ObjectSpec : flatbuffers_handle
     def kind():
         return ObjectKind(buf_.flatbuffers_field_int16(pos_, 4, 0))
@@ -128,13 +186,16 @@ class ObjectSpec : flatbuffers_handle
         return StateFlags(buf_.flatbuffers_field_int32(pos_, 20, 0))
     def stat_base():
         return StatTemplateName(buf_.flatbuffers_field_int16(pos_, 22, 0))
+    def weapon_stats():
+        let o = buf_.flatbuffers_field_table(pos_, 24)
+        return if o: WeaponStats { buf_, o } else: nil
 
 def GetRootAsObjectSpec(buf:string): return ObjectSpec { buf, buf.flatbuffers_indirect(0) }
 
 struct ObjectSpecBuilder:
     b_:flatbuffers_builder
     def start():
-        b_.StartObject(10)
+        b_.StartObject(11)
         return this
     def add_kind(kind:ObjectKind):
         b_.PrependInt16Slot(0, kind, 0)
@@ -165,6 +226,9 @@ struct ObjectSpecBuilder:
         return this
     def add_stat_base(stat_base:StatTemplateName):
         b_.PrependUint16Slot(9, stat_base, 0)
+        return this
+    def add_weapon_stats(weapon_stats:flatbuffers_offset):
+        b_.PrependUOffsetTRelativeSlot(10, weapon_stats)
         return this
     def end():
         return b_.EndObject()
