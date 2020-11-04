@@ -40,23 +40,27 @@ def move_action_duration(who: ObjId, now: float, dist: float) -> float:
       let dur =  (avg_s_per_m / speed_factor(ag)) * dist
       return dur
    else:
-      warn(): "No stats for " + to_string(who)
+      warn(): "No stats for " + who
       return 1.0 * dist
 
 private let SkillDie = 20
+
+// Keep skills in range, no negative skills.
+def clamp_skill(s: int) -> int:
+   return max(0, s)
 
 // Rolls for success of skill a, 
 // and returns the margin of success (> 0) or 
 // error (<= 0).
 def roll_vs_skill(a: int) -> int:
-   return a - rnd(SkillDie)
+   return clamp_skill(a) - rnd(SkillDie)
 
 // Rolls for skill a being opposed by skill b.  
 // Returns margin of success (> 0) or failure
 // (< 0).  This works in a way that it still gives a 
 // useful result if one or both of the skills are > SkillDie 
 def opposed_skill_check(a: int, b: int) -> int:
-   return rnd(a) - rnd(b)
+   return rnd(clamp_skill(a)) - rnd(clamp_skill(b))
 
 def damage_roll(name: DmgRange) -> int:
    switch name:

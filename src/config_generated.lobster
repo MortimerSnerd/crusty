@@ -10,6 +10,13 @@ enum GameStats:
     GameStats_Defence = 5
     GameStats_Dodge = 6
 
+enum ItemSlot:
+    ItemSlot_None = 0
+    ItemSlot_Melee = 1
+    ItemSlot_Head = 2
+    ItemSlot_Chest = 3
+    ItemSlot_Feet = 4
+
 enum StatTemplateName:
     StatTemplateName_NoStats = 0
     StatTemplateName_Human = 1
@@ -189,13 +196,15 @@ class ObjectSpec : flatbuffers_handle
     def weapon_stats():
         let o = buf_.flatbuffers_field_table(pos_, 24)
         return if o: WeaponStats { buf_, o } else: nil
+    def slot():
+        return ItemSlot(buf_.flatbuffers_field_int8(pos_, 26, 0))
 
 def GetRootAsObjectSpec(buf:string): return ObjectSpec { buf, buf.flatbuffers_indirect(0) }
 
 struct ObjectSpecBuilder:
     b_:flatbuffers_builder
     def start():
-        b_.StartObject(11)
+        b_.StartObject(12)
         return this
     def add_kind(kind:ObjectKind):
         b_.PrependInt16Slot(0, kind, 0)
@@ -229,6 +238,9 @@ struct ObjectSpecBuilder:
         return this
     def add_weapon_stats(weapon_stats:flatbuffers_offset):
         b_.PrependUOffsetTRelativeSlot(10, weapon_stats)
+        return this
+    def add_slot(slot:ItemSlot):
+        b_.PrependUint8Slot(11, slot, 0)
         return this
     def end():
         return b_.EndObject()

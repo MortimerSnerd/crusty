@@ -187,6 +187,11 @@ def put_action(span: TurnSpan, now: float, who: ObjId, what: ObjId, where: ObjId
       else:
          return ActionResult{kind: arCanNotReach}, nil
 
+class MeleeAttackAction : ActionBase
+   target: ObjId
+   weapon: ObjId
+
+
 enum_flags ActionCategory:
    acTurn, acMoveFwd, acMoveBkwd, acStrafe, acObjectInteractions
 

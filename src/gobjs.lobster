@@ -24,6 +24,7 @@ class GOInst : ObjId
    frame_left: float = 0.0
    state: StateFlags = StateFlags(0)
    stats: [StatEnt] = []  // Not all objects can have stats, but we take the small cost anyway.
+   equipped: bool = false // If parent != nil, whether this item is equipped by the parent.
 
 struct GOFrame:
    frame: TileName
@@ -38,16 +39,25 @@ class GOAnim:
 private let OSpecs : [ObjectSpec] = []
 private var ObjTx : GridTiledTexture? = nil
 private let Animations: [GOAnim] = []
-private let GOInstances = EmbeddedCircList<GOInst>{head: nil}
+
+// Array of instances, indexed by ObjId.id.  
+// Can be nil if an instance with that id was
+// deleted.
+private let GOInstances: [GOInst?] = []
+
+// For now, just do a naive scan. 
+// Expands the array if there are no free objects.
+private def find_free_id() -> int:
+   for(GOInstances) obj, i:
+      if obj == nil:
+         return i
+
+   // Add a slot.
+   push(GOInstances, nil)
+   return length(GOInstances) - 1
 
 // Indexed by StatTemplateName
 private let BaseStats : [[StatEnt]] = []
-
-def to_string(o: GOInst) -> string:
-   if o.kind_idx < 0:
-      return "{InvalidGObj}"
-   else:
-      return "{" + OSpecs[o.kind_idx].kind() + ":" + o.id + "}"
 
 // Call to work with item stats.  Will generate them if they
 // don't already exist.
@@ -80,30 +90,31 @@ private def find_animation(name: string):
 
 def gobjs_update():
    let dT = gl_delta_time()
-   dl_foreach(GOInstances) o:
-      if o.playing_anim >= 0:
-         let anim = Animations[o.playing_anim]
-         o.frame_left -= dT
-         if o.frame_left <= 0:
-            o.frame_idx += 1
-            if o.frame_idx >= length(anim.frames):
-               switch anim.kind:
-                  case AnimationKind_OneShot:
-                     o.playing_anim = -1
-                  case AnimationKind_Loop:
-                     o.frame_idx = 0
-                     o.frame_left += anim.frames[0].duration
-                     o.curTile = anim.frames[0].frame
-            else:
-               o.frame_left += anim.frames[o.frame_idx].duration
-               o.curTile = anim.frames[o.frame_idx].frame
+   for(GOInstances) o:
+      if o:
+         if o.playing_anim >= 0:
+            let anim = Animations[o.playing_anim]
+            o.frame_left -= dT
+            if o.frame_left <= 0:
+               o.frame_idx += 1
+               if o.frame_idx >= length(anim.frames):
+                  switch anim.kind:
+                     case AnimationKind_OneShot:
+                        o.playing_anim = -1
+                     case AnimationKind_Loop:
+                        o.frame_idx = 0
+                        o.frame_left += anim.frames[0].duration
+                        o.curTile = anim.frames[0].frame
+               else:
+                  o.frame_left += anim.frames[o.frame_idx].duration
+                  o.curTile = anim.frames[o.frame_idx].frame
 
 def gobjs_draw(now: float, view: Rectf):
    if ObjTx:
       gl_set_primitive_texture(0, ObjTx.texture)
       gl_blend(blend_alpha)
-      dl_foreach(GOInstances) o:
-         if not o.parent:
+      for(GOInstances) o:
+         if o and not o.parent:
             let p = anim_pos(o, now)
             
             if contains(view, p):
@@ -119,8 +130,6 @@ def gobjs_draw(now: float, view: Rectf):
                   
                   renderSprite(ObjTx, ti, dpos, xy_1, sincos(a))
 
-private var IdCounter = 1
-                  
 def gobjs_spawn(okind: ObjectKind, pos: xy_i, dir: Directions, parent: ObjId? = nil) -> ObjId:
    let found, ki = binary_search_by_key(OSpecs, int(okind)) a, b:
       int(a.kind) - b
@@ -128,15 +137,14 @@ def gobjs_spawn(okind: ObjectKind, pos: xy_i, dir: Directions, parent: ObjId? = 
    //TODO test to see if it can be placed at pos.
    if found:
       let rv = GOInst{system: GObjSystem,
-                      id: IdCounter,
+                      id: find_free_id(),
                       pos: pos,
                       dir: dir, 
                       curTile: OSpecs[ki].static_tile, 
                       kind_idx: ki, 
                       parent: parent, 
                       state: OSpecs[ki].initial_state}
-      ++IdCounter
-      dl_add(GOInstances, rv)
+      GOInstances[rv.id] = rv
       notify_spawn(rv, nil, pos)
 
       return rv
@@ -150,8 +158,8 @@ def gobjs_tests():
 // Bus endpoint implementation.
 class GobjEndpoint : BusEndpoint
    def for_all_enabled_lights_impl(body):
-      dl_foreach(GOInstances) o:
-         if not o.parent and OSpecs[o.kind_idx].flags & ItemFlags_EmitsLight:
+      for(GOInstances) o:
+         if o and not o.parent and OSpecs[o.kind_idx].flags & ItemFlags_EmitsLight:
             body(o, OSpecs[o.kind_idx])
 
    def tile_impl(what: ObjId) -> int:
@@ -185,12 +193,13 @@ class GobjEndpoint : BusEndpoint
          return false, East
 
    def for_objects_intersecting_impl(now: float, r: Rectf, body):
-      dl_foreach(GOInstances) ob:
-         let p = gridToWorld(ob.pos)
-         let bb = mkRectfRel(p - xy_h, xy_1)
+      for(GOInstances) ob:
+         if ob:
+            let p = gridToWorld(ob.pos)
+            let bb = mkRectfRel(p - xy_h, xy_1)
 
-         if bb.overlaps(r):
-            body(ob, bb)
+            if bb.overlaps(r):
+               body(ob, bb)
 
    def think_impl(span: TurnSpan, who: ObjId, now: float):
       // We should't have any calls scheduled.
@@ -223,8 +232,8 @@ class GobjEndpoint : BusEndpoint
          what.state = body(what.state)
 
    def for_objects_in_impl(what: ObjId, body):
-      dl_foreach(GOInstances) o:
-         if o.parent == what:
+      for(GOInstances) o:
+         if o and o.parent == what:
             body(o)
 
    def container_of_impl(what: ObjId) -> ObjId?:
@@ -235,14 +244,14 @@ class GobjEndpoint : BusEndpoint
 
    def notify_deleting_impl(o: ObjId):
       if o and o is GOInst:
-         debug(): "GObjSystem removing " + to_string(o)
-         dl_remove(GOInstances, o) 
+         debug(): "GObjSystem removing " + o
+         GOInstances[o.id] = nil
 
       remove_callbacks_for(o)
 
    def notify_take_impl(who: ObjId, what: ObjId):
       if what is GOInst and who != what:
-         debug(): "GObjSystem " + to_string(who) + " taking " + to_string(what)
+         debug(): "GObjSystem " + who + " taking " + what
          // Taking from ground only.
          assert what.parent == nil
          what.parent = who
@@ -314,4 +323,4 @@ def gobjs_init():
       BaseStats.eassign(tmp.name, barr, [])
 
 def gobjs_shutdown():
-   dl_clear(GOInstances)
+   pass()

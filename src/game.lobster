@@ -33,7 +33,7 @@ class GroundhogRec : ObjId
    graphic: ObjId
    dead: bool
 
-let Groundhogs = EmbeddedCircList<GroundhogRec>{head: nil}
+let Groundhogs: [GroundhogRec?] = []
 
 let SwerdFeeshSystem = UserSystem1
 
@@ -115,11 +115,12 @@ def num_live_groundhogs() -> int, int:
    var live = 0
    var dead = 0
 
-   dl_foreach(Groundhogs) o: 
-      if not o.dead:
-         ++live
-      else:
-         ++dead
+   for(Groundhogs) o: 
+      if o:
+         if not o.dead:
+            ++live
+         else:
+            ++dead
 
    return live, dead
 
@@ -171,8 +172,9 @@ def game_frame(do_debug) -> bool, Rectf:
                      let gh = GroundhogRec{graphic: gobjs_spawn(ObjectKind_Groundhog,
                                                                           pos, East),
                                            dead: false,
-                                           system: SwerdFeeshSystem}
-                     dl_add(Groundhogs, gh)
+                                           system: SwerdFeeshSystem, 
+                                           id: length(Groundhogs)}
+                     push(Groundhogs, gh)
                      schedule_callback(gh, now)
                      play_animation(gh.graphic, "groundhog_idle")
 
@@ -231,5 +233,4 @@ def game_frame(do_debug) -> bool, Rectf:
       return false, Rectf{xy_0, xy_0} 
    
 def game_shutdown():
-   dl_clear(Groundhogs)
    gobjs_shutdown()

@@ -256,7 +256,7 @@ def anim_tile_impl(ep: AnimEndpoint, what: ObjId, now: float) -> int:
      return tile(what)
 
 def notify_deleting_impl(ep: AnimEndpoint, o: ObjId):
-   debug(): "animations removing " + to_string(o)
+   debug(): "animations removing " + o 
    Lanes = filter(Lanes) x: x.who != o
 
 def anim_angle_impl(ep: AnimEndpoint, what: ObjId, now: float) -> float:

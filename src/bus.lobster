@@ -71,6 +71,11 @@ class BusEndpoint:
    def for_objects_in_impl(what: ObjId, body):
       return
 
+   // Returns the object equipped at `where`, or nil if there is
+   // none.
+   def equipment_at_impl(who: ObjId, where: ItemSlot) -> ObjId?:
+      return nil
+
    // Calls body(ObjId, ObjectSpec) for all lights that are on the
    // map and that are turned on.
    def for_all_enabled_lights_impl(body):
@@ -160,7 +165,7 @@ class BusEndpoint:
    // scheduled one-shot calls.  If `who` wants to be called again
    // it needs to call schedule_callback() itself.
    def think_impl(span: TurnSpan, who: ObjId, now: float):
-      error(): "Unimplemented think call for " + to_string(who)
+      error(): "Unimplemented think call for " + who
       noop()
 
 // Registered busses.
@@ -194,7 +199,7 @@ def for_objects_intersecting(now: float, r: Rectf, body):
 def think(span: TurnSpan, who: ObjId, now: float):
    let ep = Endpoints[who.system]
 
-   debug(): "think " + to_string(who) + "@" + string(now)
+   debug(): "think " + who + "@" + now
    ep.think_impl(span, who, now)
 
 // Should be called by actions that move objects, to notify
@@ -372,3 +377,7 @@ def container_of(what: ObjId) -> ObjId?:
 def object_stats(what: ObjId) -> [StatEnt]:
    return Endpoints[what.system].object_stats_impl(what)
 
+// Returns the object equipped at `where`, or nil if there is
+// none.
+def equipment_at(who: ObjId, where: ItemSlot) -> ObjId?:
+   return Endpoints[who.system].equipment_at_impl(who, where)

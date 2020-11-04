@@ -83,7 +83,7 @@ class MapEndpoint : BusEndpoint
    def notify_deleting_impl(what: ObjId):
       // Calling pos() won't necessarily work at this point, 
       // so discard the items directly from our grids.
-      debug(): "Maps: removing " + to_string(what)
+      debug(): "Maps: removing " + what
       discard(Objects) x: x == what
       discard(Living) x: x == what
 
@@ -100,7 +100,7 @@ class MapEndpoint : BusEndpoint
 
    def notify_drop_impl(startT: float, who: ObjId, what: ObjId, where: xy_i):
       // We assume something that is being dropped is not living.
-      debug(): "Maps: " + to_string(who) + " dropping " + to_string(what) + " at" + where
+      debug(): "Maps: " + who + " dropping " + what + " at" + where
       assert object_spec(what).flags & ItemFlags_Living == 0
       add(Objects, where, what)
 

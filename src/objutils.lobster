@@ -12,16 +12,12 @@ enum ObjectSystem:
    // in theory this file doesn't need to be changed.
    UserSystem1, UserSystem2, UserSystem3, NumSystemSentinel
 
-class ObjId : EmbeddedDLinks<ObjId>
+class ObjId:
    system: ObjectSystem
-   id: int = 0 // TODO: this is only currently used as a unique field to sort
-               //       by in the animations module.
+   id: int = 0 
 
 // Sentinel for no object.
 let InvalidObject: ObjId? = nil
-
-def to_string(o: ObjId) -> string:
-   return "{" + o.system + ":" + o.id + "}"
 
 // Where a component of a stat comes from.
 enum StatEntSource: 

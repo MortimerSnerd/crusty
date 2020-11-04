@@ -6,6 +6,15 @@ enum GameStats : uint8
    Melee, Defence, Dodge
 }
 
+// Where an item can be held or is held, depending on context.
+enum ItemSlot : uint8 {
+    None,
+    Melee, 
+    Head, 
+    Chest, 
+    Feet 
+}
+
 // Base stats that can be referenced by a living object.
 enum StatTemplateName : uint16 {
     NoStats, Human, Groundhog, 
@@ -104,6 +113,8 @@ table ObjectSpec {
    initial_state: StateFlags = 0;
    stat_base: StatTemplateName = NoStats;
    weapon_stats: WeaponStats;
+   // Where the item can be equipped.
+   slot: ItemSlot = None;   
 } 
 
 enum AnimationKind : uint8
