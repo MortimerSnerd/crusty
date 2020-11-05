@@ -22,9 +22,8 @@ class GOInst : ObjId
    playing_anim: int = -1
    frame_idx: int = 0 
    frame_left: float = 0.0
-   state: StateFlags = StateFlags(0)
+   state: int = 0
    stats: [StatEnt] = []  // Not all objects can have stats, but we take the small cost anyway.
-   equipped: bool = false // If parent != nil, whether this item is equipped by the parent.
 
 struct GOFrame:
    frame: TileName
@@ -223,7 +222,7 @@ class GobjEndpoint : BusEndpoint
 
    def object_state_impl(what: ObjId) -> StateFlags:
       if what is GOInst:
-         return what.state
+         return StateFlags(what.state)
       else:
          return StateFlags(0)
 
@@ -279,7 +278,36 @@ class GobjEndpoint : BusEndpoint
          return OSpecs[o.kind_idx]
       else:
          return EmptyObjectSpec
+
+   def equip_slot_impl(what: ObjId) -> ItemSlot:
+      if what is GOInst:
+         return OSpecs[what.kind_idx].slot()
+      else:
+         return ItemSlot_None
+
+   def equipment_at_impl(who: ObjId, where: ItemSlot) -> ObjId?:
+      for_objects_in_impl(who) o:
+         if o and o.state & StateFlags_Equipped and OSpecs[o.kind_idx].slot() == where:
+            return o
+
+      return nil
    
+   def item_is_equipped_impl(what: ObjId) -> bool:
+      if what is GOInst:
+         return what.state & StateFlags_Equipped != 0
+      else:
+         return false
+
+   // Equips `what` on `who` at it's default item slot.  
+   // It's an error to equip an item whose slot is already full.
+   def equip_impl(who: ObjId, what: ObjId):
+      if who is GOInst and what is GOInst:
+         let itemloc = OSpecs[what.kind_idx].slot()
+         assert what.state & StateFlags_Equipped == 0
+         assert equipment_at_impl(who, itemloc) == nil
+         what.parent = who
+         what.state = what.state | StateFlags_Equipped
+
 def gobjs_init():
    let txtfile = "dist/sprites.png"
    let txtur = gl_load_texture(txtfile, 

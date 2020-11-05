@@ -12,6 +12,21 @@ import vec
 // Base class for system specific callback objects.
 class BusEndpoint:
    system: ObjectSystem
+
+   // Returns true if `what` is equipped somewhere.
+   def item_is_equipped_impl(what: ObjId) -> bool:
+      return false
+
+   // Returns the item slot the object can be equipped in.
+   // ItemSlot_None if it is not equippable.
+   def equip_slot_impl(what: ObjId) -> ItemSlot:
+      return ItemSlot_None
+
+   // Equips `what` on `who` at it's default item slot.  
+   // It's an error to equip an item whose slot is already full.
+   def equip_impl(who: ObjId, what: ObjId):
+      return 
+
    // Returns the grid position of `what`.
    def pos_impl(what: ObjId) -> bool, xy_i:
       return false, xy_i{0,0}
@@ -381,3 +396,17 @@ def object_stats(what: ObjId) -> [StatEnt]:
 // none.
 def equipment_at(who: ObjId, where: ItemSlot) -> ObjId?:
    return Endpoints[who.system].equipment_at_impl(who, where)
+
+// Returns the item slot the object can be equipped in.
+// ItemSlot_None if it is not equippable.
+def equip_slot(what: ObjId) -> ItemSlot:
+   return Endpoints[what.system].equip_slot_impl(what)
+
+// Equips `what` on `who` at it's default item slot.  
+// It's an error to equip an item whose slot is already full.
+def equip(who: ObjId, what: ObjId):
+   Endpoints[what.system].equip_impl(who, what)
+
+// Returns true if `what` is equipped somewhere.
+def item_is_equipped(what: ObjId) -> bool:
+   return Endpoints[what.system].item_is_equipped_impl(what)

@@ -68,8 +68,9 @@ enum ItemFlags:
     ItemFlags_Immobile = 32
     ItemFlags_Container = 64
 
-enum StateFlags:
+enum_flags StateFlags:
     StateFlags_Open = 1
+    StateFlags_Equipped = 2
 
 enum AnimationKind:
     AnimationKind_OneShot = 0

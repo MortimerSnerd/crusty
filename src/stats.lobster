@@ -81,3 +81,14 @@ def damage_roll(name: DmgRange) -> int:
 def damage_roll(r: DamageRange) -> int:
    return max(0, damage_roll(r.name()) + r.plus())
 
+// How long to put this on.
+def equip_time_for(who: ObjId, what: ObjId, now: float) -> float:
+   //TODO should be based on equipment
+   let st = object_stats(who)
+
+   if length(st) > 0:
+      let speed = value(st, now, GameStats_Speed)
+
+      return speed_factor(speed)
+   else:
+      return 1.0

@@ -150,6 +150,20 @@ def player_init():
             rv = act
       rv
 
+   bind("e", "Equip") player, now, prompt:
+      let item = equippable_sample(player)
+      var rv = nil
+
+      if item:
+         if prompt:
+            start_item_interaction(player, iiEquip)
+         else:
+            let r, act = equip_action(FakeTurnSpan, GameTime, player, 
+                                      item)
+
+            rv = act
+      rv
+
    bind("i", "Inventory") player, now, prompt: 
       if prompt:
          start_item_interaction(player, iiPut)

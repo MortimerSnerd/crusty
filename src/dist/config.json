@@ -8,7 +8,8 @@
                 speed: 5, 
                 kind: Slashing, 
                 dmg: {range: Low2D6, plus: 0}
-            }
+            }, 
+            slot: Melee
         },
         {
             kind: Player, 

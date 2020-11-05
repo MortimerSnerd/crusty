@@ -7,6 +7,7 @@ import bus
 import color
 import config_generated
 import imgui
+import objlist
 import objutils
 
 
@@ -92,6 +93,37 @@ def opened_containers_at(p: xy_i) -> ObjList:
 
    return rv
 
+private let AllSlots = [ItemSlot_Melee, ItemSlot_Head, ItemSlot_Chest, 
+                        ItemSlot_Feet]
+private let SlotHeading = ["In hand", "On head", "On chest", "On feet"]
+
+
+// If any item in inventory is equippable, returns it.
+// Mainly used for player action hints.
+def equippable_sample(who: ObjId) -> ObjId?:
+   for_objects_in(who) o:
+      let ar, act = equip_action(FakeTurnSpan, 0, who, o)
+
+      if act:
+         return o
+
+   return nil
+
+// Populates two lists, (equipped objects, equippable objects)
+// Equippable objects are just the items in inventory right now.
+def equipment_for(who: ObjId, equipped: ObjList, equippable: ObjList):
+   for(AllSlots) slot, si:
+      add_section(equipped, SlotHeading[si])
+      for_objects_in(who) o:
+         if item_is_equipped(o) and equip_slot(o) == slot:
+            add_object(equipped, o)
+
+   add_section(equippable, "In inventory")
+
+   for_objects_in(who) o:
+      if not item_is_equipped(o) and equip_slot(o) != ItemSlot_None:
+         add_object(equippable, o)
+
 // Adds a section for any items inside of a container `o` to `list`.
 private def add_container_objects(player: ObjId, list: ObjList, o: ObjId):
    add_section(list, "In " + object_spec(o).short_name)
@@ -128,12 +160,14 @@ def grabbable_objs_at(player: ObjId, p: xy_i, options: ObjListOptions = olAddCho
 
    return rv
 
+// Inventory objects, excluding worn and wielded objects.
 def held_objects(player: ObjId, options: ObjListOptions = olAddChoiceLetter|olGroup) -> ObjList:
    let rv = ObjList{options: options}
 
    add_section(rv, "In inventory")
    for_objects_in(player) o:
-      add_object(rv, o)
+      if not item_is_equipped(o):
+         add_object(rv, o)
 
    return rv
 
@@ -187,19 +221,22 @@ def prompt_for_object(player: ObjId, title: string, cands: ObjList, skip_one: bo
 // Represents pairs of item sources and/or destinations.
 enum IIModes:
    iiGet, 
-   iiPut
+   iiPut,
+   iiEquip
 
 // Represents the location that a ObjList or ObjList section
 // is populated from.
 enum LocationKind:
    PlayerInventory,   
    Ground,           
-   Container
+   Container, 
+   EquipSlot
 
 private class Location:
    kind: LocationKind
    // Container object for kind=Container
    obj: ObjId? = nil       
+   slot: ItemSlot = ItemSlot_None
 
 
 private def lhs_options(m: IIModes):
@@ -208,6 +245,9 @@ private def lhs_options(m: IIModes):
          return olGroup
 
       case iiPut:
+         return olAddChoiceLetter|olGroup
+
+      case iiEquip:
          return olAddChoiceLetter|olGroup
 
    return olNone
@@ -220,6 +260,9 @@ private def rhs_options(m: IIModes):
       case iiPut:
           olGroup
 
+      case iiEquip:
+         return olAddChoiceLetter|olGroup
+
       default:
          return olNone
 
@@ -231,6 +274,9 @@ private def mode_label(m: IIModes):
       case iiPut:
          "> Put >"
 
+      case iiEquip:
+         "< Equip <"
+
       default:
          return "<>"
 
@@ -241,6 +287,9 @@ private def mode_button_label(m: IIModes):
 
       case iiPut:
          "Put [F2]"
+
+      case iiEquip:
+         "Equip [F3]"
 
       default:
          ""
@@ -306,6 +355,9 @@ class IIData : UserData
             "Drop items on the ground, or put them in a container." + 
             " A yellow box higlights where the item will go."
 
+         case iiEquip:
+            "Equip, wield, or take off equipment."
+
          default: 
             ""
 
@@ -335,6 +387,19 @@ class IIData : UserData
                rhs_cur_section = -1
 
             set_rhs_section_names()
+
+         case iiEquip:
+            lhs = ObjList{options: lhs_options(mode)} 
+            lhs_locs = []
+            for(AllSlots) slot:
+               push(lhs_locs, Location{kind: EquipSlot, slot: slot})
+
+            rhs = ObjList{options: rhs_options(mode),
+                          start_letter: length(AllSlots) + 1}  // Don't overlap letter choices.
+            rhs_locs = [Location{kind: PlayerInventory}]
+
+            equipment_for(player, lhs, rhs)
+            rhs_cur_section = -1
    
 def execute(self:: ListUpdate, data: IIData):
    switch data.mode:
@@ -349,6 +414,16 @@ def execute(self:: ListUpdate, data: IIData):
 
          if obj:
             add_object(data.rhs, obj, right_sect)
+
+      case iiEquip:
+         if left_item == -1:
+            // Equipping from right.
+            //TODO not right, we want an entry for every slot, and to 
+            // put it in the correct slot.
+            let obj = remove_obj(data.rhs, right_sect, right_item)
+
+            if obj:
+               add_object(data.lhs, obj, left_sect)
 
 private def waiting_for_action(data: IIData):
    return data.player_action != nil
@@ -368,6 +443,8 @@ private def ii_handler(data: UserData?):
          data.init_mode(iiGet)
       elif gl_button("f2") == 1:
          data.init_mode(iiPut)
+      elif gl_button("f3") == 1:
+         data.init_mode(iiEquip)
 
       data.rhs.highlighted_section = data.rhs_cur_section
 
@@ -399,6 +476,10 @@ private def ii_handler(data: UserData?):
                            //TODO report ar
                            data.player_action = act
 
+                        case iiEquip:
+                           //TODO no remove equipment action yet.
+                           pass()
+
             im_column():
                im_set_column_width(-1, 50)
                im_text(mode_label(data.mode))
@@ -427,6 +508,21 @@ private def ii_handler(data: UserData?):
                         case iiPut:
                            pass()
 
+                        case iiEquip:
+                           let lsect = find(data.lhs_locs) x: x.slot == equip_slot(oid)
+
+                           data.post_action_update = ListUpdate{
+                              left_sect: lsect, 
+                              right_sect: si, 
+                              right_item: ii
+                           }
+
+                           let ar, act = equip_action(FakeTurnSpan, 0, data.player, 
+                                                      oid)
+
+                           print("ARF " + ar)
+                           data.player_action = act
+
          im_separator()
          im_spacing()
 
@@ -438,7 +534,7 @@ private def ii_handler(data: UserData?):
          im_separator()
          im_spacing()
 
-         im_columns(3, "buttons", false):
+         im_columns(4, "buttons", false):
             im_column():
                if im_button(mode_button_label(iiGet)) and data.mode != iiGet:
                   data.init_mode(iiGet)
@@ -446,6 +542,10 @@ private def ii_handler(data: UserData?):
             im_column():
                if im_button(mode_button_label(iiPut)) and data.mode != iiPut:
                   data.init_mode(iiPut)
+
+            im_column():
+               if im_button(mode_button_label(iiEquip)) and data.mode != iiEquip:
+                  data.init_mode(iiEquip)
 
             im_column():
                if im_button("Dismiss [Esc]"):

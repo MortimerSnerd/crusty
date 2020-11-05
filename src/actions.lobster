@@ -24,7 +24,9 @@ enum ActionResultKinds:
    arCanNotReach, 
    arCanNotTakeAnything, 
    arCanNotTake, 
-   arCanNotPut
+   arCanNotPut, 
+   arAlreadyEquipped, 
+   arCanNotEquip
 
 class ActionResult:
    kind: ActionResultKinds
@@ -187,6 +189,32 @@ def put_action(span: TurnSpan, now: float, who: ObjId, what: ObjId, where: ObjId
       else:
          return ActionResult{kind: arCanNotReach}, nil
 
+// Action to put on a piece of equipment, or
+// wield a weapon.
+class WearEquipment : ActionBase
+   what: ObjId
+
+   def execute():
+      equip(who, what)
+
+def equip_action(span: TurnSpan, now: float, who: ObjId, what: ObjId) -> ActionResult, WearEquipment?:
+   let slot = equip_slot(what)
+
+   if slot == ItemSlot_None:
+      return ActionResult{kind: arCanNotEquip, other: what}, nil
+   else:
+      let cur = equipment_at(who, slot)
+
+      if cur:
+         return ActionResult{kind: arCanNotEquip, other: what}, nil
+      elif item_is_equipped(what):
+         return ActionResult{kind: arAlreadyEquipped, other: what}, nil
+      else:
+         return GoodResult, WearEquipment{
+            who: who, time: now, what: what, 
+            duration: equip_time_for(who, what, now)
+         }
+   
 class MeleeAttackAction : ActionBase
    target: ObjId
    weapon: ObjId

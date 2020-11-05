@@ -98,7 +98,8 @@ enum ItemFlags : uint32 (bit_flags)
 
 enum StateFlags : uint32 (bit_flags)
 {
-    Open
+    Open, 
+    Equipped
 }
 
 table ObjectSpec {
