@@ -308,6 +308,12 @@ class GobjEndpoint : BusEndpoint
          what.parent = who
          what.state = what.state | StateFlags_Equipped
 
+   def unequip_impl(who: ObjId, what: ObjId):
+      if who is GOInst and what is GOInst:
+         assert what.state & StateFlags_Equipped != 0
+         assert what.parent == who
+         what.state = what.state & ~StateFlags_Equipped
+
 def gobjs_init():
    let txtfile = "dist/sprites.png"
    let txtur = gl_load_texture(txtfile, 

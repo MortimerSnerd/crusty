@@ -159,7 +159,21 @@ def player_init():
             start_item_interaction(player, iiEquip)
          else:
             let r, act = equip_action(FakeTurnSpan, GameTime, player, 
-                                      item)
+                                        item)
+
+            rv = act
+      rv
+
+   bind("r", "Remove") player, now, prompt:
+      let item = unequippable_sample(player)
+      var rv = nil
+
+      if item:
+         if prompt:
+            start_item_interaction(player, iiEquip)
+         else:
+            let r, act = unequip_action(FakeTurnSpan, GameTime, player, 
+                                        item)
 
             rv = act
       rv

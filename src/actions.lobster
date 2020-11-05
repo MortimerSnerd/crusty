@@ -26,7 +26,8 @@ enum ActionResultKinds:
    arCanNotTake, 
    arCanNotPut, 
    arAlreadyEquipped, 
-   arCanNotEquip
+   arCanNotEquip, 
+   arNotEquipped
 
 class ActionResult:
    kind: ActionResultKinds
@@ -215,6 +216,24 @@ def equip_action(span: TurnSpan, now: float, who: ObjId, what: ObjId) -> ActionR
             duration: equip_time_for(who, what, now)
          }
    
+class RemoveEquipment : ActionBase
+   what: ObjId
+
+   def execute():
+      unequip(who, what)
+
+
+def unequip_action(span: TurnSpan, now: float, who: ObjId, what: ObjId) -> ActionResult, RemoveEquipment?:
+   let slot = equip_slot(what)
+
+   if item_is_equipped(what) and equipment_at(who, slot) == what:
+      return GoodResult, RemoveEquipment{
+         who: who, time: now, what: what, 
+         duration: equip_time_for(who, what, now)
+      }
+   else:
+      return ActionResult{kind: arNotEquipped, other: what}, nil
+
 class MeleeAttackAction : ActionBase
    target: ObjId
    weapon: ObjId

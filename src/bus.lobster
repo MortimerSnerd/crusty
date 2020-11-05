@@ -27,6 +27,10 @@ class BusEndpoint:
    def equip_impl(who: ObjId, what: ObjId):
       return 
 
+   // Unequips an item that is equipped.
+   def unequip_impl(who: ObjId, what: ObjId):
+      return
+
    // Returns the grid position of `what`.
    def pos_impl(what: ObjId) -> bool, xy_i:
       return false, xy_i{0,0}
@@ -410,3 +414,8 @@ def equip(who: ObjId, what: ObjId):
 // Returns true if `what` is equipped somewhere.
 def item_is_equipped(what: ObjId) -> bool:
    return Endpoints[what.system].item_is_equipped_impl(what)
+
+// Unequips an item that is equipped.
+def unequip(who: ObjId, what: ObjId):
+   Endpoints[what.system].unequip_impl(who, what)
+

@@ -109,6 +109,15 @@ def equippable_sample(who: ObjId) -> ObjId?:
 
    return nil
 
+def unequippable_sample(who: ObjId) -> ObjId?:
+   for_objects_in(who) o:
+      let ar, act = unequip_action(FakeTurnSpan, 0, who, o)
+
+      if act:
+         return o
+
+   return nil
+
 // Populates two lists, (equipped objects, equippable objects)
 // Equippable objects are just the items in inventory right now.
 def equipment_for(who: ObjId, equipped: ObjList, equippable: ObjList):
@@ -275,7 +284,7 @@ private def mode_label(m: IIModes):
          "> Put >"
 
       case iiEquip:
-         "< Equip <"
+         "< Equip >"
 
       default:
          return "<>"
@@ -289,7 +298,7 @@ private def mode_button_label(m: IIModes):
          "Put [F2]"
 
       case iiEquip:
-         "Equip [F3]"
+         "Equip/Remove [F3]"
 
       default:
          ""
@@ -418,12 +427,18 @@ def execute(self:: ListUpdate, data: IIData):
       case iiEquip:
          if left_item == -1:
             // Equipping from right.
-            //TODO not right, we want an entry for every slot, and to 
-            // put it in the correct slot.
             let obj = remove_obj(data.rhs, right_sect, right_item)
 
             if obj:
                add_object(data.lhs, obj, left_sect)
+
+         else:
+            // Removing from left.
+            let obj = remove_obj(data.lhs, left_sect, left_item)
+
+            if obj:
+               add_object(data.rhs, obj, right_sect)
+
 
 private def waiting_for_action(data: IIData):
    return data.player_action != nil
@@ -477,8 +492,17 @@ private def ii_handler(data: UserData?):
                            data.player_action = act
 
                         case iiEquip:
-                           //TODO no remove equipment action yet.
-                           pass()
+                           data.post_action_update = ListUpdate{
+                              left_sect: si, 
+                              left_item: ii, 
+                              right_sect: 0
+                           }
+
+                           let ar, act = unequip_action(FakeTurnSpan, 0, data.player, 
+                                                        oid)
+
+                           //TODO report ar
+                           data.player_action = act
 
             im_column():
                im_set_column_width(-1, 50)
@@ -520,7 +544,6 @@ private def ii_handler(data: UserData?):
                            let ar, act = equip_action(FakeTurnSpan, 0, data.player, 
                                                       oid)
 
-                           print("ARF " + ar)
                            data.player_action = act
 
          im_separator()
