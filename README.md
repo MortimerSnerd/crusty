@@ -43,13 +43,21 @@ need to be aware of each other.  (or cause import recursion)
 ObjId used to be a id that could be used to find an object.  This started
 to bog down quite a bit when adding lots of objects. 
 
-Switched over to the ObjId being a object reference to a base class, 
+Then switched over to the ObjId being a object reference to a base class, 
 that has an embedded links so it can be linked into doubly linked lists.
 
 On the good side, saves a lot of sorting to do lookups on objids.
 
 On the bad side, debugging is uglier, can't just expand an array
 to see all of the objects.
+
+So ugly in fact, I went back partway.  Game objects inherit from ObjId, but
+there are no link pointers for linked lists.  The gobjs module went back to 
+keeping the objects in a array.  Deleted objects are set to nil in the array, 
+and when a new object is created, it does a naive scan for deleted entry
+before adding a new item to the array.  Seems dumb, but it runs fine.  
+If the scanning is a problem, can easily be built upon to keep a free list
+for empty slots.
 
 
 ## The bus module
