@@ -1,5 +1,6 @@
 import from "../../../src/crusty/src/"
 import actions
+import actionlog
 import animations
 import bus
 import gobjs
@@ -24,6 +25,7 @@ private def perform_action(act):
       animations_turn_begin()
       TurnTime = TurnSpan{GameTime, GameTime + act.duration}
       execute(act)
+      actionlog_present(string(act))
       PlayerState = Stepping
       let t0 = seconds_elapsed()
       process_callbacks(TurnTime, TurnTime.end)
@@ -271,4 +273,4 @@ def player_handle_input(player: ObjId):
 // Called when it's ok to do imgui UI drawing.
 // The projection is already set up for pixel coords.
 def player_handle_ui():
-   pass()
+   actionlog_render()
