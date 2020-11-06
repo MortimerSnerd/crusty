@@ -36,7 +36,7 @@
         }, 
         {
             kind: Dresser, 
-            short_name: "A oak dresser.",
+            short_name: "oak dresser",
             static_tile: Dresser,
             right_rotation: -90,
             flags: "AbutsWall Immobile Container", 

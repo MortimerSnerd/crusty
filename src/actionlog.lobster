@@ -29,7 +29,7 @@ private def for_all_messages(body):
 // the user's screen.
 def actionlog_present(msg: string):
    if length(Msgs) > 0:
-      let lasti = (Start + length(Msgs)) % length(Msgs)
+      let lasti = (Start + length(Msgs)-1) % length(Msgs)
       if lasti >= 0 and Msgs[lasti].msg == msg:
          ++Msgs[lasti].count
       else:

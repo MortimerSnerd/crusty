@@ -25,7 +25,11 @@ private def perform_action(act):
       animations_turn_begin()
       TurnTime = TurnSpan{GameTime, GameTime + act.duration}
       execute(act)
-      actionlog_present(string(act))
+      let msg = present(act.who, act, nil)
+
+      if length(msg) > 0:
+         actionlog_present(msg)
+
       PlayerState = Stepping
       let t0 = seconds_elapsed()
       process_callbacks(TurnTime, TurnTime.end)
@@ -57,28 +61,39 @@ def bind(key, desc, afn): push(Bindings, Binding{key: key, desc: desc, afn: afn}
 
 
 def player_init():
+   def mumble(player, act, ar):
+      if not act:
+         let msg = present(player, act, ar)
+
+         if length(msg) > 0:
+            actionlog_present(msg)
+
    bind("w", "Move forward") player, now, prompt:
       let f, p = pos(player)
       let f1, diri = direction(player)
       let r, act = move_action(FakeTurnSpan, GameTime, player, p, p + all_dirs[diri])
+      if prompt: mumble(player,act,r)
       act
 
    bind("s", "Move back") player, now, prompt:
       let f, p = pos(player)
       let f1, diri = direction(player)
       let r, act = move_action(FakeTurnSpan, GameTime, player, p, p + all_dirs[diri]*-1)
+      if prompt: mumble(player,act,r)
       act
 
    bind("a", "Turn left") player, now, prompt:
       let f, dir = direction(player)
       let diri = turned_left(dir)
       let r, act = turn_action(FakeTurnSpan, GameTime, player, dir, diri)
+      if prompt: mumble(player,act,r)
       act
 
    bind("d", "Turn right") player, now, prompt:
       let f, dir = direction(player)
       let diri = turned_right(dir)
       let r, act = turn_action(FakeTurnSpan, GameTime, player, dir, diri)
+      if prompt: mumble(player,act,r)
       act
 
    bind("o", "Open") player, now, prompt:
@@ -92,6 +107,7 @@ def player_init():
                if data is ObjPromptData and data.picked:
                   let r, act = open_action(FakeTurnSpan, GameTime, data.player, 
                                            data.picked)
+                  mumble(player,act,r)
                   act
                else:
                   nil
@@ -112,6 +128,7 @@ def player_init():
                if data is ObjPromptData and data.picked:
                   let r, act = close_action(FakeTurnSpan, GameTime, data.player, 
                                             data.picked)
+                  mumble(player,act,r)
                   act
                else:
                   nil
@@ -223,13 +240,17 @@ def player_handle_input(player: ObjId):
 
             handled = true
       else:
-         let act = poll_item_interaction_action()
+         let ar, act = poll_item_interaction_action()
 
          if act:
             act.time = GameTime  // Patch in right time, ui module doesn't know.
             perform_action(act)
             rv = GoodTurnBegins
             handled = true
+         else:
+            let msg = present(player, act, ar)
+
+            if length(msg) > 0: actionlog_present(msg)
 
       return handled
 

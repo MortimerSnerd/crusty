@@ -6,6 +6,11 @@ enum GameStats : uint8
    Melee, Defence, Dodge
 }
 
+// Hints for module that puts together log messages.
+enum GenderSpec : uint8 {
+    He, She, It
+}
+
 // Where an item can be held or is held, depending on context.
 enum ItemSlot : uint8 {
     None,
@@ -116,6 +121,7 @@ table ObjectSpec {
    weapon_stats: WeaponStats;
    // Where the item can be equipped.
    slot: ItemSlot = None;   
+   gender: GenderSpec = It;
 } 
 
 enum AnimationKind : uint8

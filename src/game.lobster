@@ -8,6 +8,7 @@ import bus
 import callbacks
 import config
 import config_generated
+import engrish
 import gobjs
 import imgui
 import player
@@ -84,6 +85,7 @@ def game_init():
 
    if spawn:
       Player = gobjs_spawn(ObjectKind_Player, spawn.pos, East)
+      engrish_init(Player)
       play_animation(Player, "player_idle")
       gobjs_spawn(ObjectKind_Sword, spawn.pos + xy_i{1, 0}, North)
       maps_update_viz(spawn.pos, true)

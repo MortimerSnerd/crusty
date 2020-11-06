@@ -2,6 +2,7 @@
 import from "../../../src/crusty/src/"
 import bus
 import config
+import engrish
 import logging
 import objutils
 import stats
@@ -14,6 +15,10 @@ class ActionBase:
    def execute():
       error(): "exectute no implemented for " + this
       assert false
+
+   // Returns a subject for this action, if any.
+   def subject() -> ObjId?:
+      return nil
 
 enum ActionResultKinds:
    arOk, 
@@ -70,6 +75,9 @@ def turn_action(span: TurnSpan, now: float, who: ObjId, start: Directions, end: 
 class OpenAction : ActionBase
    what: ObjId
    opening: bool
+
+   def subject() -> ObjId?:
+      return what
 
    def execute():
       if opening:
@@ -128,6 +136,9 @@ class TakeAction : ActionBase
    // this field holds it.
    where: ObjId? = nil
 
+   def subject() -> ObjId?:
+      return what
+
    def execute():
       if where:
          notify_take_out(time, who, what, where)
@@ -159,6 +170,9 @@ class PutAction : ActionBase
    where: ObjId? = nil
    // Grid location if `where` is nil.
    loc: xy_i  = xy_i{0,0}  
+
+   def subject() -> ObjId?:
+      return what
 
    def execute():
       if where:
@@ -195,6 +209,9 @@ def put_action(span: TurnSpan, now: float, who: ObjId, what: ObjId, where: ObjId
 class WearEquipment : ActionBase
    what: ObjId
 
+   def subject() -> ObjId?:
+      return what
+
    def execute():
       equip(who, what)
 
@@ -218,6 +235,9 @@ def equip_action(span: TurnSpan, now: float, who: ObjId, what: ObjId) -> ActionR
    
 class RemoveEquipment : ActionBase
    what: ObjId
+
+   def subject() -> ObjId?:
+      return what
 
    def execute():
       unequip(who, what)
@@ -311,3 +331,87 @@ def for_possible_actions(span: TurnSpan, who: ObjId, now: float,
 
             if ta:
                bodyfn(ta)
+
+// Converts an action result and an action
+// into a loggable message.  Returns an empty
+// string if the message shouldn't be visible to 
+// the player, or if it's just something too common
+// to be logged.
+def present(who: ObjId, act: ActionBase?, ar: ActionResult?) -> string:
+   def subject_name(theAct):
+      let s = subject(theAct)
+
+      if s:
+         return object_spec(s).short_name
+      else:
+         return "it"
+         
+   def oname(obj):
+      return object_spec(obj).short_name
+
+   def equipverb(what):
+      switch object_spec(what).slot():
+         case ItemSlot_Melee:
+            return "wield"
+         default: 
+            return "wear"
+
+   def remove_verb(what):
+      switch object_spec(what).slot():
+         case ItemSlot_Melee:
+            return "sheathe"
+         default: 
+            return "remove"
+
+   if not ar or ar.kind == arOk:
+      if act:
+         if act is OpenAction:
+            let v = if act.opening: "open" else: "close"
+            return sentence([pronoun(who), verb(who, v), article(who), 
+                              subject_name(act)])
+         elif act is TakeAction:
+            if act.where:
+               return sentence([pronoun(who), verb(who, "take"), article(who), 
+                               oname(act.what), "from", article(who), 
+                               oname(act.where)])
+            else:
+               return sentence([pronoun(who), verb(who, "take"), article(who), 
+                               oname(act.what), "from the ground"])
+
+         elif act is PutAction:
+            if act.where:
+               return sentence([pronoun(who), verb(who, "put"), article(who), 
+                                oname(act.what), "in", article(who), 
+                                oname(act.where)])
+            else:
+               return sentence([pronoun(who), verb(who, "drop"), article(who), 
+                                oname(act.what), "on the ground"])
+
+         elif act is WearEquipment:
+            return sentence([pronoun(who), verb(who, equipverb(act.what)), 
+               article(who), oname(act.what)])
+
+         elif act is RemoveEquipment:
+            return sentence([pronoun(who), verb(who, remove_verb(act.what)), 
+               article(who), oname(act.what)])
+
+      return ""
+   else:
+      //TODO error messages for player actions that are not possible.
+      // where can these happen?
+      if ar:
+         return "My balls hurt: " + ar.kind
+      else:
+         return ""
+
+   //arBlocked,
+   //arNotOpenable,
+   //arAlreadyOpen,
+   //arAlreadyClosed,
+   //arCanNotReach,
+   //arCanNotTakeAnything,
+   //arCanNotTake,
+   //arCanNotPut,
+   //arAlreadyEquipped,
+   //arCanNotEquip,
+   //arNotEquipped

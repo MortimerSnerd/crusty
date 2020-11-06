@@ -329,6 +329,7 @@ class IIData : UserData
    // we ignore input.  It will be set back to nil once the player
    // module has executed the action, and the turn is finished.
    player_action: ActionBase? = nil
+   player_action_result: ActionResult = GoodResult
    post_action_update: ListUpdate? = nil
 
    private def sect_name(i, name):
@@ -441,7 +442,7 @@ def execute(self:: ListUpdate, data: IIData):
 
 
 private def waiting_for_action(data: IIData):
-   return data.player_action != nil
+   return data.player_action != nil or data.player_action_result.kind != arOk
 
 private def ii_handler(data: UserData?):
    var rv = Working
@@ -478,31 +479,34 @@ private def ii_handler(data: UserData?):
                            pass()
 
                         case iiPut:
-                           data.post_action_update = ListUpdate{
-                              left_sect: si, 
-                              left_item: ii, 
-                              right_sect: data.rhs_cur_section
-                           }
-
                            let rloc = data.rhs_locs[data.rhs_cur_section]
 
                            let ar, act = put_action(FakeTurnSpan, 0, data.player, 
                                                     oid, rloc.obj)
-                           //TODO report ar
+                           data.player_action_result = ar
                            data.player_action = act
 
-                        case iiEquip:
-                           data.post_action_update = ListUpdate{
-                              left_sect: si, 
-                              left_item: ii, 
-                              right_sect: 0
-                           }
+                           if act:
+                              data.post_action_update = ListUpdate{
+                                 left_sect: si, 
+                                 left_item: ii, 
+                                 right_sect: data.rhs_cur_section
+                              }
 
+
+                        case iiEquip:
                            let ar, act = unequip_action(FakeTurnSpan, 0, data.player, 
                                                         oid)
 
-                           //TODO report ar
+                           data.player_action_result = ar
                            data.player_action = act
+                           if act:
+                              data.post_action_update = ListUpdate{
+                                 left_sect: si, 
+                                 left_item: ii, 
+                                 right_sect: 0
+                              }
+
 
             im_column():
                im_set_column_width(-1, 50)
@@ -517,17 +521,17 @@ private def ii_handler(data: UserData?):
                   elif oid:
                      switch data.mode:
                         case iiGet:
-                           data.post_action_update = ListUpdate{
-                              right_sect: si, 
-                              right_item: ii
-                           }
-
                            let rloc = data.rhs_locs[si]
 
                            let ar, act = take_action(FakeTurnSpan, 0, 
                                                      data.player, oid, rloc.obj)
-                           //TODO report ar
                            data.player_action = act
+                           data.player_action_result = ar
+                           if act:
+                              data.post_action_update = ListUpdate{
+                                 right_sect: si, 
+                                 right_item: ii
+                              }
 
                         case iiPut:
                            pass()
@@ -535,16 +539,17 @@ private def ii_handler(data: UserData?):
                         case iiEquip:
                            let lsect = find(data.lhs_locs) x: x.slot == equip_slot(oid)
 
-                           data.post_action_update = ListUpdate{
-                              left_sect: lsect, 
-                              right_sect: si, 
-                              right_item: ii
-                           }
-
                            let ar, act = equip_action(FakeTurnSpan, 0, data.player, 
                                                       oid)
 
                            data.player_action = act
+                           data.player_action_result = ar
+                           if act:
+                              data.post_action_update = ListUpdate{
+                                 left_sect: lsect, 
+                                 right_sect: si, 
+                                 right_item: ii
+                              }
 
          im_separator()
          im_spacing()
@@ -598,11 +603,11 @@ def start_item_interaction(player: ObjId, mode: IIModes):
 
 // Returns any action the player module needs to execute
 // in response to a command in the item interaction dialog.
-def poll_item_interaction_action() -> ActionBase?:
+def poll_item_interaction_action() -> ActionResult, ActionBase?:
    if Acts and Acts.data is IIData:
-      return Acts.data.player_action
+      return Acts.data.player_action_result, Acts.data.player_action
    else:
-      return nil
+      return GoodResult, nil
 
 // Should be called by the player module when after an action taken 
 // from poll_item_interaction_action() has been executed, and the turn

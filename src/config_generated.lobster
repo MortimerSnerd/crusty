@@ -10,6 +10,11 @@ enum GameStats:
     GameStats_Defence = 5
     GameStats_Dodge = 6
 
+enum GenderSpec:
+    GenderSpec_He = 0
+    GenderSpec_She = 1
+    GenderSpec_It = 2
+
 enum ItemSlot:
     ItemSlot_None = 0
     ItemSlot_Melee = 1
@@ -68,7 +73,7 @@ enum ItemFlags:
     ItemFlags_Immobile = 32
     ItemFlags_Container = 64
 
-enum_flags StateFlags:
+enum StateFlags:
     StateFlags_Open = 1
     StateFlags_Equipped = 2
 
@@ -199,13 +204,15 @@ class ObjectSpec : flatbuffers_handle
         return if o: WeaponStats { buf_, o } else: nil
     def slot():
         return ItemSlot(buf_.flatbuffers_field_int8(pos_, 26, 0))
+    def gender():
+        return GenderSpec(buf_.flatbuffers_field_int8(pos_, 28, 2))
 
 def GetRootAsObjectSpec(buf:string): return ObjectSpec { buf, buf.flatbuffers_indirect(0) }
 
 struct ObjectSpecBuilder:
     b_:flatbuffers_builder
     def start():
-        b_.StartObject(12)
+        b_.StartObject(13)
         return this
     def add_kind(kind:ObjectKind):
         b_.PrependInt16Slot(0, kind, 0)
@@ -242,6 +249,9 @@ struct ObjectSpecBuilder:
         return this
     def add_slot(slot:ItemSlot):
         b_.PrependUint8Slot(11, slot, 0)
+        return this
+    def add_gender(gender:GenderSpec):
+        b_.PrependUint8Slot(12, gender, 2)
         return this
     def end():
         return b_.EndObject()
