@@ -12,6 +12,7 @@ import engrish
 import gobjs
 import imgui
 import player
+import stats
 import std
 import uitools
 import vec
@@ -73,6 +74,7 @@ def set_map_projection(center: xy_f, tile_pixel_sz: int, view_area: xy_f) -> Rec
    return Rectf{center - viewsz, center + viewsz}
 
 def game_init():
+   stats_init()
    rnd_seed(product(date_time()))
    gl_load_materials("dist/crusty.materials")
    im_init(false)

@@ -9,7 +9,8 @@
                 kind: Slashing, 
                 dmg: {range: Low2D6, plus: 0},
                 hit_sound: "dist/yoink.wav",
-                miss_sound: "dist/ouch1.wav"
+                miss_sound: "dist/ouch1.wav",
+                skill: Melee
             }, 
             slot: Melee
         },
@@ -97,7 +98,9 @@
                 {name: Str, val: 10},
                 {name: Speed, val: 10},
                 {name: Will, val: 10}, 
-                {name: Wit, val: 10}
+                {name: Wit, val: 10}, 
+                {name: Melee, val: 10},
+                {name: Defence, val: 10}
             ],
         }, 
         {
@@ -106,8 +109,14 @@
                 {name: Str, val: 3},
                 {name: Speed, val: 4},
                 {name: Will, val: 5}, 
-                {name: Wit, val: 1}
+                {name: Wit, val: 1},
+                {name: Melee, val: 3}, 
+                {name: Defence, val: 4}
             ],
         }
+    ], 
+
+    opposing: [
+        {atk: Melee, defend: Defence}
     ]
 }

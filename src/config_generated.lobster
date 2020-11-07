@@ -88,6 +88,8 @@ class StatTemplate
 
 class DamageRange
 
+class CfgSkillPair
+
 class WeaponStats
 
 class ObjectSpec
@@ -151,6 +153,18 @@ def CreateDamageRange(b_:flatbuffers_builder, range:DmgRange, plus:int):
     b_.PrependUint8(range)
     return b_.Offset()
 
+class CfgSkillPair : flatbuffers_handle
+    def atk():
+        return GameStats(buf_.read_int8_le(pos_ + 0))
+    def defend():
+        return GameStats(buf_.read_int8_le(pos_ + 1))
+
+def CreateCfgSkillPair(b_:flatbuffers_builder, atk:GameStats, defend:GameStats):
+    b_.Prep(1, 2)
+    b_.PrependUint8(defend)
+    b_.PrependUint8(atk)
+    return b_.Offset()
+
 class WeaponStats : flatbuffers_handle
     def speed():
         return buf_.flatbuffers_field_int32(pos_, 4, 0)
@@ -163,13 +177,15 @@ class WeaponStats : flatbuffers_handle
         return buf_.flatbuffers_field_string(pos_, 10)
     def hit_sound():
         return buf_.flatbuffers_field_string(pos_, 12)
+    def skill():
+        return GameStats(buf_.flatbuffers_field_int8(pos_, 14, 5))
 
 def GetRootAsWeaponStats(buf:string): return WeaponStats { buf, buf.flatbuffers_indirect(0) }
 
 struct WeaponStatsBuilder:
     b_:flatbuffers_builder
     def start():
-        b_.StartObject(5)
+        b_.StartObject(6)
         return this
     def add_speed(speed:int):
         b_.PrependInt32Slot(0, speed, 0)
@@ -185,6 +201,9 @@ struct WeaponStatsBuilder:
         return this
     def add_hit_sound(hit_sound:flatbuffers_offset):
         b_.PrependUOffsetTRelativeSlot(4, hit_sound)
+        return this
+    def add_skill(skill:GameStats):
+        b_.PrependUint8Slot(5, skill, 5)
         return this
     def end():
         return b_.EndObject()
@@ -218,9 +237,9 @@ class ObjectSpec : flatbuffers_handle
     def gender():
         return GenderSpec(buf_.flatbuffers_field_int8(pos_, 28, 2))
     def wield_offset_x():
-        return buf_.flatbuffers_field_float32(pos_, 30, 0.75)
+        return buf_.flatbuffers_field_float32(pos_, 30, 0.5)
     def wield_offset_y():
-        return buf_.flatbuffers_field_float32(pos_, 32, 0.5)
+        return buf_.flatbuffers_field_float32(pos_, 32, 0.75)
 
 def GetRootAsObjectSpec(buf:string): return ObjectSpec { buf, buf.flatbuffers_indirect(0) }
 
@@ -269,10 +288,10 @@ struct ObjectSpecBuilder:
         b_.PrependUint8Slot(12, gender, 2)
         return this
     def add_wield_offset_x(wield_offset_x:float):
-        b_.PrependFloat32Slot(13, wield_offset_x, 0.75)
+        b_.PrependFloat32Slot(13, wield_offset_x, 0.5)
         return this
     def add_wield_offset_y(wield_offset_y:float):
-        b_.PrependFloat32Slot(14, wield_offset_y, 0.5)
+        b_.PrependFloat32Slot(14, wield_offset_y, 0.75)
         return this
     def end():
         return b_.EndObject()
@@ -348,13 +367,17 @@ class ConfigRoot : flatbuffers_handle
         return StatTemplate { buf_, buf_.flatbuffers_indirect(buf_.flatbuffers_field_vector(pos_, 8) + i * 4) }
     def stat_templates_length():
         return buf_.flatbuffers_field_vector_len(pos_, 8)
+    def opposing(i:int):
+        return CfgSkillPair { buf_, buf_.flatbuffers_field_vector(pos_, 10) + i * 2 }
+    def opposing_length():
+        return buf_.flatbuffers_field_vector_len(pos_, 10)
 
 def GetRootAsConfigRoot(buf:string): return ConfigRoot { buf, buf.flatbuffers_indirect(0) }
 
 struct ConfigRootBuilder:
     b_:flatbuffers_builder
     def start():
-        b_.StartObject(3)
+        b_.StartObject(4)
         return this
     def add_objtypes(objtypes:flatbuffers_offset):
         b_.PrependUOffsetTRelativeSlot(0, objtypes)
@@ -364,6 +387,9 @@ struct ConfigRootBuilder:
         return this
     def add_stat_templates(stat_templates:flatbuffers_offset):
         b_.PrependUOffsetTRelativeSlot(2, stat_templates)
+        return this
+    def add_opposing(opposing:flatbuffers_offset):
+        b_.PrependUOffsetTRelativeSlot(3, opposing)
         return this
     def end():
         return b_.EndObject()
@@ -388,4 +414,7 @@ def ConfigRootCreateStatTemplatesVector(b_:flatbuffers_builder, v_:[flatbuffers_
     b_.StartVector(4, v_.length, 4)
     reverse(v_) e_: b_.PrependUOffsetTRelative(e_)
     return b_.EndVector(v_.length)
+
+def ConfigRootStartOpposingVector(b_:flatbuffers_builder, n_:int):
+    b_.StartVector(2, n_, 1)
 

@@ -405,10 +405,18 @@ def melee_attack_action(span: TurnSpan, now: float, who: ObjId, what: ObjId) -> 
             let dist = gridDistance(atk_pos, vic_pos)
 
             if within_melee_range(wstats, dist):
+               let st_target = object_stats(what)
+               let st_attacker = object_stats(who)
+               let atk_skill = wstats.skill()
+               let atk_val = value(st_attacker, now, atk_skill)
+               let def_skill, def_val = find_largest_opposing_skill(st_target, 
+                                                                    atk_skill,
+                                                                    now)
+               let roll = opposed_skill_check(atk_val, def_val)
+
                //TODO facing check and bonus/malus
-               //TODO real to-hit calcs.
                //TODO armor calcs
-               let hit = rnd_float() >= 0.5
+               let hit = roll > 0
                let wdmg = if hit: damage_roll(wstats.dmg()) else: 0
                let act_dmg = wdmg
 

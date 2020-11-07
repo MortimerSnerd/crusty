@@ -7,6 +7,40 @@ import config_generated
 import objutils
 import logging
 
+private struct SkillPair:
+   atk: GameStats
+   defend: GameStats
+
+private let Oppose: [SkillPair] = []
+
+def stats_init():
+   let root = cur_config()
+
+   for(root.opposing_length()) i:
+      let op = root.opposing(i)
+
+      push(Oppose, SkillPair{atk: op.atk(), defend: op.defend()})
+
+// Calculates a value for a particular stat.
+def value(stats: [StatEnt], now: float, stat: GameStats) -> int:
+   var rv = 0
+   //TODO bonuses for certain attributes applied to some skills, based on table.
+   for(stats) se:
+      if se.name == stat:
+         if se.src != Condition or now <= se.life:
+            rv += se.val
+
+   return rv
+
+// Returns base value of a stat, without any modifiers.
+def base_value(stats: [StatEnt], stat: GameStats) -> int:
+   let i = find(stats) x: x.name == stat and x.src == Base
+   if i >= 0:
+      return stats[i].val
+   else:
+      error(): "No base stat found for " + stat
+      return 0
+
 // 10 considered average for all stats.
 private let AvgStatVal = 10.0
 
@@ -60,7 +94,10 @@ def roll_vs_skill(a: int) -> int:
 // (< 0).  This works in a way that it still gives a 
 // useful result if one or both of the skills are > SkillDie 
 def opposed_skill_check(a: int, b: int) -> int:
-   return rnd(clamp_skill(a)) - rnd(clamp_skill(b))
+   let rv = rnd(clamp_skill(a)) - rnd(clamp_skill(b))
+
+   print("  check " + a + " vs " + b + " = " + rv)
+   return rv
 
 def damage_roll_range(name: DmgRange) -> int:
    switch name:
@@ -130,3 +167,22 @@ def attack_duration(who: ObjId, now: float, stats: WeaponStats) -> float:
    else:
       return base
 
+// Finds the largest opposing skill for attack skill atk_skill, and returns
+// (skill name, skill value)
+def find_largest_opposing_skill(target_stats: [StatEnt], atk_skill: GameStats, now: float) -> GameStats, int:
+   var largest = GameStats_Hp
+   var largest_val = -1
+
+   for(Oppose) op:
+      if op.atk == atk_skill:
+         let v = value(target_stats, now, op.defend)
+
+         if v > largest_val:
+            largest = op.defend
+            largest_val = v
+
+   if largest_val >= 0:
+      return largest, largest_val
+   else:
+      assert "" == "No skill configured to oppose " + atk_skill
+      return GameStats_Hp, 0
