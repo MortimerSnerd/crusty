@@ -8,8 +8,8 @@
                 speed: 5, 
                 kind: Slashing, 
                 dmg: {range: Low2D6, plus: 0},
-                hit_sound: "yoink.wav",
-                miss_sound: "ouch1.wav"
+                hit_sound: "dist/yoink.wav",
+                miss_sound: "dist/ouch1.wav"
             }, 
             slot: Melee
         },

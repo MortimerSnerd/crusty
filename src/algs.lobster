@@ -69,6 +69,10 @@ def cycle_right(i: int, num: int) -> int:
    else:
       return i + 1
 
+// Rotate v aronund the origin, where scang = sincos(ang)
+def rotate_around_origin(v: xy_f, scang: xy_f) -> xy_f:
+   return xy_f{v.x*scang.x - v.y*scang.y, v.x*scang.y + v.y*scang.x}
+
 // Treating arrays as binary heaps.
 private def lchild(i: int) -> int:
    return 2*i + 1

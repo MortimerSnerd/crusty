@@ -90,7 +90,7 @@ def equip_time_for(who: ObjId, what: ObjId, now: float) -> float:
    if length(st) > 0:
       let speed = value(st, now, GameStats_Speed)
 
-      return speed_factor(speed)
+      return 1/speed_factor(speed)
    else:
       return 1.0
 
@@ -126,7 +126,7 @@ def attack_duration(who: ObjId, now: float, stats: WeaponStats) -> float:
    if length(st) > 0:
       let speed = value(st, now, GameStats_Speed)
 
-      return speed_factor(speed) * base
+      return base / speed_factor(speed) 
    else:
       return base
 

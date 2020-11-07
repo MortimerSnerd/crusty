@@ -217,13 +217,17 @@ class ObjectSpec : flatbuffers_handle
         return ItemSlot(buf_.flatbuffers_field_int8(pos_, 26, 0))
     def gender():
         return GenderSpec(buf_.flatbuffers_field_int8(pos_, 28, 2))
+    def wield_offset_x():
+        return buf_.flatbuffers_field_float32(pos_, 30, 0.75)
+    def wield_offset_y():
+        return buf_.flatbuffers_field_float32(pos_, 32, 0.5)
 
 def GetRootAsObjectSpec(buf:string): return ObjectSpec { buf, buf.flatbuffers_indirect(0) }
 
 struct ObjectSpecBuilder:
     b_:flatbuffers_builder
     def start():
-        b_.StartObject(13)
+        b_.StartObject(15)
         return this
     def add_kind(kind:ObjectKind):
         b_.PrependInt16Slot(0, kind, 0)
@@ -263,6 +267,12 @@ struct ObjectSpecBuilder:
         return this
     def add_gender(gender:GenderSpec):
         b_.PrependUint8Slot(12, gender, 2)
+        return this
+    def add_wield_offset_x(wield_offset_x:float):
+        b_.PrependFloat32Slot(13, wield_offset_x, 0.75)
+        return this
+    def add_wield_offset_y(wield_offset_y:float):
+        b_.PrependFloat32Slot(14, wield_offset_y, 0.5)
         return this
     def end():
         return b_.EndObject()

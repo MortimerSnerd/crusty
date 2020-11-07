@@ -127,6 +127,8 @@ table ObjectSpec {
    // Where the item can be equipped.
    slot: ItemSlot = None;   
    gender: GenderSpec = It;
+   wield_offset_x: float = 0.5;
+   wield_offset_y: float = 0.75;
 } 
 
 enum AnimationKind : uint8

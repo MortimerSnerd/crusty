@@ -108,26 +108,58 @@ def gobjs_update():
                   o.frame_left += anim.frames[o.frame_idx].duration
                   o.curTile = anim.frames[o.frame_idx].frame
 
+private def equipped_as_melee(o: GOInst) -> bool:
+   if o.parent:
+      let sp = OSpecs[o.kind_idx]
+      let ws = sp.weapon_stats()
+
+      return o.state & StateFlags_Equipped and ws and sp.slot() == ItemSlot_Melee
+   else:
+      return false
+
+private def center_pos_of(o: GOInst, now: float, spec: ObjectSpec, z: float) -> xy_f, xyz_f:
+   let p = anim_pos(o, now)
+   return p, xyz_f{p.x, p.y, z} + render_offset(spec, o.dir)
+
 def gobjs_draw(now: float, view: Rectf):
    if ObjTx:
       gl_set_primitive_texture(0, ObjTx.texture)
       gl_blend(blend_alpha)
       for(GOInstances) o:
-         if o and not o.parent:
-            let p = anim_pos(o, now)
-            
-            if contains(view, p):
-               let oflags = OSpecs[o.kind_idx].flags
+         if o:
+            if o.parent and o.parent is GOInst:
+               if equipped_as_melee(o):
+                  let parspec = OSpecs[o.parent.kind_idx]
+                  let apos, par_center = center_pos_of(o.parent, now, 
+                                                 parspec, UnderLivingZ)
 
-               // Only immobile objects like furniture are drawn when they 
-               // occupy a grid that is not visible.
-               if not PlayerViz or oflags & ItemFlags_Immobile != 0 or test(PlayerViz, o.pos, vfVisible|vfLit):
-                  let a = anim_angle(o, now) + OSpecs[o.kind_idx].right_rotation
-                  let ti = anim_tile(o, now)
-                  let z = if oflags & ItemFlags_Living: LivingZ else: OnFloorZ
-                  let dpos = xyz_f{p.x, p.y, z} + render_offset(OSpecs[o.kind_idx], o.dir)
-                  
-                  renderSprite(ObjTx, ti, dpos, xy_1, sincos(a))
+                  if contains(view, apos):
+                     let a = anim_angle(o.parent, now) + parspec.right_rotation
+                     let sc = sincos(a)
+                     let avec = rotate_around_origin(normalize(xy_f{parspec.wield_offset_x(),
+                                                                    parspec.wield_offset_y()}), 
+                                                     sc) * 0.5
+                                      
+                     renderSprite(ObjTx, OSpecs[o.kind_idx].static_tile(),
+                                  xyz_f{par_center.x + avec.x,
+                                        par_center.y + avec.y,
+                                        par_center.z}, xy_1, sc)
+
+            else:
+               let p = anim_pos(o, now)
+               
+               if contains(view, p):
+                  let oflags = OSpecs[o.kind_idx].flags
+
+                  // Only immobile objects like furniture are drawn when they 
+                  // occupy a grid that is not visible.
+                  if not PlayerViz or oflags & ItemFlags_Immobile != 0 or test(PlayerViz, o.pos, vfVisible|vfLit):
+                     let a = anim_angle(o, now) + OSpecs[o.kind_idx].right_rotation
+                     let ti = anim_tile(o, now)
+                     let z = if oflags & ItemFlags_Living: LivingZ else: OnFloorZ
+                     let dpos = xyz_f{p.x, p.y, z} + render_offset(OSpecs[o.kind_idx], o.dir)
+                     
+                     renderSprite(ObjTx, ti, dpos, xy_1, sincos(a))
 
 def gobjs_spawn(okind: ObjectKind, pos: xy_i, dir: Directions, parent: ObjId? = nil) -> ObjId:
    let found, ki = binary_search_by_key(OSpecs, int(okind)) a, b:
