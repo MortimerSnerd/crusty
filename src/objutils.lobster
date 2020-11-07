@@ -21,9 +21,12 @@ let InvalidObject: ObjId? = nil
 
 // Where a component of a stat comes from.
 enum StatEntSource: 
-   Base,               // The base stat.
+   Base               // The base stat.
    Equipment           //  From some equipment.
    Condition           // Some sort of temporary condition.
+   UseDebuff           // Defense stats get short temporary debuffs
+                       // when they are used, so if you are surrounded, 
+                       // you can't block perfectly 8 times in a row.
 
 // Part of a stat for the stat named `name`.  The stats for an object
 // are summed over multiple stat ents, so base stats are kept separate from 
@@ -32,5 +35,5 @@ struct StatEnt:
    name: GameStats
    val: int
    src: StatEntSource
-   life: float  = 0.0   // If src == Condition, time when this condition ends.
+   life: float  = 0.0   // If src >= Condition, time when this condition ends.
 

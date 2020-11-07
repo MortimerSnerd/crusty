@@ -13,6 +13,15 @@ private struct SkillPair:
 
 private let Oppose: [SkillPair] = []
 
+private class DefVerb:
+   skill: GameStats
+   verb: string
+
+private let DefenceVerbs = [
+   DefVerb{GameStats_Defence, "block"},
+   DefVerb{GameStats_Dodge, "dodge"}
+]
+
 def stats_init():
    let root = cur_config()
 
@@ -27,7 +36,7 @@ def value(stats: [StatEnt], now: float, stat: GameStats) -> int:
    //TODO bonuses for certain attributes applied to some skills, based on table.
    for(stats) se:
       if se.name == stat:
-         if se.src != Condition or now <= se.life:
+         if se.src < Condition or now <= se.life:
             rv += se.val
 
    return rv
@@ -59,6 +68,11 @@ private def speed_factor(ag: float) -> float:
    return linear(0, 0.1, 
                  AvgStatVal, 1.0, 
                  ag)
+
+// Returns a + or - bonus, with 10 being the 
+// midpoint with a bonus of 0.
+private def stat_bonus(val: int) -> int:
+   return (val - 10) / 2
 
 // Returns the duration for `who` to move distance, based
 // on stats, encumberence.  Moves are one grid at a time, so 
@@ -93,10 +107,10 @@ def roll_vs_skill(a: int) -> int:
 // Returns margin of success (> 0) or failure
 // (< 0).  This works in a way that it still gives a 
 // useful result if one or both of the skills are > SkillDie 
-def opposed_skill_check(a: int, b: int) -> int:
+def opposed_skill_check(askill: GameStats, a: int, bskill: GameStats, b: int) -> int:
    let rv = rnd(clamp_skill(a)) - rnd(clamp_skill(b))
 
-   print("  check " + a + " vs " + b + " = " + rv)
+   statlog(): "Check " + askill + ":" + a + " vs " + bskill + ":" + b + " = " + rv
    return rv
 
 def damage_roll_range(name: DmgRange) -> int:
@@ -117,7 +131,10 @@ def damage_roll_range(name: DmgRange) -> int:
 // Roll for damage for the given damage range.  Damage clamped positive.
 def damage_roll(r: DamageRange?) -> int:
    assert r
-   return max(0, damage_roll_range(r.range()) + r.plus())
+   let dd = max(0, damage_roll_range(r.range()) + r.plus())
+
+   statlog(): "Roll " + r.range() + "+" + r.plus() + " = " + dd
+   return dd
 
 // How long to put this on.
 def equip_time_for(who: ObjId, what: ObjId, now: float) -> float:
@@ -184,5 +201,41 @@ def find_largest_opposing_skill(target_stats: [StatEnt], atk_skill: GameStats, n
    if largest_val >= 0:
       return largest, largest_val
    else:
-      assert "" == "No skill configured to oppose " + atk_skill
+      error(): "No skill configured to oppose " + atk_skill
+      assert false
       return GameStats_Hp, 0
+
+// Returns a verb for a defense action.
+def defence_verb(st: GameStats) -> string:
+   let i = find(DefenceVerbs) v: v.skill == st
+
+   if i >= 0:
+      return DefenceVerbs[i].verb
+   else:
+      // Why not.
+      return "stymie"
+
+// Adds a presumably short usage debuff to a defense skill after 
+// the skill has been used.  Block 3 things in a row, and the 4th 
+// block is going to be hard.
+def add_use_debuff(st: [StatEnt], skill: GameStats, malus: int, till: float):
+   assert malus >= 0
+   push(st, StatEnt{name: skill, val: -malus, src: UseDebuff, life: till})
+
+// Recovery from a defence action is improved by the speed
+// of the defender, and is reduced by the magnitude of the
+// damage that would have been done, for cases where contact
+// was made.  (Block as opposed to dodge).
+def use_debuff_dur(st: [StatEnt], def_skill: GameStats, total_dmg: int, 
+                   now: float) -> float:
+   let contact_made = def_skill == GameStats_Defence
+   var bonus = stat_bonus(value(st, now, GameStats_Speed))
+
+   if contact_made:
+      bonus -= total_dmg / 2
+
+   let dd = max(0.1, 1.0 - bonus/6.0)
+
+   statlog(): "Debuf dur for " + def_skill + " with dmg=" + total_dmg + " is " + dd
+   return dd
+

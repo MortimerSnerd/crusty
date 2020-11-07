@@ -100,7 +100,8 @@
                 {name: Will, val: 10}, 
                 {name: Wit, val: 10}, 
                 {name: Melee, val: 10},
-                {name: Defence, val: 10}
+                {name: Defence, val: 10}, 
+                {name: Dodge, val: 10}
             ],
         }, 
         {
@@ -111,12 +112,14 @@
                 {name: Will, val: 5}, 
                 {name: Wit, val: 1},
                 {name: Melee, val: 3}, 
-                {name: Defence, val: 4}
+                {name: Defence, val: 4}, 
+                {name: Dodge, val: 5}
             ],
         }
     ], 
 
     opposing: [
-        {atk: Melee, defend: Defence}
+        {atk: Melee, defend: Defence},
+        {atk: Melee, defend: Dodge}
     ]
 }

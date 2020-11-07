@@ -5,7 +5,8 @@ enum_flags LogLevel:
    Error, 
    Warning, 
    Debug, 
-   Timings
+   Timings, 
+   StatLogs
 
 var LoggingLevel: int = Error
 
@@ -24,3 +25,7 @@ def debug(f):
 def timing(f):
    if LoggingLevel & Timings:
       print("TIMING: " + f())
+
+def statlog(f):
+   if LoggingLevel & StatLogs:
+      print("STAT: " + f())

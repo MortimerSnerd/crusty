@@ -363,6 +363,7 @@ class MeleeAttackAction : ActionBase
    hit: bool
    total_dmg: int
    act_dmg: int
+   defended: GameStats = GameStats_Hp  // Only valid if hit == false.
 
    def success_msg() -> string:
       if hit:
@@ -379,7 +380,8 @@ class MeleeAttackAction : ActionBase
 
             return sentence(s)
       else:
-         return sentence([pronoun(who), verb(who, "miss"), otherliving(target)])
+         return sentence([otherliving(target, false), verb(target, defence_verb(defended)), 
+                         posessive_pronoun(who), weaponverb(weapon)])
 
    def execute():
       //TODO other notifications...
@@ -391,8 +393,12 @@ class MeleeAttackAction : ActionBase
          notify_sfx(who, time, ws.hit_sound, 0.5)
       else:
          notify_sfx(who, time, ws.miss_sound, 0.5)
+         let st = object_stats(target)
+         add_use_debuff(st, defended, 3, 
+                        time + use_debuff_dur(st, defended, total_dmg, time))
 
-def melee_attack_action(span: TurnSpan, now: float, who: ObjId, what: ObjId) -> ActionResult, MeleeAttackAction?:
+def melee_attack_action(span: TurnSpan, now: float, who: ObjId, what: ObjId,
+                        calc: bool = true) -> ActionResult, MeleeAttackAction?:
    let weapon = equipment_at(who, ItemSlot_Melee)
 
    if weapon:
@@ -405,27 +411,43 @@ def melee_attack_action(span: TurnSpan, now: float, who: ObjId, what: ObjId) -> 
             let dist = gridDistance(atk_pos, vic_pos)
 
             if within_melee_range(wstats, dist):
-               let st_target = object_stats(what)
-               let st_attacker = object_stats(who)
-               let atk_skill = wstats.skill()
-               let atk_val = value(st_attacker, now, atk_skill)
-               let def_skill, def_val = find_largest_opposing_skill(st_target, 
-                                                                    atk_skill,
-                                                                    now)
-               let roll = opposed_skill_check(atk_val, def_val)
+               if calc:
+                  let st_target = object_stats(what)
+                  let st_attacker = object_stats(who)
+                  let atk_skill = wstats.skill()
+                  let atk_val = value(st_attacker, now, atk_skill)
+                  let def_skill, def_val = find_largest_opposing_skill(st_target, 
+                                                                       atk_skill,
+                                                                       now)
+                  let roll = opposed_skill_check(atk_skill, atk_val, 
+                                                 def_skill, def_val)
 
-               //TODO facing check and bonus/malus
-               //TODO armor calcs
-               let hit = roll > 0
-               let wdmg = if hit: damage_roll(wstats.dmg()) else: 0
-               let act_dmg = wdmg
+                  //TODO facing check and bonus/malus
+                  //TODO armor calcs
+                  let hit = roll > 0
+                  let wdmg = damage_roll(wstats.dmg())  // Calc dmg, even when missed.
+                  let act_dmg = wdmg
 
-               return GoodResult, 
-                  MeleeAttackAction{who: who, time: now, 
-                                    target: what, weapon: weapon, 
-                                    hit: hit, 
-                                    act_dmg: act_dmg, total_dmg: wdmg, 
-                                    duration: attack_duration(who, now, wstats)}
+                  return GoodResult, 
+                     MeleeAttackAction{who: who, time: now, 
+                                       target: what, weapon: weapon, 
+                                       hit: hit, 
+                                       act_dmg: act_dmg, total_dmg: wdmg,
+                                       defended: def_skill, 
+                                       duration: attack_duration(who, now, wstats)}
+               else:
+                  // With calc=false, we just return a generic action.
+                  // The caller is probably the legal move checking for
+                  // the player, and this saves a lot of debugging noise
+                  // for calculating statistics.
+                  return GoodResult, 
+                     MeleeAttackAction{who: who, time: now, 
+                                       target: what, weapon: weapon, 
+                                       hit: false, 
+                                       act_dmg: 0, total_dmg: 0,
+                                       defended: GameStats_Defence, 
+                                       duration: attack_duration(who, now, wstats)}
+
 
             else:
                return ActionResult{kind: arCanNotReach, other: what}, nil

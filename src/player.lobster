@@ -104,7 +104,7 @@ def player_init():
       else:
          if length(cands) > 0:
             let ar, aa = melee_attack_action(FakeTurnSpan, GameTime, player, 
-                                             cands[0])
+                                             cands[0], false)
 
             rv = aa
       rv

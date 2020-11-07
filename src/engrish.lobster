@@ -15,6 +15,21 @@ def engrish_init(player: ObjId):
    Ctx = EnglishCtx{player: player}
 
 
+// your, his, her, its
+def posessive_pronoun(actor: ObjId) -> string:
+   if Ctx and Ctx.player == actor:
+      return "your"
+   else:
+      switch object_spec(actor).gender:
+         case GenderSpec_It:
+            return "its"
+         case GenderSpec_He:
+            return "his"
+         case GenderSpec_She:
+            return "her"
+
+      return "its"
+
 def pronoun(actor: ObjId) -> string:
    if Ctx and Ctx.player == actor:
       return "you"
@@ -56,8 +71,12 @@ def sentence(arr: [string]) -> string:
 
 // Reference to another living thing.
 // Prevents referring to the player as "the player".
-def otherliving(other: ObjId) -> string:
+def otherliving(other: ObjId, use_article: bool = true) -> string:
    if Ctx and Ctx.player == other:
       return "you"
    else:
-      return article(other) + " " + object_spec(other).short_name
+      if use_article:
+         return article(other) + " " + object_spec(other).short_name
+      else:
+         return object_spec(other).short_name
+

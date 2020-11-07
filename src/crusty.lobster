@@ -37,6 +37,8 @@ def go():
       elif a == "--debug":
          do_debug = true
          LoggingLevel |= Debug 
+      elif a == "--stats":
+         LoggingLevel |= StatLogs
       elif a == "--timings":
          LoggingLevel |= Timings
       elif a == "--debug-rects":
