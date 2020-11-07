@@ -62,7 +62,7 @@ def roll_vs_skill(a: int) -> int:
 def opposed_skill_check(a: int, b: int) -> int:
    return rnd(clamp_skill(a)) - rnd(clamp_skill(b))
 
-def damage_roll(name: DmgRange) -> int:
+def damage_roll_range(name: DmgRange) -> int:
    switch name:
       case DmgRange_Low2D6:
          return min(rnd(6) + 1, rnd(6) + 1)
@@ -78,8 +78,9 @@ def damage_roll(name: DmgRange) -> int:
          return 1
 
 // Roll for damage for the given damage range.  Damage clamped positive.
-def damage_roll(r: DamageRange) -> int:
-   return max(0, damage_roll(r.name()) + r.plus())
+def damage_roll(r: DamageRange?) -> int:
+   assert r
+   return max(0, damage_roll_range(r.range()) + r.plus())
 
 // How long to put this on.
 def equip_time_for(who: ObjId, what: ObjId, now: float) -> float:
@@ -92,3 +93,40 @@ def equip_time_for(who: ObjId, what: ObjId, now: float) -> float:
       return speed_factor(speed)
    else:
       return 1.0
+
+// Calculates the base hitpoints for something with
+// the given stats.
+def base_hp_for(st: [StatEnt]) -> int:
+   return base_value(st, GameStats_Str) + base_value(st, GameStats_Will) / 2
+
+// Damages a living thing.  Can cause death. 
+def apply_damage(target: ObjId, now: float, dmg: int, dur: float = 1.0e12):
+   assert dmg >= 0
+
+   if dmg > 0:
+      let st = object_stats(target)
+
+      if length(st) > 0:
+         push(st, StatEnt{name: GameStats_Hp, val: -dmg, src: Condition, 
+                          life: now + dur})
+
+         if value(st, now, GameStats_Hp) < 0:
+            //TODO - bus event for death.
+            print("holy shit, " + object_spec(target).short_name + " is ded")
+
+def within_melee_range(ws: WeaponStats, range: float) -> bool:
+   // No configurable weapon range yet.
+   return range <= sqrt(2)
+
+def attack_duration(who: ObjId, now: float, stats: WeaponStats) -> float:
+   //TODO add weapon stat, calc for real.
+   let base = 1.0
+   let st = object_stats(who)
+
+   if length(st) > 0:
+      let speed = value(st, now, GameStats_Speed)
+
+      return speed_factor(speed) * base
+   else:
+      return base
+

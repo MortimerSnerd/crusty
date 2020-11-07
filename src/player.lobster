@@ -25,10 +25,8 @@ private def perform_action(act):
       animations_turn_begin()
       TurnTime = TurnSpan{GameTime, GameTime + act.duration}
       execute(act)
-      let msg = present(act.who, act, nil)
 
-      if length(msg) > 0:
-         actionlog_present(msg)
+      actionlog_present(present(act.who, act, nil))
 
       PlayerState = Stepping
       let t0 = seconds_elapsed()
@@ -63,10 +61,7 @@ def bind(key, desc, afn): push(Bindings, Binding{key: key, desc: desc, afn: afn}
 def player_init():
    def mumble(player, act, ar):
       if not act:
-         let msg = present(player, act, ar)
-
-         if length(msg) > 0:
-            actionlog_present(msg)
+         actionlog_present(present(player, act, ar))
 
    bind("w", "Move forward") player, now, prompt:
       let f, p = pos(player)
@@ -95,6 +90,24 @@ def player_init():
       let r, act = turn_action(FakeTurnSpan, GameTime, player, dir, diri)
       if prompt: mumble(player,act,r)
       act
+
+   bind("z", "Attack") player, now, prompt:
+      let cands = melee_opponents_in_range(player)
+      var rv = nil
+      if prompt:
+         //TODO pick once we can highlight          
+         if length(cands) > 0:
+            let ar, aa = melee_attack_action(FakeTurnSpan, GameTime, player, 
+                                             cands[0])
+
+            rv = aa
+      else:
+         if length(cands) > 0:
+            let ar, aa = melee_attack_action(FakeTurnSpan, GameTime, player, 
+                                             cands[0])
+
+            rv = aa
+      rv
 
    bind("o", "Open") player, now, prompt:
       let f, p = pos(player)

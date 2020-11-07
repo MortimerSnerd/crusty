@@ -2,6 +2,9 @@ enum GameStats : uint8
 {
    Str, Speed, Will, Wit,
 
+   // Calculated attributes.
+   Hp, 
+
    // Skills
    Melee, Defence, Dodge
 }
@@ -61,6 +64,8 @@ table WeaponStats {
     speed: int;
     kind: DmgType;
     dmg: DamageRange;
+    miss_sound: string;
+    hit_sound: string;
 }
 
 enum ObjectKind:short { Invalid = 0, 

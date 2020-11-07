@@ -53,3 +53,11 @@ def sentence(arr: [string]) -> string:
       words[0] = uppercase(substring(words[0], 0, 1)) + substring(words[0], 1, -1)
 
    return (fold(words, "") a, b: a + " " + b) + "."
+
+// Reference to another living thing.
+// Prevents referring to the player as "the player".
+def otherliving(other: ObjId) -> string:
+   if Ctx and Ctx.player == other:
+      return "you"
+   else:
+      return article(other) + " " + object_spec(other).short_name

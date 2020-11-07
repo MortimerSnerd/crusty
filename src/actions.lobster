@@ -16,9 +16,10 @@ class ActionBase:
       error(): "exectute no implemented for " + this
       assert false
 
-   // Returns a subject for this action, if any.
-   def subject() -> ObjId?:
-      return nil
+   // Returns a user presentable string describing the successful
+   // action.  Or "" if this isn't really worth logging.
+   def success_msg() -> string:
+      return ""
 
 enum ActionResultKinds:
    arOk, 
@@ -32,13 +33,99 @@ enum ActionResultKinds:
    arCanNotPut, 
    arAlreadyEquipped, 
    arCanNotEquip, 
-   arNotEquipped
+   arNotEquipped, 
+   arNoMeleeWeapon
 
 class ActionResult:
    kind: ActionResultKinds
    other: ObjId? = nil
 
+   // Loggable message that describes why an action
+   // was impossible.  Or "" if there's nothing useful that could be said.
+   def failure_msg(who: ObjId) -> string:
+      def othername():
+         if other:
+            return article(who) + " " + oname(other)
+         else:
+            return "it"
+
+      switch kind:
+         case arOk:
+            return ""
+
+         case arBlocked:
+            return sentence([pronoun(who), "can not go that way."])
+
+         case arNotOpenable:
+            return sentence([pronoun(who), "can not open", othername()])
+
+         case arAlreadyOpen:
+            return sentence([othername(), "is already opened"])
+
+         case arAlreadyClosed:
+            return sentence([othername(), "is already closed"])
+
+         case arCanNotReach:
+            return sentence([pronoun(who), "can not reach", othername()])
+
+         case arCanNotTakeAnything:
+            return sentence(["Nothing to take here"])
+
+         case arCanNotTake:
+            return sentence([pronoun(who), "can not take", othername()])
+
+         case arCanNotPut:
+            return sentence([pronoun(who), "can not put", othername(), "there"])
+
+         case arAlreadyEquipped:
+            return sentence([othername(), "is already equipped"])
+
+         case arCanNotEquip:
+            return sentence([othername(), "can not be equipped"])
+
+         case arNotEquipped:
+            return sentence([othername(), "is not equipped"])
+
+         case arNoMeleeWeapon:
+            return sentence([pronoun(who), "have no melee weapon equipped."])
+
+      return ""
+
+
 let GoodResult = ActionResult{kind: arOk, other: InvalidObject}
+
+private def oname(obj):
+   return object_spec(obj).short_name
+
+private def equipverb(what):
+   switch object_spec(what).slot():
+      case ItemSlot_Melee:
+         return "wield"
+      default: 
+         return "wear"
+
+private def remove_verb(what):
+   switch object_spec(what).slot():
+      case ItemSlot_Melee:
+         return "sheathe"
+      default: 
+         return "remove"
+
+private def weaponverb(what: ObjId):
+   let ws = object_spec(what).weapon_stats()
+
+   if ws:
+      switch ws.kind:
+         case DmgType_Slashing:
+            return "cut"
+
+         case DmgType_Stabbing:
+            return "stab"
+
+         case DmgType_Impact:
+            return "crush"
+
+   return "hit"
 
 class MoveAction : ActionBase
    start: xy_i
@@ -76,8 +163,10 @@ class OpenAction : ActionBase
    what: ObjId
    opening: bool
 
-   def subject() -> ObjId?:
-      return what
+   def success_msg() -> string:
+      let v = if opening: "open" else: "close"
+      return sentence([pronoun(who), verb(who, v), article(who), 
+                        object_spec(what).short_name])
 
    def execute():
       if opening:
@@ -136,8 +225,14 @@ class TakeAction : ActionBase
    // this field holds it.
    where: ObjId? = nil
 
-   def subject() -> ObjId?:
-      return what
+   def success_msg() -> string:
+      if where:
+         return sentence([pronoun(who), verb(who, "take"), article(who), 
+                         oname(what), "from", article(who), 
+                         oname(where)])
+      else:
+         return sentence([pronoun(who), verb(who, "take"), article(who), 
+                         oname(what), "from the ground"])
 
    def execute():
       if where:
@@ -171,8 +266,14 @@ class PutAction : ActionBase
    // Grid location if `where` is nil.
    loc: xy_i  = xy_i{0,0}  
 
-   def subject() -> ObjId?:
-      return what
+   def success_msg() -> string:
+      if where:
+         return sentence([pronoun(who), verb(who, "put"), article(who), 
+                          oname(what), "in", article(who), 
+                          oname(where)])
+      else:
+         return sentence([pronoun(who), verb(who, "drop"), article(who), 
+                          oname(what), "on the ground"])
 
    def execute():
       if where:
@@ -209,8 +310,9 @@ def put_action(span: TurnSpan, now: float, who: ObjId, what: ObjId, where: ObjId
 class WearEquipment : ActionBase
    what: ObjId
 
-   def subject() -> ObjId?:
-      return what
+   def success_msg() -> string:
+      return sentence([pronoun(who), verb(who, equipverb(what)), 
+         article(who), oname(what)])
 
    def execute():
       equip(who, what)
@@ -236,8 +338,9 @@ def equip_action(span: TurnSpan, now: float, who: ObjId, what: ObjId) -> ActionR
 class RemoveEquipment : ActionBase
    what: ObjId
 
-   def subject() -> ObjId?:
-      return what
+   def success_msg() -> string:
+      return sentence([pronoun(who), verb(who, remove_verb(what)), 
+         article(who), oname(what)])
 
    def execute():
       unequip(who, what)
@@ -257,7 +360,75 @@ def unequip_action(span: TurnSpan, now: float, who: ObjId, what: ObjId) -> Actio
 class MeleeAttackAction : ActionBase
    target: ObjId
    weapon: ObjId
+   hit: bool
+   total_dmg: int
+   act_dmg: int
 
+   def success_msg() -> string:
+      if hit:
+         if act_dmg == 0:
+            return sentence([pronoun(who), verb(who, weaponverb(weapon)),
+                             otherliving(target), 
+                             "but it does no damage"])
+         else:
+            var s = [pronoun(who), verb(who, weaponverb(weapon)), 
+                     otherliving(target), "for", string(act_dmg)]
+
+            if act_dmg < total_dmg:
+               s = append(s, ["(", string(total_dmg - act_dmg), "absorbed )"])
+
+            return sentence(s)
+      else:
+         return sentence([pronoun(who), verb(who, "miss"), otherliving(target)])
+
+   def execute():
+      //TODO other notifications...
+      let ws = object_spec(weapon).weapon_stats()
+
+      assert ws
+      if hit:
+         apply_damage(target, time, act_dmg)
+         notify_sfx(who, time, ws.hit_sound, 0.5)
+      else:
+         notify_sfx(who, time, ws.miss_sound, 0.5)
+
+def melee_attack_action(span: TurnSpan, now: float, who: ObjId, what: ObjId) -> ActionResult, MeleeAttackAction?:
+   let weapon = equipment_at(who, ItemSlot_Melee)
+
+   if weapon:
+      let fa, atk_pos = pos(who)
+      let fb, vic_pos = pos(what)
+      let wstats = object_spec(weapon).weapon_stats()
+
+      if wstats:
+         if fa and fb:
+            let dist = gridDistance(atk_pos, vic_pos)
+
+            if within_melee_range(wstats, dist):
+               //TODO facing check and bonus/malus
+               //TODO real to-hit calcs.
+               //TODO armor calcs
+               let hit = rnd_float() >= 0.5
+               let wdmg = if hit: damage_roll(wstats.dmg()) else: 0
+               let act_dmg = wdmg
+
+               return GoodResult, 
+                  MeleeAttackAction{who: who, time: now, 
+                                    target: what, weapon: weapon, 
+                                    hit: hit, 
+                                    act_dmg: act_dmg, total_dmg: wdmg, 
+                                    duration: attack_duration(who, now, wstats)}
+
+            else:
+               return ActionResult{kind: arCanNotReach, other: what}, nil
+         else:
+            return ActionResult{kind: arCanNotReach, other: what}, nil
+      else:
+         error(): "Weirdness: no weapon stats for " + object_spec(weapon).short_name
+         return ActionResult{kind: arNoMeleeWeapon}, nil         
+   else:
+      //TODO no fisticuffs, must have weapon.
+      return ActionResult{kind: arNoMeleeWeapon}, nil         
 
 enum_flags ActionCategory:
    acTurn, acMoveFwd, acMoveBkwd, acStrafe, acObjectInteractions
@@ -338,80 +509,16 @@ def for_possible_actions(span: TurnSpan, who: ObjId, now: float,
 // the player, or if it's just something too common
 // to be logged.
 def present(who: ObjId, act: ActionBase?, ar: ActionResult?) -> string:
-   def subject_name(theAct):
-      let s = subject(theAct)
-
-      if s:
-         return object_spec(s).short_name
-      else:
-         return "it"
-         
-   def oname(obj):
-      return object_spec(obj).short_name
-
-   def equipverb(what):
-      switch object_spec(what).slot():
-         case ItemSlot_Melee:
-            return "wield"
-         default: 
-            return "wear"
-
-   def remove_verb(what):
-      switch object_spec(what).slot():
-         case ItemSlot_Melee:
-            return "sheathe"
-         default: 
-            return "remove"
-
    if not ar or ar.kind == arOk:
       if act:
-         if act is OpenAction:
-            let v = if act.opening: "open" else: "close"
-            return sentence([pronoun(who), verb(who, v), article(who), 
-                              subject_name(act)])
-         elif act is TakeAction:
-            if act.where:
-               return sentence([pronoun(who), verb(who, "take"), article(who), 
-                               oname(act.what), "from", article(who), 
-                               oname(act.where)])
-            else:
-               return sentence([pronoun(who), verb(who, "take"), article(who), 
-                               oname(act.what), "from the ground"])
-
-         elif act is PutAction:
-            if act.where:
-               return sentence([pronoun(who), verb(who, "put"), article(who), 
-                                oname(act.what), "in", article(who), 
-                                oname(act.where)])
-            else:
-               return sentence([pronoun(who), verb(who, "drop"), article(who), 
-                                oname(act.what), "on the ground"])
-
-         elif act is WearEquipment:
-            return sentence([pronoun(who), verb(who, equipverb(act.what)), 
-               article(who), oname(act.what)])
-
-         elif act is RemoveEquipment:
-            return sentence([pronoun(who), verb(who, remove_verb(act.what)), 
-               article(who), oname(act.what)])
-
-      return ""
+         return act.success_msg()
+      else:
+         return ""
    else:
       //TODO error messages for player actions that are not possible.
       // where can these happen?
       if ar:
-         return "My balls hurt: " + ar.kind
+         return ar.failure_msg(who)
       else:
          return ""
 
-   //arBlocked,
-   //arNotOpenable,
-   //arAlreadyOpen,
-   //arAlreadyClosed,
-   //arCanNotReach,
-   //arCanNotTakeAnything,
-   //arCanNotTake,
-   //arCanNotPut,
-   //arAlreadyEquipped,
-   //arCanNotEquip,
-   //arNotEquipped

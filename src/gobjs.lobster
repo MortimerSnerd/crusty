@@ -353,6 +353,8 @@ def gobjs_init():
          let st = tmp.stats(j)
          
          push(barr, StatEnt{name: st.name, val: st.val, src: Base}) 
+      
+      push(barr, StatEnt{name: GameStats_Hp, val: base_hp_for(barr), src: Base})
 
       BaseStats.eassign(tmp.name, barr, [])
 

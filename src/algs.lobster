@@ -345,6 +345,10 @@ def mkRectfRel(topLeft: xy_f, dims: xy_f) -> Rectf:
 def gridToWorld(p:: xy_i) -> xy_f:
    return xy_f{x: float(x) + 0.5, y: float(y) + 0.5}
 
+// Magnitude of a -> b vec.
+def gridDistance(a: xy_i, b: xy_i) -> float:
+   return magnitude(xy_f{a.x, a.y} - xy_f{b.x, b.y})
+
 def worldToGrid(p:: xy_f) -> xy_i:
    return xy_i{x: int(x - 0.5), y: int(y - 0.5)}
 

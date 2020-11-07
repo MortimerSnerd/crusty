@@ -28,24 +28,24 @@ private def for_all_messages(body):
 // Logs a message which may be displayed on 
 // the user's screen.
 def actionlog_present(msg: string):
-   if length(Msgs) > 0:
-      let lasti = (Start + length(Msgs)-1) % length(Msgs)
-      if lasti >= 0 and Msgs[lasti].msg == msg:
-         ++Msgs[lasti].count
-      else:
-         if length(Msgs) >= CircBufSz:
-            Msgs[Start] = LogMsg{msg: msg}
-            Start = (Start + 1) % length(Msgs)
+   if length(msg) > 0:
+      if length(Msgs) > 0:
+         let lasti = (Start + length(Msgs)-1) % length(Msgs)
+         if lasti >= 0 and Msgs[lasti].msg == msg:
+            ++Msgs[lasti].count
          else:
-            push(Msgs, LogMsg{msg: msg})
-   else:
-      push(Msgs, LogMsg{msg: msg})
+            if length(Msgs) >= CircBufSz:
+               Msgs[Start] = LogMsg{msg: msg}
+               Start = (Start + 1) % length(Msgs)
+            else:
+               push(Msgs, LogMsg{msg: msg})
+      else:
+         push(Msgs, LogMsg{msg: msg})
 
 // Clears the message log.
 def actionlog_clear():
    Msgs = []
    Start = 0
-
 
 // Should be called in an im_frame.
 def actionlog_render():

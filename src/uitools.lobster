@@ -63,6 +63,20 @@ def finished_interaction() -> Interaction?:
 //
 // Utility functions for building up ObjLists used by UI tools.
 //
+def melee_opponents_in_range(who: ObjId) -> [ObjId]:
+   let rv = []
+
+   //TODO for now, only guy right in front can be attacked.
+   let pf, p = pos(who)
+   let df, face = direction(who)
+
+   if pf and df:
+      let front = p + all_dirs[face]
+      for_objects_at(front) o:
+         if o and object_spec(o).flags & ItemFlags_Living:
+            push(rv, o)
+
+   return rv
 
 def is_open_container(o: ObjId):
    return object_spec(o).flags & ItemFlags_Container and (object_state(o) & StateFlags_Open)

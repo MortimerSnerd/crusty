@@ -7,7 +7,9 @@
             weapon_stats: {
                 speed: 5, 
                 kind: Slashing, 
-                dmg: {range: Low2D6, plus: 0}
+                dmg: {range: Low2D6, plus: 0},
+                hit_sound: "yoink.wav",
+                miss_sound: "ouch1.wav"
             }, 
             slot: Melee
         },

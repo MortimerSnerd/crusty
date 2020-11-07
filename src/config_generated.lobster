@@ -6,9 +6,10 @@ enum GameStats:
     GameStats_Speed = 1
     GameStats_Will = 2
     GameStats_Wit = 3
-    GameStats_Melee = 4
-    GameStats_Defence = 5
-    GameStats_Dodge = 6
+    GameStats_Hp = 4
+    GameStats_Melee = 5
+    GameStats_Defence = 6
+    GameStats_Dodge = 7
 
 enum GenderSpec:
     GenderSpec_He = 0
@@ -158,13 +159,17 @@ class WeaponStats : flatbuffers_handle
     def dmg():
         let o = buf_.flatbuffers_field_struct(pos_, 8)
         return if o: DamageRange { buf_, o } else: nil
+    def miss_sound():
+        return buf_.flatbuffers_field_string(pos_, 10)
+    def hit_sound():
+        return buf_.flatbuffers_field_string(pos_, 12)
 
 def GetRootAsWeaponStats(buf:string): return WeaponStats { buf, buf.flatbuffers_indirect(0) }
 
 struct WeaponStatsBuilder:
     b_:flatbuffers_builder
     def start():
-        b_.StartObject(3)
+        b_.StartObject(5)
         return this
     def add_speed(speed:int):
         b_.PrependInt32Slot(0, speed, 0)
@@ -174,6 +179,12 @@ struct WeaponStatsBuilder:
         return this
     def add_dmg(dmg:flatbuffers_offset):
         b_.PrependStructSlot(2, dmg)
+        return this
+    def add_miss_sound(miss_sound:flatbuffers_offset):
+        b_.PrependUOffsetTRelativeSlot(3, miss_sound)
+        return this
+    def add_hit_sound(hit_sound:flatbuffers_offset):
+        b_.PrependUOffsetTRelativeSlot(4, hit_sound)
         return this
     def end():
         return b_.EndObject()

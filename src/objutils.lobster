@@ -39,13 +39,13 @@ def value(stats: [StatEnt], now: float, stat: GameStats) -> int:
    var rv = 0
    for(stats) se:
       if se.name == stat:
-         if se.src != Condition or now >= se.life:
+         if se.src != Condition or now <= se.life:
             rv += se.val
 
    return rv
 
 // Returns base value of a stat, without any modifiers.
-def base_value(stats: StatEnt, stat: GameStats) -> int:
+def base_value(stats: [StatEnt], stat: GameStats) -> int:
    let i = find(stats) x: x.name == stat and x.src == Base
    if i >= 0:
       return stats[i].val
