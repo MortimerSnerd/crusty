@@ -31,14 +31,28 @@ def stats_init():
       push(Oppose, SkillPair{atk: op.atk(), defend: op.defend()})
 
 // Calculates a value for a particular stat.
+// Will remove any expired conditions in passing.
 def value(stats: [StatEnt], now: float, stat: GameStats) -> int:
+   var i = 0
    var rv = 0
-   //TODO bonuses for certain attributes applied to some skills, based on table.
-   for(stats) se:
-      if se.name == stat:
-         if se.src < Condition or now <= se.life:
-            rv += se.val
 
+   //TODO bonuses for certain attributes applied to some skills, based on table.
+   statlog(): "Lookup " + stat + " @" + now
+   while i < length(stats):
+      let se = stats[i]
+
+      if se.src >= Condition and now > se.life:
+         statlog(): "    expire " + se
+         unordered_remove(stats, i)
+      elif se.name == stat:
+         if se.src < Condition or now <= se.life:
+            statlog(): "    include " + se
+            rv += se.val
+         ++i
+      else:
+         ++i
+
+   statlog(): "  = " + rv
    return rv
 
 // Returns base value of a stat, without any modifiers.
