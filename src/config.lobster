@@ -48,3 +48,12 @@ private def mk_empty():
 // Empty object.  Can be used as a sentinel for 
 let EmptyObjectSpec:ObjectSpec = mk_empty()
 
+def rand_hurt_sound(ss: ObjectSounds) -> SfxSpec?:
+   if ss.hurt_length() > 0:
+      let i = rnd(ss.hurt_length())
+
+      return ss.hurt(i)
+   else:
+      return nil
+
+   

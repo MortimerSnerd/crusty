@@ -130,35 +130,5 @@ the player know they can hit 'o' to open the safe)
   of a dialog.
     IMGUI_API void          PushStyleColor(ImGuiCol idx, ImU32 col);
 
-- Rough idea for multi purpose inventory handling screen
-
-  Carrying:     	           On ground (SELECTED)
-     a) false teeth                   12 thaler 
-     b) cheese
-                      > Put >    Oak dresser (TAB)    <- indicate tab to select dest
-		                      nothing
-
-				   Jewelry box
-				      nothing
-				      
-  Carrying:
-     false teeth     < Take <    On ground (TAB)
-                                     nothing
-
-				 Oak dresser (SELECTED)
-				    a) false teeth
-				    b) 1 thaler
-
-
-  Carrying:                      On ground (SELECTED)
-     a) false teeth   < Use >      b) potion of RC Cola.
-
-                       
-   For all of these, probably buttons with hotkeys at the bottom to change
-   what you want to do:
-
-       |Get F1| |Put F1| |Use F3| |Drop F4| |Inspect|
-
-   Need:
-      to be able to count and reference sections in ObjList
-      give ObjList a start index for letters for choices
+- Fix light propagation to use shadow casting code, so lights don't pass
+  through barriers.  

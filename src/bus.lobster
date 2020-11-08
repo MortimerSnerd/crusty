@@ -13,6 +13,10 @@ import vec
 class BusEndpoint:
    system: ObjectSystem
 
+   // Returns the sound set associated with `o`.
+   def object_sounds_impl(o: ObjId) -> ObjectSounds?:
+      return nil
+
    // Returns true if `what` is equipped somewhere.
    def item_is_equipped_impl(what: ObjId) -> bool:
       return false
@@ -116,6 +120,10 @@ class BusEndpoint:
    // If there's an ObjectSpect for an object, bodyfn will be executed with it.
    def object_spec_impl(o: ObjId) -> ObjectSpec:
       return EmptyObjectSpec
+
+   // Called when it's detected a living thing has died.
+   def notify_death_impl(o: ObjId, now: float):
+      return
 
    // Should be called by actions that move objects, to notify
    // any interested systems.  Gets called for all systems, not
@@ -418,4 +426,18 @@ def item_is_equipped(what: ObjId) -> bool:
 // Unequips an item that is equipped.
 def unequip(who: ObjId, what: ObjId):
    Endpoints[what.system].unequip_impl(who, what)
+
+// Called when it's detected a living thing has died.
+def notify_death(o: ObjId, now: float):
+   for(Endpoints) ep:
+      ep.notify_death_impl(o, now)
+
+// Returns the sound set associated with `o`.
+def object_sounds(o: ObjId) -> ObjectSounds?:
+   return Endpoints[o.system].object_sounds_impl(o)
+
+// Helper for working with config SfxSpecs
+def notify_sfx_spec(o: ObjId, startT: float, fx: SfxSpec?):
+   if fx:
+      notify_sfx(o, startT, fx.sfx(), fx.vol())
 

@@ -204,8 +204,9 @@ def equip_time_for(who: ObjId, what: ObjId, now: float) -> float:
    else:
       return 1.0
 
-// Damages a living thing.  Can cause death. 
-def apply_damage(target: ObjId, now: float, dmg: int, dur: float = 1.0e12):
+// Damages a living thing.  Can cause death.   Returns true if  `target` dies.
+def apply_damage(target: ObjId, now: float, dmg: int, dur: float = 1.0e12) -> bool:
+   var rv = false
    assert dmg >= 0
 
    if dmg > 0:
@@ -215,9 +216,11 @@ def apply_damage(target: ObjId, now: float, dmg: int, dur: float = 1.0e12):
          push(st, StatEnt{name: GameStats_Hp, val: -dmg, src: Condition, 
                           life: now + dur})
 
-         if value(st, now, GameStats_Hp) < 0:
-            //TODO - bus event for death.
-            print("holy shit, " + object_spec(target).short_name + " is ded")
+         if value(st, now, GameStats_Hp) <= 0:
+            notify_death(target, now)
+            rv = true
+
+   return rv
 
 def within_melee_range(ws: WeaponStats, range: float) -> bool:
    // No configurable weapon range yet.

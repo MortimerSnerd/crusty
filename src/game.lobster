@@ -41,6 +41,13 @@ let SwerdFeeshSystem = UserSystem1
 
 class SwerdFeesh : BusEndpoint
 
+private def groundhog_with_graphic(obj: ObjId) -> int:
+   for(Groundhogs) gh,i:
+      if gh and gh.graphic == obj:
+         return i
+
+   return -1
+
 def think_impl(sf: SwerdFeesh, span: TurnSpan, who: ObjId, now: float):
    // Wander aimlessly.
    if who is GroundhogRec:
@@ -62,6 +69,15 @@ def think_impl(sf: SwerdFeesh, span: TurnSpan, who: ObjId, now: float):
 
          // Maybe try back later.
          schedule_callback(who, now + 0.2)
+
+def notify_death_impl(sf: SwerdFeesh, obj: ObjId, now: float):
+   let i = groundhog_with_graphic(obj)
+
+   if i >= 0:
+      let gh = Groundhogs[i]
+
+      if gh:
+         gh.dead = true
 
 def game_create_window():
    fatal(gl_window("Penalty Box", 640, 400))

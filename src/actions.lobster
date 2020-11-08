@@ -389,8 +389,14 @@ class MeleeAttackAction : ActionBase
 
       assert ws
       if hit:
-         apply_damage(target, time, act_dmg)
+         let died = apply_damage(target, time, act_dmg)
          notify_sfx(who, time, ws.hit_sound, 0.5)
+
+         if act_dmg > 0 and not died:
+            let ss = object_sounds(target)
+
+            if ss:
+               notify_sfx_spec(target, time, rand_hurt_sound(ss))
       else:
          notify_sfx(who, time, ws.miss_sound, 0.5)
          let st = object_stats(target)

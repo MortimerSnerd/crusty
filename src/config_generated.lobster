@@ -77,6 +77,7 @@ enum ItemFlags:
 enum StateFlags:
     StateFlags_Open = 1
     StateFlags_Equipped = 2
+    StateFlags_Dead = 4
 
 enum AnimationKind:
     AnimationKind_OneShot = 0
@@ -91,6 +92,10 @@ class DamageRange
 class CfgSkillPair
 
 class CfgSkillSynergy
+
+class SfxSpec
+
+class ObjectSounds
 
 class WeaponStats
 
@@ -204,6 +209,66 @@ struct CfgSkillSynergyBuilder:
     def end():
         return b_.EndObject()
 
+class SfxSpec : flatbuffers_handle
+    def sfx():
+        return buf_.flatbuffers_field_string(pos_, 4)
+    def vol():
+        return buf_.flatbuffers_field_float32(pos_, 6, 0.5)
+
+def GetRootAsSfxSpec(buf:string): return SfxSpec { buf, buf.flatbuffers_indirect(0) }
+
+struct SfxSpecBuilder:
+    b_:flatbuffers_builder
+    def start():
+        b_.StartObject(2)
+        return this
+    def add_sfx(sfx:flatbuffers_offset):
+        b_.PrependUOffsetTRelativeSlot(0, sfx)
+        return this
+    def add_vol(vol:float):
+        b_.PrependFloat32Slot(1, vol, 0.5)
+        return this
+    def end():
+        return b_.EndObject()
+
+class ObjectSounds : flatbuffers_handle
+    def hurt(i:int):
+        return SfxSpec { buf_, buf_.flatbuffers_indirect(buf_.flatbuffers_field_vector(pos_, 4) + i * 4) }
+    def hurt_length():
+        return buf_.flatbuffers_field_vector_len(pos_, 4)
+    def death():
+        let o = buf_.flatbuffers_field_table(pos_, 6)
+        return if o: SfxSpec { buf_, o } else: nil
+    def surprise():
+        let o = buf_.flatbuffers_field_table(pos_, 8)
+        return if o: SfxSpec { buf_, o } else: nil
+
+def GetRootAsObjectSounds(buf:string): return ObjectSounds { buf, buf.flatbuffers_indirect(0) }
+
+struct ObjectSoundsBuilder:
+    b_:flatbuffers_builder
+    def start():
+        b_.StartObject(3)
+        return this
+    def add_hurt(hurt:flatbuffers_offset):
+        b_.PrependUOffsetTRelativeSlot(0, hurt)
+        return this
+    def add_death(death:flatbuffers_offset):
+        b_.PrependUOffsetTRelativeSlot(1, death)
+        return this
+    def add_surprise(surprise:flatbuffers_offset):
+        b_.PrependUOffsetTRelativeSlot(2, surprise)
+        return this
+    def end():
+        return b_.EndObject()
+
+def ObjectSoundsStartHurtVector(b_:flatbuffers_builder, n_:int):
+    b_.StartVector(4, n_, 4)
+def ObjectSoundsCreateHurtVector(b_:flatbuffers_builder, v_:[flatbuffers_offset]):
+    b_.StartVector(4, v_.length, 4)
+    reverse(v_) e_: b_.PrependUOffsetTRelative(e_)
+    return b_.EndVector(v_.length)
+
 class WeaponStats : flatbuffers_handle
     def speed():
         return buf_.flatbuffers_field_int32(pos_, 4, 0)
@@ -279,13 +344,16 @@ class ObjectSpec : flatbuffers_handle
         return buf_.flatbuffers_field_float32(pos_, 30, 0.5)
     def wield_offset_y():
         return buf_.flatbuffers_field_float32(pos_, 32, 0.75)
+    def sounds():
+        let o = buf_.flatbuffers_field_table(pos_, 34)
+        return if o: ObjectSounds { buf_, o } else: nil
 
 def GetRootAsObjectSpec(buf:string): return ObjectSpec { buf, buf.flatbuffers_indirect(0) }
 
 struct ObjectSpecBuilder:
     b_:flatbuffers_builder
     def start():
-        b_.StartObject(15)
+        b_.StartObject(16)
         return this
     def add_kind(kind:ObjectKind):
         b_.PrependInt16Slot(0, kind, 0)
@@ -331,6 +399,9 @@ struct ObjectSpecBuilder:
         return this
     def add_wield_offset_y(wield_offset_y:float):
         b_.PrependFloat32Slot(14, wield_offset_y, 0.75)
+        return this
+    def add_sounds(sounds:flatbuffers_offset):
+        b_.PrependUOffsetTRelativeSlot(15, sounds)
         return this
     def end():
         return b_.EndObject()

@@ -74,7 +74,8 @@ def melee_opponents_in_range(who: ObjId) -> [ObjId]:
       let front = p + all_dirs[face]
       for_objects_at(front) o:
          if o and object_spec(o).flags & ItemFlags_Living:
-            push(rv, o)
+            if object_state(o) & StateFlags_Dead == 0:
+               push(rv, o)
 
    return rv
 

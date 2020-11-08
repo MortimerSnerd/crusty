@@ -80,6 +80,15 @@ class MapEndpoint : BusEndpoint
 
       return true
 
+   def notify_death_impl(obj: ObjId, now: float):
+      // Once something is dead, it's on the object layer, not
+      // the living layer.
+      let pf, p = pos(obj)
+
+      if pf:
+         discard(Living) x: x == obj
+         add(Objects, p, obj)
+
    def notify_deleting_impl(what: ObjId):
       // Calling pos() won't necessarily work at this point, 
       // so discard the items directly from our grids.

@@ -76,6 +76,17 @@ enum DmgType : uint8 {
     Slashing, Stabbing, Impact
 }
 
+table SfxSpec {
+    sfx: string;
+    vol: float = 0.5;
+}
+ 
+table ObjectSounds {
+    hurt: [SfxSpec];
+    death: SfxSpec;
+    surprise: SfxSpec;
+}
+ 
 table WeaponStats {
     speed: int;
     kind: DmgType;
@@ -126,7 +137,8 @@ enum ItemFlags : uint32 (bit_flags)
 enum StateFlags : uint32 (bit_flags)
 {
     Open, 
-    Equipped
+    Equipped, 
+    Dead
 }
 
 table ObjectSpec {
@@ -146,6 +158,7 @@ table ObjectSpec {
    gender: GenderSpec = It;
    wield_offset_x: float = 0.5;
    wield_offset_y: float = 0.75;
+   sounds: ObjectSounds;
 } 
 
 enum AnimationKind : uint8

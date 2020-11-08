@@ -232,6 +232,12 @@ class GobjEndpoint : BusEndpoint
             if bb.overlaps(r):
                body(ob, bb)
 
+   def object_sounds_impl(o: ObjId) -> ObjectSounds?:
+      if o is GOInst:
+         return OSpecs[o.kind_idx].sounds
+      else:
+         return nil
+
    def think_impl(span: TurnSpan, who: ObjId, now: float):
       // We should't have any calls scheduled.
       return
@@ -345,6 +351,19 @@ class GobjEndpoint : BusEndpoint
          assert what.state & StateFlags_Equipped != 0
          assert what.parent == who
          what.state = what.state & ~StateFlags_Equipped
+
+   def notify_death_impl(obj: ObjId, now: float):
+      if obj is GOInst:
+         // Standardized death animation.
+         notify_animation(obj, now, string(OSpecs[obj.kind_idx].kind() + "_croaked"))
+
+         // Maybe a death sound effect, with a tiny time offset.
+         let ss = OSpecs[obj.kind_idx].sounds()
+
+         if ss:
+            notify_sfx_spec(obj, now + 0.1, ss.death())
+
+         obj.state |= StateFlags_Dead
 
 def gobjs_init():
    let txtfile = "dist/sprites.png"
