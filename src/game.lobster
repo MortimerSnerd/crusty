@@ -195,13 +195,22 @@ def game_frame(do_debug) -> bool, Rectf:
             gl_ortho()
             im_frame():
                let num_live, num_dead = num_live_groundhogs()
-               im_window("HARARRRRRR", im_window_no_titlebar|im_window_always_autoresize):
+               im_window("HARARRRRRR", im_window_no_titlebar):
                  im_text("# left in wave: " + num_live)
                  im_text("# groundhogs stabbed: " + num_dead)
                  im_set_next_item_open(true, im_cond_once)
                  im_treenode("Possible Moves"):
-                    for_player_actions(Player, now) key, desc:
-                       im_selectable(key + " - " + desc, false, 0, xy_0)
+                    im_columns(3, "moves", false):
+                       for_player_actions(Player, now) key, desc, dur:
+                          im_column():
+                             im_text(key+")")
+                             im_set_column_width(-1, im_get_cursor_pos().x + 5)
+                          im_column():
+                             im_text(desc)
+                          im_column():
+                             set_print_decimals(1)
+                             im_text(string(dur)+"s")
+                             set_print_decimals(-1)
 
                if do_debug:
                   im_window("Realtime Debugger", im_window_always_autoresize):

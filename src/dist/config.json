@@ -109,13 +109,13 @@
             name: Groundhog, 
             stats: [
                 {name: Str, val: 3},
-                {name: Speed, val: 4},
+                {name: Speed, val: 6},
                 {name: Will, val: 5}, 
                 {name: Wit, val: 1},
                 {name: Hp, val: 0},
                 {name: Melee, val: 3}, 
-                {name: Defence, val: 4}, 
-                {name: Dodge, val: 5}
+                {name: Defence, val: 3}, 
+                {name: Dodge, val: 6}
             ],
         }
     ], 

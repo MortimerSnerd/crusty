@@ -229,7 +229,7 @@ def for_player_actions(player: ObjId, now: float, body):
       let act = ff(player, now, false)
 
       if act:
-         body(b.key, b.desc)
+         body(b.key, b.desc, act.duration)
 
 enum HandleInputResult:
    Good, GoodSteppingEnded, GoodTurnBegins, ExitMainLoop

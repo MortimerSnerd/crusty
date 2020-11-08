@@ -225,7 +225,7 @@ def within_melee_range(ws: WeaponStats, range: float) -> bool:
 
 def attack_duration(who: ObjId, now: float, stats: WeaponStats) -> float:
    //TODO add weapon stat, calc for real.
-   let base = 1.0
+   let base = 0.5
    let st = object_stats(who)
 
    if length(st) > 0:
