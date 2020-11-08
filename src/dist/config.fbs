@@ -61,6 +61,17 @@ struct CfgSkillPair {
     defend: GameStats;
 }
 
+// Bonuses or maluses can be applied to skills
+// based on the value of other stats/skills.
+// Value comes out as (skill_val + plus)*numerator/denominator
+table CfgSkillSynergy {
+    skill: GameStats;
+    modified_by: GameStats;
+    plus: int = 0;
+    numerator: int = 1;
+    denominator: int = 1;
+}
+
 enum DmgType : uint8 {
     Slashing, Stabbing, Impact
 }
@@ -159,6 +170,7 @@ table ConfigRoot {
    animations: [SpriteAnim];
    stat_templates: [StatTemplate];
    opposing: [CfgSkillPair];   // Map skills that oppose other skills.
+   synergies: [CfgSkillSynergy];
 }
     
 root_type ConfigRoot;

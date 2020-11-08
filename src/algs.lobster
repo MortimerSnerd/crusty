@@ -375,6 +375,12 @@ def render(r:: Rectf, thickness):
    gl_line(bottomRight, xy_f{topLeft.x, bottomRight.y}, thickness)
    gl_line(xy_f{topLeft.x, bottomRight.y}, topLeft, thickness)
 
+// Calls body only with the items in `arr` that match `pred`.
+def filter_call(arr, pred, body):
+   for(arr) x:
+      if pred(x):
+         body(x)
+
 // Removes an item by swapping in the last item, rather
 // than shifting the array.  If the array was ordered before, 
 // it probably isn't now.

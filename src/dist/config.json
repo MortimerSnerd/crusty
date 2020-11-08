@@ -99,6 +99,7 @@
                 {name: Speed, val: 10},
                 {name: Will, val: 10}, 
                 {name: Wit, val: 10}, 
+                {name: Hp, val: 0},
                 {name: Melee, val: 10},
                 {name: Defence, val: 10}, 
                 {name: Dodge, val: 10}
@@ -111,6 +112,7 @@
                 {name: Speed, val: 4},
                 {name: Will, val: 5}, 
                 {name: Wit, val: 1},
+                {name: Hp, val: 0},
                 {name: Melee, val: 3}, 
                 {name: Defence, val: 4}, 
                 {name: Dodge, val: 5}
@@ -121,5 +123,12 @@
     opposing: [
         {atk: Melee, defend: Defence},
         {atk: Melee, defend: Dodge}
+    ],
+
+    synergies: [
+        {skill: Hp, modified_by: Str},
+        {skill: Hp, modified_by: Will, denominator: 2},
+        {skill: Dodge, modified_by: Speed, plus: -10, numerator: 2, denominator: 3},
+        {skill: Defence, modified_by: Str, plus: -10, denominator: 2}
     ]
 }

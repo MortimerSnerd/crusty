@@ -17,14 +17,6 @@ import tileing
 import vec
 
 def go():
-   config_init()
-   game_create_window()
-   gobjs_init()
-   player_init()
-   maps_init()
-   animations_init()
-   game_init()
-    
    var do_debug = false
    var do_tests = false
    var do_debug_rects = false
@@ -47,6 +39,16 @@ def go():
          print("unknown argument " + a + ", ignoring.")
 
    print("LOGGING " + LoggingLevel)
+
+   config_init()
+   game_create_window()
+   stats_init()
+   gobjs_init()
+   player_init()
+   maps_init()
+   animations_init()
+   game_init()
+    
 
    if do_tests:
       algs_tests()

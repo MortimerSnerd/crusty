@@ -11,7 +11,16 @@ private struct SkillPair:
    atk: GameStats
    defend: GameStats
 
+private struct SkillSyn:
+   skill: GameStats
+   modified_by: GameStats
+   plus: int
+   num: int
+   denom: int
+
 private let Oppose: [SkillPair] = []
+private let Synergies: [SkillSyn] = []
+ 
 
 private class DefVerb:
    skill: GameStats
@@ -30,9 +39,38 @@ def stats_init():
 
       push(Oppose, SkillPair{atk: op.atk(), defend: op.defend()})
 
+   for(root.synergies_length()) i:
+      let s = root.synergies(i)
+
+      push(Synergies, SkillSyn{skill: s.skill(), modified_by: s.modified_by(),
+                               plus: s.plus(),  num: s.numerator(), 
+                               denom: s.denominator()})
+
+// Returns a + or - bonus, with 10 being the 
+// midpoint with a bonus of 0.
+private def stat_bonus(val: int) -> int:
+   return (val - 10) / 2
+
+private def for_skill_synergies(skill: GameStats, body):
+   for(Synergies) s:
+      if s.skill == skill:
+         body(s)
+
+private def calc_synergies_dv(stats, stat, now) -> int:
+   var dv = 0
+
+   statlog(): "calc synergies for " + stat
+   for_skill_synergies(stat) syn:
+      let v = value(stats, now, syn.modified_by, false)
+      dv += (v + syn.plus) * syn.num / syn.denom
+      statlog(): "    synergy with " + syn.modified_by + " (" + v + "+" + syn.plus + 
+                 ")*" + syn.num + "/" + syn.denom + "  (" + dv + ")"
+
+   return dv
+
 // Calculates a value for a particular stat.
 // Will remove any expired conditions in passing.
-def value(stats: [StatEnt], now: float, stat: GameStats) -> int:
+def value(stats: [StatEnt], now: float, stat: GameStats, apply_syns: bool = true) -> int:
    var i = 0
    var rv = 0
 
@@ -52,14 +90,23 @@ def value(stats: [StatEnt], now: float, stat: GameStats) -> int:
       else:
          ++i
 
+   if apply_syns:
+         rv += calc_synergies_dv(stats, stat, now)
+      
    statlog(): "  = " + rv
    return rv
 
 // Returns base value of a stat, without any modifiers.
-def base_value(stats: [StatEnt], stat: GameStats) -> int:
+def base_value(stats: [StatEnt], stat: GameStats, apply_synergies = false, 
+               now = 0.0) -> int:
    let i = find(stats) x: x.name == stat and x.src == Base
    if i >= 0:
-      return stats[i].val
+      var dv = 0
+
+      if apply_synergies:
+         dv = calc_synergies_dv(stats, stat, now)
+
+      return stats[i].val + dv
    else:
       error(): "No base stat found for " + stat
       return 0
@@ -82,11 +129,6 @@ private def speed_factor(ag: float) -> float:
    return linear(0, 0.1, 
                  AvgStatVal, 1.0, 
                  ag)
-
-// Returns a + or - bonus, with 10 being the 
-// midpoint with a bonus of 0.
-private def stat_bonus(val: int) -> int:
-   return (val - 10) / 2
 
 // Returns the duration for `who` to move distance, based
 // on stats, encumberence.  Moves are one grid at a time, so 
@@ -161,11 +203,6 @@ def equip_time_for(who: ObjId, what: ObjId, now: float) -> float:
       return 1/speed_factor(speed)
    else:
       return 1.0
-
-// Calculates the base hitpoints for something with
-// the given stats.
-def base_hp_for(st: [StatEnt]) -> int:
-   return base_value(st, GameStats_Str) + base_value(st, GameStats_Will) / 2
 
 // Damages a living thing.  Can cause death. 
 def apply_damage(target: ObjId, now: float, dmg: int, dur: float = 1.0e12):

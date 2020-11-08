@@ -90,6 +90,8 @@ class DamageRange
 
 class CfgSkillPair
 
+class CfgSkillSynergy
+
 class WeaponStats
 
 class ObjectSpec
@@ -164,6 +166,43 @@ def CreateCfgSkillPair(b_:flatbuffers_builder, atk:GameStats, defend:GameStats):
     b_.PrependUint8(defend)
     b_.PrependUint8(atk)
     return b_.Offset()
+
+class CfgSkillSynergy : flatbuffers_handle
+    def skill():
+        return GameStats(buf_.flatbuffers_field_int8(pos_, 4, 0))
+    def modified_by():
+        return GameStats(buf_.flatbuffers_field_int8(pos_, 6, 0))
+    def plus():
+        return buf_.flatbuffers_field_int32(pos_, 8, 0)
+    def numerator():
+        return buf_.flatbuffers_field_int32(pos_, 10, 1)
+    def denominator():
+        return buf_.flatbuffers_field_int32(pos_, 12, 1)
+
+def GetRootAsCfgSkillSynergy(buf:string): return CfgSkillSynergy { buf, buf.flatbuffers_indirect(0) }
+
+struct CfgSkillSynergyBuilder:
+    b_:flatbuffers_builder
+    def start():
+        b_.StartObject(5)
+        return this
+    def add_skill(skill:GameStats):
+        b_.PrependUint8Slot(0, skill, 0)
+        return this
+    def add_modified_by(modified_by:GameStats):
+        b_.PrependUint8Slot(1, modified_by, 0)
+        return this
+    def add_plus(plus:int):
+        b_.PrependInt32Slot(2, plus, 0)
+        return this
+    def add_numerator(numerator:int):
+        b_.PrependInt32Slot(3, numerator, 1)
+        return this
+    def add_denominator(denominator:int):
+        b_.PrependInt32Slot(4, denominator, 1)
+        return this
+    def end():
+        return b_.EndObject()
 
 class WeaponStats : flatbuffers_handle
     def speed():
@@ -371,13 +410,17 @@ class ConfigRoot : flatbuffers_handle
         return CfgSkillPair { buf_, buf_.flatbuffers_field_vector(pos_, 10) + i * 2 }
     def opposing_length():
         return buf_.flatbuffers_field_vector_len(pos_, 10)
+    def synergies(i:int):
+        return CfgSkillSynergy { buf_, buf_.flatbuffers_indirect(buf_.flatbuffers_field_vector(pos_, 12) + i * 4) }
+    def synergies_length():
+        return buf_.flatbuffers_field_vector_len(pos_, 12)
 
 def GetRootAsConfigRoot(buf:string): return ConfigRoot { buf, buf.flatbuffers_indirect(0) }
 
 struct ConfigRootBuilder:
     b_:flatbuffers_builder
     def start():
-        b_.StartObject(4)
+        b_.StartObject(5)
         return this
     def add_objtypes(objtypes:flatbuffers_offset):
         b_.PrependUOffsetTRelativeSlot(0, objtypes)
@@ -390,6 +433,9 @@ struct ConfigRootBuilder:
         return this
     def add_opposing(opposing:flatbuffers_offset):
         b_.PrependUOffsetTRelativeSlot(3, opposing)
+        return this
+    def add_synergies(synergies:flatbuffers_offset):
+        b_.PrependUOffsetTRelativeSlot(4, synergies)
         return this
     def end():
         return b_.EndObject()
@@ -417,4 +463,11 @@ def ConfigRootCreateStatTemplatesVector(b_:flatbuffers_builder, v_:[flatbuffers_
 
 def ConfigRootStartOpposingVector(b_:flatbuffers_builder, n_:int):
     b_.StartVector(2, n_, 1)
+
+def ConfigRootStartSynergiesVector(b_:flatbuffers_builder, n_:int):
+    b_.StartVector(4, n_, 4)
+def ConfigRootCreateSynergiesVector(b_:flatbuffers_builder, v_:[flatbuffers_offset]):
+    b_.StartVector(4, v_.length, 4)
+    reverse(v_) e_: b_.PrependUOffsetTRelative(e_)
+    return b_.EndVector(v_.length)
 
