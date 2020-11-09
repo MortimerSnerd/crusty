@@ -293,3 +293,15 @@ def use_debuff_dur(st: [StatEnt], def_skill: GameStats, total_dmg: int,
    statlog(): "Debuf dur for " + def_skill + " with dmg=" + total_dmg + " is " + dd
    return dd
 
+// Calculates the malus to melee skill for attacks that are not 
+// straight ahead.  0 for straight ahead, <0 for other facings.
+def melee_facing_malus(atk_pos: xy_i, atk_dir: Directions, targ_pos: xy_i) -> int:
+   let d = approx_dir(atk_pos, targ_pos) 
+
+   statlog(): "facing malus " + atk_pos + "->" + targ_pos + " " + d
+   let n = abs(dir_diff(atk_dir, d))
+   let mal = -2 * n
+   
+   statlog(): "    = " + mal
+   return mal
+

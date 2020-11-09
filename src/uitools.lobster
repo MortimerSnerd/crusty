@@ -65,17 +65,16 @@ def finished_interaction() -> Interaction?:
 //
 def melee_opponents_in_range(who: ObjId) -> [ObjId]:
    let rv = []
-
-   //TODO for now, only guy right in front can be attacked.
    let pf, p = pos(who)
    let df, face = direction(who)
 
    if pf and df:
-      let front = p + all_dirs[face]
-      for_objects_at(front) o:
-         if o and object_spec(o).flags & ItemFlags_Living:
-            if object_state(o) & StateFlags_Dead == 0:
-               push(rv, o)
+      for([face, turned_left(face), turned_right(face)]) tfac:
+         let front = p + all_dirs[tfac]
+         for_objects_at(front) o:
+            if o and object_spec(o).flags & ItemFlags_Living:
+               if object_state(o) & StateFlags_Dead == 0:
+                  push(rv, o)
 
    return rv
 
@@ -88,7 +87,7 @@ def is_closed_container(o: ObjId):
 def closed_containers_at(p: xy_i) -> ObjList:
    let rv = ObjList{options: olAddChoiceLetter}
 
-   add_section(rv, "What have we here?")
+   add_section(rv, "Containers")
    for_objects_at(p) o:
       //TODO instead of flag test, should we check with close action, so we always use the
       //    same criteria?

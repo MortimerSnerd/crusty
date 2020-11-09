@@ -409,6 +409,7 @@ def melee_attack_action(span: TurnSpan, now: float, who: ObjId, what: ObjId,
 
    if weapon:
       let fa, atk_pos = pos(who)
+      let da, atk_dir = direction(who)
       let fb, vic_pos = pos(what)
       let wstats = object_spec(weapon).weapon_stats()
 
@@ -420,8 +421,9 @@ def melee_attack_action(span: TurnSpan, now: float, who: ObjId, what: ObjId,
                if calc:
                   let st_target = object_stats(what)
                   let st_attacker = object_stats(who)
+                  let dir_mal = melee_facing_malus(atk_pos, atk_dir, vic_pos)
                   let atk_skill = wstats.skill()
-                  let atk_val = value(st_attacker, now, atk_skill)
+                  let atk_val = value(st_attacker, now, atk_skill) + dir_mal
                   let def_skill, def_val = find_largest_opposing_skill(st_target, 
                                                                        atk_skill,
                                                                        now)

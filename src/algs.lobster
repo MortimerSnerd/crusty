@@ -48,6 +48,49 @@ def turned_left(d: Directions) -> Directions:
 def turned_right(d: Directions) -> Directions:
    return Directions(cycle_right(d, length(all_dirs)))
 
+// Returns -num steps (if b is to the left of a) or
+// +num steps if b is to the right of a.  Returns 0
+// if they are the same,
+def dir_diff(a: Directions, b: Directions) -> int:
+   if a == b:
+      return 0
+   else:
+      var c = 0
+      var lrab = a
+      var rrab = a
+
+      while c == 0 or (lrab != b and rrab != b):
+         ++c
+         lrab = lrab.turned_left()
+         rrab = rrab.turned_right()
+
+      if rrab == b:
+         return c
+      elif lrab == b:
+         return -c
+      else:
+         return 0
+
+// Returns closest direction that would face `a` towards `b`.
+def approx_dir(a: xy_i, b: xy_i) -> Directions:
+   let af = xy_f{a.x, a.y}
+   let bf = xy_f{b.x, b.y}
+   let dd = normalize(bf - af)
+
+   def roundn(r):
+      if r >= 0.5:
+         return 1
+      elif r <= -0.5:
+         return -1
+      else:
+         return 0
+
+   let di = xy_i{roundn(dd.x), roundn(dd.y)}
+   let idx = find(all_dirs) x: x == di
+
+   assert idx >= 0
+   return Directions(idx)
+
 def turned_right_90deg(v: xy_i) -> xy_i:
    return xy_i{-v.y, v.x} 
 
