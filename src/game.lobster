@@ -130,6 +130,7 @@ def draw_game_frame(now: float, windowsz: xy_f, view_rect: Rectf):
    map_render(view_rect) 
    gobjs_draw(now, view_rect)
 
+
 def num_live_groundhogs() -> int, int:
    var live = 0
    var dead = 0
@@ -233,7 +234,7 @@ def game_frame(do_debug) -> bool, Rectf:
                       im_show_engine_stats()
                       im_show_vars()
 
-               player_handle_ui()
+               player_handle_ui(view_rect, float(tile_size))
                uitools_render()
 
                //im_window("Holy craps", im_window_no_titlebar | im_window_always_autoresize):

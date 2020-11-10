@@ -1,6 +1,7 @@
 import from "../../../src/crusty/src/"
 import objutils
 import bus
+import consts
 
 private class ObjGroup:
    name: string
@@ -11,9 +12,10 @@ private class ObjSection:
    items: [ObjGroup] = []
 
 enum_flags ObjListOptions:
-   olNone = 0, 
-   olGroup = 1,     // Group together objects with the same name in sections.
+   olNone = 0 
+   olGroup = 1     // Group together objects with the same name in sections.
    olAddChoiceLetter // Prefix the displayed name with a letter choice.
+   olHighlightGameobj // Put the choice letter next to the objects on screen.
 
 enum DisplayListStatus:
    dlsOk, 
@@ -144,6 +146,27 @@ class ObjList:
 
       else:
          insert_at(object_spec(item).short_name, sectno)
+
+   // Should be called to render choice letters. It assumes it's being
+   // called when the pixel coordinate system is in effect.
+   def display_object_choices(wview: Rectf, tile_size: float, now: float):
+      if olHighlightGameobj & options: 
+         var ii = 0
+         gl_set_font_name("data/fonts/Zapato/greensboro.ttf")
+         gl_set_font_size(20)
+
+         for(sects) sect:
+            for(sect.items) item:
+               if length(item.grouped) > 0:
+                  // Put letter in upper left from center position, and convert
+                  // to pixel coords.
+                  let wp = anim_pos(item.grouped[0], now) - xy_1*0.5
+                  let pxp = (wp - wview.topLeft) * tile_size
+
+                  gl_translate(pxp):
+                     gl_text(choice_letter(ii))
+               ++ii
+
 
    // Displays the list via im_gui, returning any object that was chosen.
    // Expects a im_window or some other container has already been opened.

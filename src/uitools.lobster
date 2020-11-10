@@ -60,6 +60,14 @@ def finished_interaction() -> Interaction?:
    else:
       return nil
 
+// If there's an interaction going on, returns the UserData
+// for it.  Returns nil otherwise.
+def current_interaction_data() -> UserData?:
+   if Acts:
+      return Acts.data
+   else:
+      return nil
+
 //
 // Utility functions for building up ObjLists used by UI tools.
 //

@@ -94,15 +94,25 @@ def player_init():
    bind("z", "Attack") player, now, prompt:
       let cands = melee_opponents_in_range(player)
       var rv = nil
-      if prompt:
-         //TODO pick once we can highlight          
-         if length(cands) > 0:
-            let ar, aa = melee_attack_action(FakeTurnSpan, GameTime, player, 
-                                             cands[0])
 
-            rv = aa
-      else:
-         if length(cands) > 0:
+      if length(cands) > 0:
+         if prompt:
+            let ol = ObjList{options: olAddChoiceLetter|olHighlightGameobj}
+
+            add_section(ol, "Targets")
+            for(cands) c:
+               add_object(ol, c)
+            
+            prompt_for_object(player, "Attack who?", ol, true) data:
+               if data is ObjPromptData and data.picked:
+                  let ar, act = melee_attack_action(FakeTurnSpan, GameTime, 
+                                                    data.player, 
+                                                    data.picked)
+                  mumble(data.player, act, ar)
+                  rv = act
+               else:
+                  nil
+         else:
             let ar, aa = melee_attack_action(FakeTurnSpan, GameTime, player, 
                                              cands[0], false)
 
@@ -306,5 +316,11 @@ def player_handle_input(player: ObjId):
 
 // Called when it's ok to do imgui UI drawing.
 // The projection is already set up for pixel coords.
-def player_handle_ui():
+def player_handle_ui(wview: Rectf, tile_size: float):
+   let cid = current_interaction_data()
+   
+   if cid and cid is ObjPromptData:
+      cid.objs.display_object_choices(wview, tile_size, GameTime)
+
    actionlog_render()
+

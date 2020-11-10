@@ -132,3 +132,6 @@ the player know they can hit 'o' to open the safe)
 
 - Fix light propagation to use shadow casting code, so lights don't pass
   through barriers.  
+
+- prompt for which to attack when > 1 is in melee range.
+- bump attack?  Mouse click?
