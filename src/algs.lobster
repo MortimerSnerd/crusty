@@ -407,10 +407,27 @@ def gridRect(p: xy_i) -> Rectf:
    let gc = worldToGrid(xy_f{p.x, p.y})
    return mkRectfRel(xy_f{float(gc.x), float(gc.y)}, xy_1)
 
-
 // Converts a world rect to a grid rect.
 def worldToGrid(r: Rectf) -> Rect:
    return Rect{worldToGrid(r.topLeft), worldToGrid(r.bottomRight)}
+
+// Reads the current mouse position, and converts it to 
+// world coordinates, based on the passed in view rectangle.
+// `tile_size` is the size map tiles are displayed in, in pixels.
+def world_mouse_pos(view: Rectf, tile_size: float) -> xy_f:
+   let mpi = gl_mouse_pos(0)
+   let wsz = gl_window_size()
+   let viewsz = view.bottomRight - view.topLeft
+
+   if wsz.x > 0 and wsz.y > 0:
+      let xf = float(mpi.x) / float(wsz.x)
+      let yf = float(mpi.y) / float(wsz.y)
+
+      return xy_f{view.topLeft.x + xf*viewsz.x, 
+                  view.topLeft.y + yf*viewsz.y}
+   else:
+      return xy_0
+
 
 def render(r:: Rectf, thickness):
    gl_line(topLeft, xy_f{bottomRight.x, topLeft.y}, thickness)

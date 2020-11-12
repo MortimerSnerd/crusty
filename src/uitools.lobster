@@ -6,10 +6,38 @@ import algs
 import bus
 import color
 import config_generated
+import engrish
 import imgui
 import objlist
 import objutils
 
+// For keeping up with what the mouse is hovering over.
+private var HoverGridCoord = xy_i{0,0}
+private var TimeHovering = 0.0
+
+// Should be called per-frame to update the hover state.
+def hover_sample_mouse(view: Rectf, tile_size: float):
+   let mp = world_mouse_pos(view, tile_size)
+   let gp = xy_i{floor(mp.x), floor(mp.y)}
+
+   if gp == HoverGridCoord:
+      TimeHovering += gl_delta_time()
+   else:
+      TimeHovering = 0.0
+      HoverGridCoord = gp
+
+// If the mouse has been hovering over
+// a grid long enough, returns (true, gridcoord).
+// Otherwise, returns (false, x)
+def hovering_coord() -> bool, xy_i:
+   if TimeHovering > 0.5:
+      return true, HoverGridCoord
+   else:
+      return false, xy_i{0,0}
+
+// Should be called for times we don't want hovers.
+def inhibit_mouse_hover():
+   TimeHovering = 0.0
 
 // A base class for data a client can attach to a handler.
 // Also gives the client a way to pass back arbitrary data from
@@ -71,7 +99,7 @@ def current_interaction_data() -> UserData?:
 //
 // Utility functions for building up ObjLists used by UI tools.
 //
-def melee_opponents_in_range(who: ObjId) -> [ObjId]:
+def melee_opponents_in_range(who: ObjId, now: float) -> [ObjId]:
    let rv = []
    let pf, p = pos(who)
    let df, face = direction(who)
@@ -79,10 +107,13 @@ def melee_opponents_in_range(who: ObjId) -> [ObjId]:
    if pf and df:
       for([face, turned_left(face), turned_right(face)]) tfac:
          let front = p + all_dirs[tfac]
-         for_objects_at(front) o:
-            if o and object_spec(o).flags & ItemFlags_Living:
-               if object_state(o) & StateFlags_Dead == 0:
-                  push(rv, o)
+         let o = living_thing_at(front)
+         
+         if o:
+            let ar, act = melee_attack_action(FakeTurnSpan, now, who, o, false)
+
+            if act:
+               push(rv, o)
 
    return rv
 
@@ -640,3 +671,60 @@ def player_action_done():
       if Acts.data.post_action_update:
          Acts.data.post_action_update.execute(Acts.data)
          Acts.data.post_action_update = nil
+
+private def can_see_stats_of(player, other) -> bool:
+   return player == other
+
+// For living things, displays information for the mouse hover.
+def ui_for_living(player: ObjId, oi: ObjId, now: float):
+   let spec = object_spec(oi)
+   let wsz = gl_window_size()
+
+   im_push_text_wrap_pos(im_get_cursor_pos().x + wsz.x / 6.0)
+   im_text(otherliving(oi))
+   im_text("    " + spec.desc)
+
+   if can_see_stats_of(player, oi):
+      let st = object_stats(oi)
+      im_separator()
+      im_spacing()
+      im_spacing()
+      im_columns(2, "statdisp", true):
+         for(AllAtts) att:
+            let bv = base_value(st, att.st)
+            let av = value(st, now, att.st)
+
+            im_column():
+               im_text(att.name)
+            im_column():
+               var v = string(av)
+               let sd = av - bv
+
+               if sd > 0:
+                  v += " (+" + sd + ")"
+               elif sd < 0:
+                  v += " (" + sd + ")"
+
+               im_text(v)
+
+         // Special handling for HP
+         im_column(): im_text("HP")
+         im_column():
+            let base = base_value(st, GameStats_Hp, true, now)
+            let cur = value(st, now, GameStats_Hp)
+            im_text(cur + "/" + base)
+
+   let equipped = ObjList{options: olGroup}
+   let equippable = ObjList{}
+
+   equipment_for(oi, equipped, equippable)
+
+   if count(equipped) > 0:
+      im_separator()
+      remove_empty_sections(equipped)
+      im_set_next_item_open(true, im_cond_always)
+      im_treenode("Wearing: "):
+         display_list(equipped, 0)
+
+   im_pop_text_wrap_pos()
+

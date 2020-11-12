@@ -80,6 +80,9 @@ class MapEndpoint : BusEndpoint
 
       return true
 
+   def living_thing_at_impl(pos: xy_i) -> ObjId?:
+      return get(Living, pos)
+
    def notify_death_impl(obj: ObjId, now: float):
       // Once something is dead, it's on the object layer, not
       // the living layer.

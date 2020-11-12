@@ -13,6 +13,11 @@ import vec
 class BusEndpoint:
    system: ObjectSystem
 
+   // Returns the living thing at `pos` or nil if 
+   // there is none.
+   def living_thing_at_impl(pos: xy_i) -> ObjId?:
+      return nil
+   
    // Returns the sound set associated with `o`.
    def object_sounds_impl(o: ObjId) -> ObjectSounds?:
       return nil
@@ -440,4 +445,9 @@ def object_sounds(o: ObjId) -> ObjectSounds?:
 def notify_sfx_spec(o: ObjId, startT: float, fx: SfxSpec?):
    if fx:
       notify_sfx(o, startT, fx.sfx(), fx.vol())
+
+// Returns the living thing at `pos` or nil if 
+// there is none.
+def living_thing_at(pos: xy_i) -> ObjId?:
+   return Endpoints[MapSystem].living_thing_at_impl(pos)   
 

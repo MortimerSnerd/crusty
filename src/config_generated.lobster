@@ -317,35 +317,37 @@ class ObjectSpec : flatbuffers_handle
         return ObjectKind(buf_.flatbuffers_field_int16(pos_, 4, 0))
     def short_name():
         return buf_.flatbuffers_field_string(pos_, 6)
+    def desc():
+        return buf_.flatbuffers_field_string(pos_, 8)
     def static_tile():
-        return TileName(buf_.flatbuffers_field_int32(pos_, 8, 0))
+        return TileName(buf_.flatbuffers_field_int32(pos_, 10, 0))
     def weight():
-        return buf_.flatbuffers_field_float32(pos_, 10, 0.0)
+        return buf_.flatbuffers_field_float32(pos_, 12, 0.0)
     def flags():
-        return ItemFlags(buf_.flatbuffers_field_int32(pos_, 12, 0))
+        return ItemFlags(buf_.flatbuffers_field_int32(pos_, 14, 0))
     def right_rotation():
-        return buf_.flatbuffers_field_float32(pos_, 14, 0.0)
+        return buf_.flatbuffers_field_float32(pos_, 16, 0.0)
     def light_radius():
-        return buf_.flatbuffers_field_int32(pos_, 16, 0)
+        return buf_.flatbuffers_field_int32(pos_, 18, 0)
     def dir_offset():
-        return buf_.flatbuffers_field_float32(pos_, 18, 0.0)
+        return buf_.flatbuffers_field_float32(pos_, 20, 0.0)
     def initial_state():
-        return StateFlags(buf_.flatbuffers_field_int32(pos_, 20, 0))
+        return StateFlags(buf_.flatbuffers_field_int32(pos_, 22, 0))
     def stat_base():
-        return StatTemplateName(buf_.flatbuffers_field_int16(pos_, 22, 0))
+        return StatTemplateName(buf_.flatbuffers_field_int16(pos_, 24, 0))
     def weapon_stats():
-        let o = buf_.flatbuffers_field_table(pos_, 24)
+        let o = buf_.flatbuffers_field_table(pos_, 26)
         return if o: WeaponStats { buf_, o } else: nil
     def slot():
-        return ItemSlot(buf_.flatbuffers_field_int8(pos_, 26, 0))
+        return ItemSlot(buf_.flatbuffers_field_int8(pos_, 28, 0))
     def gender():
-        return GenderSpec(buf_.flatbuffers_field_int8(pos_, 28, 2))
+        return GenderSpec(buf_.flatbuffers_field_int8(pos_, 30, 2))
     def wield_offset_x():
-        return buf_.flatbuffers_field_float32(pos_, 30, 0.5)
+        return buf_.flatbuffers_field_float32(pos_, 32, 0.5)
     def wield_offset_y():
-        return buf_.flatbuffers_field_float32(pos_, 32, 0.75)
+        return buf_.flatbuffers_field_float32(pos_, 34, 0.75)
     def sounds():
-        let o = buf_.flatbuffers_field_table(pos_, 34)
+        let o = buf_.flatbuffers_field_table(pos_, 36)
         return if o: ObjectSounds { buf_, o } else: nil
 
 def GetRootAsObjectSpec(buf:string): return ObjectSpec { buf, buf.flatbuffers_indirect(0) }
@@ -353,7 +355,7 @@ def GetRootAsObjectSpec(buf:string): return ObjectSpec { buf, buf.flatbuffers_in
 struct ObjectSpecBuilder:
     b_:flatbuffers_builder
     def start():
-        b_.StartObject(16)
+        b_.StartObject(17)
         return this
     def add_kind(kind:ObjectKind):
         b_.PrependInt16Slot(0, kind, 0)
@@ -361,47 +363,50 @@ struct ObjectSpecBuilder:
     def add_short_name(short_name:flatbuffers_offset):
         b_.PrependUOffsetTRelativeSlot(1, short_name)
         return this
+    def add_desc(desc:flatbuffers_offset):
+        b_.PrependUOffsetTRelativeSlot(2, desc)
+        return this
     def add_static_tile(static_tile:TileName):
-        b_.PrependInt32Slot(2, static_tile, 0)
+        b_.PrependInt32Slot(3, static_tile, 0)
         return this
     def add_weight(weight:float):
-        b_.PrependFloat32Slot(3, weight, 0.0)
+        b_.PrependFloat32Slot(4, weight, 0.0)
         return this
     def add_flags(flags:ItemFlags):
-        b_.PrependUint32Slot(4, flags, 0)
+        b_.PrependUint32Slot(5, flags, 0)
         return this
     def add_right_rotation(right_rotation:float):
-        b_.PrependFloat32Slot(5, right_rotation, 0.0)
+        b_.PrependFloat32Slot(6, right_rotation, 0.0)
         return this
     def add_light_radius(light_radius:int):
-        b_.PrependInt32Slot(6, light_radius, 0)
+        b_.PrependInt32Slot(7, light_radius, 0)
         return this
     def add_dir_offset(dir_offset:float):
-        b_.PrependFloat32Slot(7, dir_offset, 0.0)
+        b_.PrependFloat32Slot(8, dir_offset, 0.0)
         return this
     def add_initial_state(initial_state:StateFlags):
-        b_.PrependUint32Slot(8, initial_state, 0)
+        b_.PrependUint32Slot(9, initial_state, 0)
         return this
     def add_stat_base(stat_base:StatTemplateName):
-        b_.PrependUint16Slot(9, stat_base, 0)
+        b_.PrependUint16Slot(10, stat_base, 0)
         return this
     def add_weapon_stats(weapon_stats:flatbuffers_offset):
-        b_.PrependUOffsetTRelativeSlot(10, weapon_stats)
+        b_.PrependUOffsetTRelativeSlot(11, weapon_stats)
         return this
     def add_slot(slot:ItemSlot):
-        b_.PrependUint8Slot(11, slot, 0)
+        b_.PrependUint8Slot(12, slot, 0)
         return this
     def add_gender(gender:GenderSpec):
-        b_.PrependUint8Slot(12, gender, 2)
+        b_.PrependUint8Slot(13, gender, 2)
         return this
     def add_wield_offset_x(wield_offset_x:float):
-        b_.PrependFloat32Slot(13, wield_offset_x, 0.5)
+        b_.PrependFloat32Slot(14, wield_offset_x, 0.5)
         return this
     def add_wield_offset_y(wield_offset_y:float):
-        b_.PrependFloat32Slot(14, wield_offset_y, 0.75)
+        b_.PrependFloat32Slot(15, wield_offset_y, 0.75)
         return this
     def add_sounds(sounds:flatbuffers_offset):
-        b_.PrependUOffsetTRelativeSlot(15, sounds)
+        b_.PrependUOffsetTRelativeSlot(16, sounds)
         return this
     def end():
         return b_.EndObject()

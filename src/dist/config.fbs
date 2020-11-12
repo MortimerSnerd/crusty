@@ -144,6 +144,7 @@ enum StateFlags : uint32 (bit_flags)
 table ObjectSpec {
    kind: ObjectKind;
    short_name: string;
+   desc: string;
    static_tile: TileName = None;
    weight: float;
    flags: ItemFlags;

@@ -43,6 +43,24 @@ class ObjList:
 
       return length(sects), nitems
 
+   // Removes any sections that don't have objects.
+   // This will change the section indices.
+   def remove_empty_sections():
+      var i = 0
+
+      while i < length(sects):
+         let sec = sects[i]
+         var cnt = 0
+         
+         for(sec.items) item:
+            cnt += length(item.grouped)
+
+         if cnt == 0:
+            remove(sects, i)
+         else:
+            ++i
+
+
    // Returns number of items in the list, not
    // counting sections.
    def count() -> int:

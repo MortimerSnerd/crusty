@@ -21,6 +21,16 @@ private struct SkillSyn:
 private let Oppose: [SkillPair] = []
 private let Synergies: [SkillSyn] = []
  
+class StatDesc:
+   st: GameStats
+   name: string
+
+let AllAtts = [
+   StatDesc{GameStats_Str, "Strength"},
+   StatDesc{GameStats_Speed, "Speed"}, 
+   StatDesc{GameStats_Will, "Willpower"},
+   StatDesc{GameStats_Wit, "Wit"},
+]
 
 private class DefVerb:
    skill: GameStats

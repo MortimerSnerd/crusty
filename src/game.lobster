@@ -106,6 +106,11 @@ def game_init():
       play_animation(Player, "player_idle")
       gobjs_spawn(ObjectKind_Sword, spawn.pos + xy_i{1, 0}, North)
       maps_update_viz(spawn.pos, true)
+      //DEBUGGERY
+      let pst = object_stats(Player)
+      add_use_debuff(pst, GameStats_Str, 3, 4.0)
+      apply_damage(Player, 0.0, 4)
+
    else:
       error(): "No spawn found."
 
@@ -234,7 +239,7 @@ def game_frame(do_debug) -> bool, Rectf:
                       im_show_engine_stats()
                       im_show_vars()
 
-               player_handle_ui(view_rect, float(tile_size))
+               player_handle_ui(Player, view_rect, float(tile_size))
                uitools_render()
 
                //im_window("Holy craps", im_window_no_titlebar | im_window_always_autoresize):

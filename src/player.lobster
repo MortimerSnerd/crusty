@@ -48,15 +48,16 @@ class Binding:
 
 private let Bindings: [Binding] = []
 
-private let pl_fwd_action = fn(player: ObjId, now: float) -> ActionBase?:
-   let f, p = pos(player)
-   let f1, diri = direction(player)
-
-   let r, act = move_action(FakeTurnSpan, GameTime, player, p, p + all_dirs[diri])
-   act
-
 def bind(key, desc, afn): push(Bindings, Binding{key: key, desc: desc, afn: afn})
 
+def maybe_bump_attack(player: ObjId, ppos: xy_i, facing: Directions, orig_ar: ActionResult) -> ActionResult, ActionBase?:
+   let fwdp = ppos + all_dirs[facing]
+   let target = living_thing_at(fwdp)
+
+   if target:
+     return melee_attack_action(FakeTurnSpan, GameTime, player, target) 
+   else:
+      return orig_ar, nil
 
 def player_init():
    def mumble(player, act, ar):
@@ -67,8 +68,19 @@ def player_init():
       let f, p = pos(player)
       let f1, diri = direction(player)
       let r, act = move_action(FakeTurnSpan, GameTime, player, p, p + all_dirs[diri])
-      if prompt: mumble(player,act,r)
-      act
+      
+      if not act:
+         let atk_r, atk_act = maybe_bump_attack(player, p, diri, r)
+
+         if atk_act:
+            if prompt: mumble(player, atk_act, atk_r)
+            atk_act
+         else:
+            if prompt: mumble(player,act,r)
+            act
+      else:
+         if prompt: mumble(player,act,r)
+         act
 
    bind("s", "Move back") player, now, prompt:
       let f, p = pos(player)
@@ -92,7 +104,7 @@ def player_init():
       act
 
    bind("z", "Attack") player, now, prompt:
-      let cands = melee_opponents_in_range(player)
+      let cands = melee_opponents_in_range(player, GameTime)
       var rv = nil
 
       if length(cands) > 0:
@@ -300,6 +312,7 @@ def player_handle_input(player: ObjId):
          case Stepping:
             let dT = gl_delta_time() * animations_time_scale()
 
+            inhibit_mouse_hover()
             GameTime = min(TurnTime.end, GameTime + dT)
 
             anim_play_one_shots(GameTime)
@@ -314,13 +327,27 @@ def player_handle_input(player: ObjId):
         // process_callbacks(now)
    return rv
 
+
 // Called when it's ok to do imgui UI drawing.
 // The projection is already set up for pixel coords.
-def player_handle_ui(wview: Rectf, tile_size: float):
+def player_handle_ui(player: ObjId, wview: Rectf, tile_size: float):
+
    let cid = current_interaction_data()
    
    if cid and cid is ObjPromptData:
       cid.objs.display_object_choices(wview, tile_size, GameTime)
 
    actionlog_render()
+   hover_sample_mouse(wview, tile_size)
+
+   let hovering, hc = hovering_coord()
+
+   if hovering:
+      let lv = living_thing_at(hc)
+      let mp = gl_mouse_pos(0) + xy_i{30, 0}
+
+      if lv:
+         im_set_next_window_pos(xy_f{mp.x, mp.y}, im_cond_always, xy_0)
+         im_window("hoverpop", im_window_no_titlebar | im_window_always_autoresize):
+            ui_for_living(player, lv, GameTime)
 
