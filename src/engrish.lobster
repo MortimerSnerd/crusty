@@ -1,6 +1,7 @@
 // Some common helpers for writing messages in english.
 import from "../../../src/crusty/src/"
 import bus
+import config_generated
 import objutils
 import std
 
@@ -80,3 +81,48 @@ def otherliving(other: ObjId, use_article: bool = true) -> string:
       else:
          return object_spec(other).short_name
 
+def comma_list(args: [string]) -> [string]:
+   let rv = []
+
+   for(args) a:
+      if length(rv) > 0:
+         push(rv, ",")
+      push(rv, a)
+
+   return rv
+
+// The name of an object, with modifications for object states
+// like open, lit, etc...
+def pretty_name(o: ObjId, use_article = false) -> string:
+   let spec = object_spec(o)
+   let state = object_state(o)
+   let adjs = []
+
+   if state & StateFlags_Dead:
+      push(adjs, "deceased")
+
+   if spec.flags & ItemFlags_Container:
+      if state & StateFlags_Open:
+         push(adjs, "open")
+      else:
+         push(adjs, "closed")
+
+   if spec.flags & ItemFlags_EmitsLight:
+      push(adjs, "lit")
+
+   var rv = []
+   if Ctx and Ctx.player == o:
+      if length(adjs) > 0:
+         rv = ["you", "("] 
+         rv = append(rv, comma_list(adjs)) 
+         push(rv, ")")
+      else:
+         rv = ["you"]
+   else:
+      if use_article:
+         rv = [article(o)] 
+      rv = append(rv, comma_list(adjs))
+      push(rv, spec.short_name)
+
+   return sentence(rv)
+      

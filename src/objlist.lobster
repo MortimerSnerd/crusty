@@ -2,6 +2,7 @@ import from "../../../src/crusty/src/"
 import objutils
 import bus
 import consts
+import engrish
 
 private class ObjGroup:
    name: string
@@ -131,7 +132,7 @@ class ObjList:
 
    // Adds a object to the list, to the last section added.  
    def add_object(obj: ObjId):
-      let name = object_spec(obj).short_name
+      let name = pretty_name(obj)
       add_named_object(obj, name)
 
    // Returns (index of section, index of item) for item in `sectno`

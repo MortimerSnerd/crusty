@@ -197,6 +197,21 @@ private def add_container_objects(player: ObjId, list: ObjList, o: ObjId):
 
 private let GroundSection = "On ground"
 
+def all_ground_objects(p: xy_i) -> ObjList:
+   let rv = ObjList{options: olGroup}
+
+   add_section(rv, GroundSection)
+
+   for_objects_at(p) o:
+      if o:
+         let sp = object_spec(o)
+         let fl = object_state(o)
+
+         if not sp.flags & ItemFlags_Living or fl & StateFlags_Dead:
+            add_object(rv, o)            
+
+   return rv
+
 // Populate `rv` with the objects on the floor at `p`.  Returns 
 // any open container objects as an array.
 private def get_floor_objs(rv: ObjList, player: ObjId, p: xy_i):
@@ -681,7 +696,7 @@ def ui_for_living(player: ObjId, oi: ObjId, now: float):
    let wsz = gl_window_size()
 
    im_push_text_wrap_pos(im_get_cursor_pos().x + wsz.x / 6.0)
-   im_text(otherliving(oi))
+   im_text(pretty_name(oi))
    im_text("    " + spec.desc)
 
    if can_see_stats_of(player, oi):
@@ -722,9 +737,9 @@ def ui_for_living(player: ObjId, oi: ObjId, now: float):
    if count(equipped) > 0:
       im_separator()
       remove_empty_sections(equipped)
-      im_set_next_item_open(true, im_cond_always)
-      im_treenode("Wearing: "):
-         display_list(equipped, 0)
+      display_list(equipped, 0)
 
    im_pop_text_wrap_pos()
 
+def ui_for_objects(objs: ObjList):
+   display_list(objs, 0)

@@ -133,7 +133,10 @@ the player know they can hit 'o' to open the safe)
 - Fix light propagation to use shadow casting code, so lights don't pass
   through barriers.  
 
-- bump attack?  Mouse click?
+- Mouse click attack?
+
+- add function to engrish that describes an object.  (is it lit, is it open, etc)
+
 - add config that defines stat boost for equipment.  Make sure buff gets
   added and removed by equip logic.  How to associate an equipment buf with
   the equipment?

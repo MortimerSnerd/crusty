@@ -342,12 +342,23 @@ def player_handle_ui(player: ObjId, wview: Rectf, tile_size: float):
 
    let hovering, hc = hovering_coord()
 
+   //TODO don't give information on anything that is not lit and visible.
+   //     need to query PlayerViz in maps module.
    if hovering:
       let lv = living_thing_at(hc)
+      let gobjs = all_ground_objects(hc)
       let mp = gl_mouse_pos(0) + xy_i{30, 0}
 
-      if lv:
+      if lv or count(gobjs) > 0:
          im_set_next_window_pos(xy_f{mp.x, mp.y}, im_cond_always, xy_0)
          im_window("hoverpop", im_window_no_titlebar | im_window_always_autoresize):
-            ui_for_living(player, lv, GameTime)
+            if lv:
+               ui_for_living(player, lv, GameTime)
+
+            if count(gobjs) > 0:
+               if lv:
+                  im_separator()
+               ui_for_objects(gobjs)
+
+
 
