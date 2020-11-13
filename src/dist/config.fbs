@@ -72,6 +72,11 @@ table CfgSkillSynergy {
     denominator: int = 1;
 }
 
+table EquipBonus {
+    skill: GameStats;
+    modifier: int;
+}
+
 enum DmgType : uint8 {
     Slashing, Stabbing, Impact
 }
@@ -156,6 +161,7 @@ table ObjectSpec {
    weapon_stats: WeaponStats;
    // Where the item can be equipped.
    slot: ItemSlot = None;   
+   equip_bonuses: [EquipBonus];
    gender: GenderSpec = It;
    wield_offset_x: float = 0.5;
    wield_offset_y: float = 0.75;

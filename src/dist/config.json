@@ -12,7 +12,10 @@
                 miss_sound: "dist/ouch1.wav",
                 skill: Melee
             }, 
-            slot: Melee
+            slot: Melee,
+            equip_bonuses: [
+                {skill: Speed, modifier: 2}
+            ]
         },
         {
             kind: Player, 

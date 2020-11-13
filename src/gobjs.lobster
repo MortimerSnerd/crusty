@@ -186,6 +186,10 @@ def gobjs_spawn(okind: ObjectKind, pos: xy_i, dir: Directions, parent: ObjId? = 
 def gobjs_tests():
    gobjs_spawn(ObjectKind_Sword, xy_i{0,0}, North)
 
+// Makes unique id for equipment stat boosts.
+private def mk_equip_id(equip: GOInst, bonus_index: int) -> int:
+   return equip.id << 8 + bonus_index
+
 // Bus endpoint implementation.
 class GobjEndpoint : BusEndpoint
    def for_all_enabled_lights_impl(body):
@@ -340,17 +344,41 @@ class GobjEndpoint : BusEndpoint
    // It's an error to equip an item whose slot is already full.
    def equip_impl(who: ObjId, what: ObjId):
       if who is GOInst and what is GOInst:
-         let itemloc = OSpecs[what.kind_idx].slot()
+         let itemspec = OSpecs[what.kind_idx]
+         let itemloc = itemspec.slot()
+         let stats = object_stats_private(who)
+
          assert what.state & StateFlags_Equipped == 0
          assert equipment_at_impl(who, itemloc) == nil
          what.parent = who
          what.state = what.state | StateFlags_Equipped
+
+         // Apply equip bonuses.
+         for(itemspec.equip_bonuses_length()) i:
+            let id = mk_equip_id(what, i)
+            let bon = itemspec.equip_bonuses(i)
+
+            push(stats, StatEnt{name: bon.skill(), val: bon.modifier(), 
+                                src: Equipment, equip_id: id})
+
 
    def unequip_impl(who: ObjId, what: ObjId):
       if who is GOInst and what is GOInst:
          assert what.state & StateFlags_Equipped != 0
          assert what.parent == who
          what.state = what.state & ~StateFlags_Equipped
+
+         var st = object_stats_private(who)
+         let itemspec = OSpecs[what.kind_idx]
+
+         // Remove any applied equip bonuses.
+         for(itemspec.equip_bonuses_length()) i:
+            let id = mk_equip_id(what, i)
+            let bon = itemspec.equip_bonuses(i)
+
+            st = filter(st) x: not (x.src == Equipment and x.equip_id == id)
+
+         who.stats = st
 
    def notify_death_impl(obj: ObjId, now: float):
       if obj is GOInst:
