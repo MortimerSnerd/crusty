@@ -93,6 +93,8 @@ class CfgSkillPair
 
 class CfgSkillSynergy
 
+class EquipBonus
+
 class SfxSpec
 
 class ObjectSounds
@@ -205,6 +207,28 @@ struct CfgSkillSynergyBuilder:
         return this
     def add_denominator(denominator:int):
         b_.PrependInt32Slot(4, denominator, 1)
+        return this
+    def end():
+        return b_.EndObject()
+
+class EquipBonus : flatbuffers_handle
+    def skill():
+        return GameStats(buf_.flatbuffers_field_int8(pos_, 4, 0))
+    def modifier():
+        return buf_.flatbuffers_field_int32(pos_, 6, 0)
+
+def GetRootAsEquipBonus(buf:string): return EquipBonus { buf, buf.flatbuffers_indirect(0) }
+
+struct EquipBonusBuilder:
+    b_:flatbuffers_builder
+    def start():
+        b_.StartObject(2)
+        return this
+    def add_skill(skill:GameStats):
+        b_.PrependUint8Slot(0, skill, 0)
+        return this
+    def add_modifier(modifier:int):
+        b_.PrependInt32Slot(1, modifier, 0)
         return this
     def end():
         return b_.EndObject()
@@ -340,14 +364,18 @@ class ObjectSpec : flatbuffers_handle
         return if o: WeaponStats { buf_, o } else: nil
     def slot():
         return ItemSlot(buf_.flatbuffers_field_int8(pos_, 28, 0))
+    def equip_bonuses(i:int):
+        return EquipBonus { buf_, buf_.flatbuffers_indirect(buf_.flatbuffers_field_vector(pos_, 30) + i * 4) }
+    def equip_bonuses_length():
+        return buf_.flatbuffers_field_vector_len(pos_, 30)
     def gender():
-        return GenderSpec(buf_.flatbuffers_field_int8(pos_, 30, 2))
+        return GenderSpec(buf_.flatbuffers_field_int8(pos_, 32, 2))
     def wield_offset_x():
-        return buf_.flatbuffers_field_float32(pos_, 32, 0.5)
+        return buf_.flatbuffers_field_float32(pos_, 34, 0.5)
     def wield_offset_y():
-        return buf_.flatbuffers_field_float32(pos_, 34, 0.75)
+        return buf_.flatbuffers_field_float32(pos_, 36, 0.75)
     def sounds():
-        let o = buf_.flatbuffers_field_table(pos_, 36)
+        let o = buf_.flatbuffers_field_table(pos_, 38)
         return if o: ObjectSounds { buf_, o } else: nil
 
 def GetRootAsObjectSpec(buf:string): return ObjectSpec { buf, buf.flatbuffers_indirect(0) }
@@ -355,7 +383,7 @@ def GetRootAsObjectSpec(buf:string): return ObjectSpec { buf, buf.flatbuffers_in
 struct ObjectSpecBuilder:
     b_:flatbuffers_builder
     def start():
-        b_.StartObject(17)
+        b_.StartObject(18)
         return this
     def add_kind(kind:ObjectKind):
         b_.PrependInt16Slot(0, kind, 0)
@@ -396,20 +424,30 @@ struct ObjectSpecBuilder:
     def add_slot(slot:ItemSlot):
         b_.PrependUint8Slot(12, slot, 0)
         return this
+    def add_equip_bonuses(equip_bonuses:flatbuffers_offset):
+        b_.PrependUOffsetTRelativeSlot(13, equip_bonuses)
+        return this
     def add_gender(gender:GenderSpec):
-        b_.PrependUint8Slot(13, gender, 2)
+        b_.PrependUint8Slot(14, gender, 2)
         return this
     def add_wield_offset_x(wield_offset_x:float):
-        b_.PrependFloat32Slot(14, wield_offset_x, 0.5)
+        b_.PrependFloat32Slot(15, wield_offset_x, 0.5)
         return this
     def add_wield_offset_y(wield_offset_y:float):
-        b_.PrependFloat32Slot(15, wield_offset_y, 0.75)
+        b_.PrependFloat32Slot(16, wield_offset_y, 0.75)
         return this
     def add_sounds(sounds:flatbuffers_offset):
-        b_.PrependUOffsetTRelativeSlot(16, sounds)
+        b_.PrependUOffsetTRelativeSlot(17, sounds)
         return this
     def end():
         return b_.EndObject()
+
+def ObjectSpecStartEquipBonusesVector(b_:flatbuffers_builder, n_:int):
+    b_.StartVector(4, n_, 4)
+def ObjectSpecCreateEquipBonusesVector(b_:flatbuffers_builder, v_:[flatbuffers_offset]):
+    b_.StartVector(4, v_.length, 4)
+    reverse(v_) e_: b_.PrependUOffsetTRelative(e_)
+    return b_.EndVector(v_.length)
 
 class Frame : flatbuffers_handle
     def frame():

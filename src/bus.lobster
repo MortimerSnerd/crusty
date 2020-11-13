@@ -13,6 +13,11 @@ import vec
 class BusEndpoint:
    system: ObjectSystem
 
+   // Returns true if the given coordinate is both lit
+   // and visible.
+   def is_lit_and_visible_impl(pos: xy_i) -> bool:
+      return true
+
    // Returns the living thing at `pos` or nil if 
    // there is none.
    def living_thing_at_impl(pos: xy_i) -> ObjId?:
@@ -451,3 +456,7 @@ def notify_sfx_spec(o: ObjId, startT: float, fx: SfxSpec?):
 def living_thing_at(pos: xy_i) -> ObjId?:
    return Endpoints[MapSystem].living_thing_at_impl(pos)   
 
+// Returns true if the given coordinate is both lit
+// and visible.
+def is_lit_and_visible(pos: xy_i) -> bool:
+   return Endpoints[MapSystem].is_lit_and_visible_impl(pos)

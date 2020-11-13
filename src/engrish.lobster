@@ -61,6 +61,16 @@ def article(actor: ObjId) -> string:
       //indefinite
       return "a"
 
+def plural(word: string, count: int) -> string:
+   if count > 1:
+      //TODO special cases missing
+      if word.ends_with("th"):
+         return word
+      else:
+         return word + "s"
+   else:
+      return word
+
 // Put together words for a sentence, adding spaces if needed.
 def sentence(arr: [string]) -> string:
    let words = copy(arr)
@@ -91,15 +101,23 @@ def comma_list(args: [string]) -> [string]:
 
    return rv
 
+// This is not an exact science.
+def is_proper_name(x: string) -> bool:
+   if length(x) > 0:
+      let c = x[0]
+      return c >= 65 and c < 90
+   else:
+      return false
+
 // The name of an object, with modifications for object states
 // like open, lit, etc...
-def pretty_name(o: ObjId, use_article = false) -> string:
+def pretty_name(o: ObjId, count: int) -> string:
    let spec = object_spec(o)
    let state = object_state(o)
    let adjs = []
 
    if state & StateFlags_Dead:
-      push(adjs, "deceased")
+      push(adjs, "dead")
 
    if spec.flags & ItemFlags_Container:
       if state & StateFlags_Open:
@@ -119,10 +137,11 @@ def pretty_name(o: ObjId, use_article = false) -> string:
       else:
          rv = ["you"]
    else:
-      if use_article:
-         rv = [article(o)] 
+      if count > 1:
+         rv = [string(count)]
+
       rv = append(rv, comma_list(adjs))
-      push(rv, spec.short_name)
+      push(rv, plural(spec.short_name, count))
 
    return sentence(rv)
       

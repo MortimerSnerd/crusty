@@ -143,6 +143,13 @@ class MapEndpoint : BusEndpoint
       if lv != InvalidObject:
          body(lv)
 
+   def is_lit_and_visible_impl(p: xy_i) -> bool:
+      if PlayerViz:
+         let vflags = get(PlayerViz, p)
+
+         return vflags & (vfVisible|vfLit) == (vfVisible|vfLit)
+      else:
+         return true
 
 private def wall_blocks_move(pos: xy_i) -> bool:
    let t = get(WallLayer, pos)

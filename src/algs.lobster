@@ -478,6 +478,16 @@ def stopwatch(body) -> float:
 
    return t1 - t0
 
+def ends_with(what: string, suffix: string) -> bool:
+   let suflen = length(suffix)
+
+   if length(what) >= suflen:
+      let sfx = substring(what, length(what) - suflen, suflen)
+      return sfx == suffix
+   else:
+      return false
+
+
 def heapcheck():
    let hcmp = fn(a: int, b: int) -> bool:
       a <= b

@@ -36,7 +36,7 @@ def hovering_coord() -> bool, xy_i:
       return false, xy_i{0,0}
 
 // Should be called for times we don't want hovers.
-def inhibit_mouse_hover():
+def inhibit_map_mouse_hover():
    TimeHovering = 0.0
 
 // A base class for data a client can attach to a handler.
@@ -207,7 +207,7 @@ def all_ground_objects(p: xy_i) -> ObjList:
          let sp = object_spec(o)
          let fl = object_state(o)
 
-         if not sp.flags & ItemFlags_Living or fl & StateFlags_Dead:
+         if sp.flags & ItemFlags_Living == 0 or fl & StateFlags_Dead:
             add_object(rv, o)            
 
    return rv
@@ -264,6 +264,7 @@ class ObjPromptData : UserData
 private def obj_prompt_handler(data: UserData?) -> InteractionStatus:
    var rv = Working
 
+   inhibit_map_mouse_hover()
    if data and data is ObjPromptData:
       let ws = gl_window_size().to_f * xy_f{0.4, 0.5} 
       im_set_next_window_pos(ws, im_cond_first_use_ever, xy_f{0.5, 0.5})
@@ -283,6 +284,7 @@ private def obj_prompt_handler(data: UserData?) -> InteractionStatus:
 def prompt_for_object(player: ObjId, title: string, cands: ObjList, skip_one: bool, action):
    let data = ObjPromptData{title: title, objs: cands, player: player, action: action}  
 
+   inhibit_map_mouse_hover()
    if skip_one and count(cands) == 1:
       // Just one, so perform the action without a prompt.
       data.picked = first(cands)
@@ -446,6 +448,7 @@ class IIData : UserData
       rhs_cur_section = -1
 
 
+      inhibit_map_mouse_hover()
       switch mode:
          case iiGet, iiPut:
             lhs = held_objects(player, lhs_options(mode))
@@ -514,6 +517,8 @@ private def waiting_for_action(data: IIData):
 
 private def ii_handler(data: UserData?):
    var rv = Working
+
+   inhibit_map_mouse_hover()
    if data and data is IIData:
       if data.rhs_cur_section >= 0:
          if  gl_button("tab") == 1 or gl_button("down") == 1:
@@ -696,7 +701,7 @@ def ui_for_living(player: ObjId, oi: ObjId, now: float):
    let wsz = gl_window_size()
 
    im_push_text_wrap_pos(im_get_cursor_pos().x + wsz.x / 6.0)
-   im_text(pretty_name(oi))
+   im_text(pretty_name(oi, 1))
    im_text("    " + spec.desc)
 
    if can_see_stats_of(player, oi):

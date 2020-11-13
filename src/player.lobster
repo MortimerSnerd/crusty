@@ -312,7 +312,7 @@ def player_handle_input(player: ObjId):
          case Stepping:
             let dT = gl_delta_time() * animations_time_scale()
 
-            inhibit_mouse_hover()
+            inhibit_map_mouse_hover()
             GameTime = min(TurnTime.end, GameTime + dT)
 
             anim_play_one_shots(GameTime)
@@ -342,9 +342,7 @@ def player_handle_ui(player: ObjId, wview: Rectf, tile_size: float):
 
    let hovering, hc = hovering_coord()
 
-   //TODO don't give information on anything that is not lit and visible.
-   //     need to query PlayerViz in maps module.
-   if hovering:
+   if hovering and is_lit_and_visible(hc):
       let lv = living_thing_at(hc)
       let gobjs = all_ground_objects(hc)
       let mp = gl_mouse_pos(0) + xy_i{30, 0}

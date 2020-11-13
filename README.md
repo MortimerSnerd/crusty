@@ -140,3 +140,4 @@ the player know they can hit 'o' to open the safe)
 - add config that defines stat boost for equipment.  Make sure buff gets
   added and removed by equip logic.  How to associate an equipment buf with
   the equipment?
+

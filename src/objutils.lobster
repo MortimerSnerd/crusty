@@ -35,5 +35,6 @@ struct StatEnt:
    name: GameStats
    val: int
    src: StatEntSource
+   equip_id: int = 0    // Unique id number for a piece of equipment.
    life: float  = 0.0   // If src >= Condition, time when this condition ends.
 

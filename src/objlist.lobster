@@ -132,7 +132,11 @@ class ObjList:
 
    // Adds a object to the list, to the last section added.  
    def add_object(obj: ObjId):
-      let name = pretty_name(obj)
+      // Subtlety: we're using the singular version of the name
+      // to group multiple objects into a group, but a different
+      // possibly plural version will be displayed once the groups
+      // are fully built.
+      let name = pretty_name(obj, 1)
       add_named_object(obj, name)
 
    // Returns (index of section, index of item) for item in `sectno`
@@ -155,7 +159,7 @@ class ObjList:
          push(sects[sno].items, ObjGroup{name: name, grouped: [item]})
 
       if olGroup & options:
-         let match = object_spec(item).short_name
+         let match = pretty_name(item, 1)
          let si, ii = find_in_section(sectno) x: x.name == match
 
          if ii >= 0:
@@ -164,7 +168,7 @@ class ObjList:
             insert_at(match, sectno)
 
       else:
-         insert_at(object_spec(item).short_name, sectno)
+         insert_at(pretty_name(item, 1), sectno)
 
    // Should be called to render choice letters. It assumes it's being
    // called when the pixel coordinate system is in effect.
@@ -193,9 +197,6 @@ class ObjList:
    def display_list(min_items: int = 26) -> DisplayListStatus, ObjId?, int, int:
       var item_index = 0
 
-      //TODO this is not right
-      def plural(s: string): return s+"s"
-
       def item_name(si, ii) -> string:
          let grp = sects[si].items[ii]
          var rv = grp.name
@@ -206,8 +207,7 @@ class ObjList:
             // won't change for everything coming after it.
             rv = ""
          else:
-            if length(grp.grouped) > 1:
-               rv = string(length(grp.grouped)) + " " + plural(rv)
+            rv = pretty_name(grp.grouped[0], length(grp.grouped))
 
             if options & olAddChoiceLetter:
                rv = choice_letter(item_index + start_letter) + ")  " + rv
