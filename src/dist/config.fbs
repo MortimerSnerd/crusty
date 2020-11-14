@@ -108,7 +108,8 @@ enum ObjectKind:short { Invalid = 0,
   Bullet, 
   Dresser, 
   FalseTeeth, 
-  Cheese
+  Cheese, 
+  Fez
 }
 
 enum TileName:int32 {
@@ -125,7 +126,8 @@ enum TileName:int32 {
   DeadGroundhog2 = 10,
   DresserOpen = 11, 
   FalseTeeth = 12, 
-  Cheese = 13
+  Cheese = 13, 
+  Fez = 14
 }
 
 enum ItemFlags : uint32 (bit_flags)
@@ -144,6 +146,17 @@ enum StateFlags : uint32 (bit_flags)
     Open, 
     Equipped, 
     Dead
+}
+
+// Names of defined equipment sets.
+enum SetName : uint16 {
+    Invalid, 
+    Groundhog
+}
+
+table MaybeEquip {
+    kind: ObjectKind;
+    chance: float = 1;    // % chance to spawn / equip.
 }
 
 table ObjectSpec {
@@ -166,6 +179,7 @@ table ObjectSpec {
    wield_offset_x: float = 0.5;
    wield_offset_y: float = 0.75;
    sounds: ObjectSounds;
+   equip_set: [MaybeEquip];
 } 
 
 enum AnimationKind : uint8

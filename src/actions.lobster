@@ -281,13 +281,20 @@ class PutAction : ActionBase
       else:
          notify_drop(time, who, what, loc)
 
+// Looks at the ObjectSpec and state, and decides whether the object
+// can contain things.  This also special cases so corpses can be c
+// considered containers.
+def is_open_container(spec: ObjectSpec, state: int) -> bool:
+   return (spec.flags & ItemFlags_Container != 0 and state & StateFlags_Open != 0) or
+          (spec.flags & ItemFlags_Living != 0 and state & StateFlags_Dead != 0)
+
 def put_action(span: TurnSpan, now: float, who: ObjId, what: ObjId, where: ObjId? = nil) -> ActionResult, PutAction?:
    if where:
       if at_same_location(who, where):
          let spec = object_spec(where)
          let state = object_state(where)
 
-         if spec.flags & ItemFlags_Container and state & StateFlags_Open:
+         if is_open_container(spec, state):
             //TODO container capactity checks, etc...
             return GoodResult, PutAction{
                who: who, time: now, what: what, where: where, duration: 0.3}

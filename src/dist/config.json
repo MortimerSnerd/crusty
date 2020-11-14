@@ -37,7 +37,8 @@
             sounds: {
                hurt: [{sfx: "dist/pdead.wav"}],
                death: {sfx: "dist/ouch3.wav"}
-            }
+            }, 
+            equip_set: [{kind: Fez, chance: 0.5}]
         },
         {
             kind: Bullet, 
@@ -69,6 +70,17 @@
             desc: "Hard cheese.  You could use it as a carriage wheel if you don't mind spooking the horses.",
             static_tile: Cheese, 
             right_rotation: -90
+        }, 
+        {
+            kind: Fez, 
+            short_name: 'red fez',
+            desc: "A red fez, possibly stolen from a Shriner.",
+            static_tile: Fez,
+            right_rotation: -90, 
+            slot: Head,
+            equip_bonuses: [
+                {skill: Wit, modifier: 2}
+            ]
         }
      ],
 

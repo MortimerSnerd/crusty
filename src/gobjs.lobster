@@ -167,22 +167,35 @@ def gobjs_spawn(okind: ObjectKind, pos: xy_i, dir: Directions, parent: ObjId? = 
 
    //TODO test to see if it can be placed at pos.
    if found:
+      let spec = OSpecs[ki]
       let rv = GOInst{system: GObjSystem,
                       id: find_free_id(),
                       pos: pos,
                       dir: dir, 
-                      curTile: OSpecs[ki].static_tile, 
+                      curTile: spec.static_tile, 
                       kind_idx: ki, 
                       parent: parent, 
-                      state: OSpecs[ki].initial_state}
+                      state: spec.initial_state}
       GOInstances[rv.id] = rv
       notify_spawn(rv, nil, pos)
+
+      for(spec.equip_set_length()) i:
+         equip_set_item(rv, spec.equip_set(i))
 
       return rv
    else:
       error(): "No OSpec for " + okind
       assert false
                             
+private def equip_set_item(who: ObjId, eq: MaybeEquip) -> void:
+   let roll = rnd_float()
+
+   if roll <= eq.chance:
+      let item = gobjs_spawn(eq.kind(), xy_i{0,0}, North, who)
+
+      if item is GOInst and OSpecs[item.kind_idx].slot != ItemSlot_None:
+         equip(who, item)
+
 def gobjs_tests():
    gobjs_spawn(ObjectKind_Sword, xy_i{0,0}, North)
 
@@ -286,6 +299,14 @@ class GobjEndpoint : BusEndpoint
    def notify_deleting_impl(o: ObjId):
       if o and o is GOInst:
          debug(): "GObjSystem removing " + o
+         // For now, the default is to delete any equipment or 
+         // inventory as well.
+         for_objects_in_impl(o) bo:
+            if bo is GOInst:
+               bo.parent = nil
+               notify_deleting(bo)
+
+         o.parent = nil
          GOInstances[o.id] = nil
 
       remove_callbacks_for(o)
@@ -392,6 +413,10 @@ class GobjEndpoint : BusEndpoint
             notify_sfx_spec(obj, now + 0.1, ss.death())
 
          obj.state |= StateFlags_Dead
+         for_objects_in_impl(obj) o: unequip_impl(obj, o)
+         // Now open for looting.
+         obj.state |= StateFlags_Open
+
 
 def gobjs_init():
    let txtfile = "dist/sprites.png"

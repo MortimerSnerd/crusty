@@ -118,7 +118,7 @@ def melee_opponents_in_range(who: ObjId, now: float) -> [ObjId]:
    return rv
 
 def is_open_container(o: ObjId):
-   return object_spec(o).flags & ItemFlags_Container and (object_state(o) & StateFlags_Open)
+   return is_open_container(object_spec(o), object_state(o))
 
 def is_closed_container(o: ObjId):
    return object_spec(o).flags & ItemFlags_Container and not (object_state(o) & StateFlags_Open)
@@ -188,7 +188,7 @@ def equipment_for(who: ObjId, equipped: ObjList, equippable: ObjList):
 
 // Adds a section for any items inside of a container `o` to `list`.
 private def add_container_objects(player: ObjId, list: ObjList, o: ObjId):
-   add_section(list, "In " + object_spec(o).short_name)
+   add_section(list, "In " + pretty_name(o, 1))
    for_objects_in(o) io:
       let r0, act0 = take_action(FakeTurnSpan, 0, player, io, o)
 
@@ -422,7 +422,7 @@ class IIData : UserData
          if loc.kind == Ground:
             rename_section(rhs, i, sect_name(i, GroundSection))
          elif loc.obj:
-            rename_section(rhs, i, sect_name(i, object_spec(loc.obj).short_name))
+            rename_section(rhs, i, sect_name(i, pretty_name(loc.obj, 1)))
          else:
             rename_section(rhs, i, sect_name(i, "in some conatainer?"))
 
