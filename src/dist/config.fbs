@@ -164,7 +164,7 @@ table ObjectSpec {
    short_name: string;
    desc: string;
    static_tile: TileName = None;
-   weight: float;
+   weight: float;   // lbs
    flags: ItemFlags;
    right_rotation: float = 0;
    light_radius: int = 0;

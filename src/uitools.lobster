@@ -39,6 +39,40 @@ def hovering_coord() -> bool, xy_i:
 def inhibit_map_mouse_hover():
    TimeHovering = 0.0
 
+// State used for column alignment helpers.
+class ColAlignState:
+   cur_edge_x: float = 0
+   cols_added: bool = false
+
+private let AlignState: [ColAlignState] = []
+
+// Starts a row of items aligned in fixed columns.
+// x_offset is the pixel offset from the current position
+// to start in.  Useful for fixed tables, or being able
+// to nest sets of columns.  (unlike the ImGui col support)
+def aligned_row(x_offset: float, body):
+   push(AlignState, ColAlignState{cur_edge_x: x_offset + im_get_cursor_pos().x})
+   body()
+   pop(AlignState)
+
+// Starts a column of the given width.  
+// Only callable from within a aligned_row() call.
+// Does an implicit im_widget_group() so you don't 
+// have to in the body.
+def aligned_col(width: float, body):
+   assert width > 0
+   let s = AlignState[length(AlignState)-1]
+
+   if s.cols_added:
+      im_same_line()
+
+   im_set_cursor_pos(xy_f{s.cur_edge_x, im_get_cursor_pos().y})
+   im_widget_group():
+      body()
+
+   s.cur_edge_x += width
+   s.cols_added = true
+
 // A base class for data a client can attach to a handler.
 // Also gives the client a way to pass back arbitrary data from
 // a dialog.
@@ -301,7 +335,8 @@ def prompt_for_object(player: ObjId, title: string, cands: ObjList, skip_one: bo
 enum IIModes:
    iiGet, 
    iiPut,
-   iiEquip
+   iiEquip,
+   iiExamine
 
 // Represents the location that a ObjList or ObjList section
 // is populated from.
@@ -329,6 +364,9 @@ private def lhs_options(m: IIModes):
       case iiEquip:
          return olAddChoiceLetter|olGroup
 
+      case iiExamine:
+         return olAddChoiceLetter|olGroup
+
    return olNone
 
 private def rhs_options(m: IIModes):
@@ -341,6 +379,9 @@ private def rhs_options(m: IIModes):
 
       case iiEquip:
          return olAddChoiceLetter|olGroup
+
+      case iiExamine:
+         return olNone
 
       default:
          return olNone
@@ -356,6 +397,9 @@ private def mode_label(m: IIModes):
       case iiEquip:
          "< Equip >"
 
+      case iiExamine:
+         " Examine "
+
       default:
          return "<>"
 
@@ -369,6 +413,9 @@ private def mode_button_label(m: IIModes):
 
       case iiEquip:
          "Equip/Remove [F3]"
+
+      case iiExamine:
+         "Examine [F4]"
 
       default:
          ""
@@ -394,6 +441,9 @@ class IIData : UserData
 
    // Record of window width from last frame.
    last_window_width: float = -1.0
+
+   // Object selected for examination.
+   examining: ObjId? = nil
 
    // Action for player module to execute.  While this is non-nil, 
    // we ignore input.  It will be set back to nil once the player
@@ -438,8 +488,66 @@ class IIData : UserData
          case iiEquip:
             "Equip, wield, or take off equipment."
 
+         case iiExamine:
+            "Examine details of equipment."
+
          default: 
             ""
+
+   def examine_item_ui():
+      if examining:
+         let spec = object_spec(examining)
+
+         if last_window_width > 0:
+            im_text_wrap(last_window_width - 40):
+               im_text("picsha")
+               im_text(pretty_name(examining, 1))
+               im_text("   " + spec.desc())
+               im_spacing()
+               im_text("Weighs " + present_weight(spec.weight()))
+
+               let ws = spec.weapon_stats()
+
+               if ws:
+                  //TODO extract out this repeated crap for fake columns into
+                  // a function.
+                  let col_width = 200
+                  im_spacing()
+                  im_text(capitalize(ItemSlotPresent[spec.slot()]) + " weapon")
+
+                  aligned_row(25):
+                     aligned_col(col_width):
+                        im_text("Damage")
+
+                     let weapdam  = ws.dmg()
+
+                     if weapdam:
+                        aligned_col(col_width):
+                           im_text(present(weapdam) + " " + DmgTypePresent[ws.kind()])
+
+                  aligned_row(25):
+                     aligned_col(col_width):   
+                        im_text("Speed")
+
+                     aligned_col(col_width):
+                         im_text(string(ws.speed()))
+
+               if spec.slot() != ItemSlot_None:
+                  let bon = []
+
+                  for(spec.equip_bonuses_length()) i:
+                     let eb = spec.equip_bonuses(i)
+
+                     if eb.modifier() != 0:
+                        push(bon, present(eb))
+
+                  if length(bon) > 0:
+                     im_spacing()
+                     im_text(sentence(append(["Grants"], comma_list(bon))))
+
+
+      else:
+         im_text("Select an item to examine.")
 
    private def init_mode(new_mode: IIModes):
       mode = new_mode
@@ -481,6 +589,19 @@ class IIData : UserData
 
             equipment_for(player, lhs, rhs)
             rhs_cur_section = -1
+
+         case iiExamine:
+            lhs = held_objects(player, lhs_options(mode))
+            lhs_locs = []
+            rhs_locs = []
+            examining = nil
+
+            for(AllSlots) slot, sli:
+               let eq = equipment_at(player, slot)
+
+               if eq: 
+                  add_section(lhs, SlotHeading[sli])
+                  add_object(lhs, eq)
    
 def execute(self:: ListUpdate, data: IIData):
    switch data.mode:
@@ -511,6 +632,9 @@ def execute(self:: ListUpdate, data: IIData):
             if obj:
                add_object(data.rhs, obj, right_sect)
 
+      case iiExamine:
+         pass()
+
 
 private def waiting_for_action(data: IIData):
    return data.player_action != nil or data.player_action_result.kind != arOk
@@ -534,6 +658,8 @@ private def ii_handler(data: UserData?):
          data.init_mode(iiPut)
       elif gl_button("f3") == 1:
          data.init_mode(iiEquip)
+      elif gl_button("f4") == 1:
+         data.init_mode(iiExamine)
 
       data.rhs.highlighted_section = data.rhs_cur_section
 
@@ -580,49 +706,58 @@ private def ii_handler(data: UserData?):
                                  right_sect: 0
                               }
 
+                        case iiExamine:
+                           data.examining = oid
+
 
             im_column():
-               im_set_column_width(-1, 50)
+               im_set_column_width(-1, 100)
                im_text(mode_label(data.mode))
 
             im_column():
-               let st, oid, si, ii = display_list(data.rhs)
+               if data.mode == iiExamine:
+                  data.examine_item_ui()
+               else:
+                  let st, oid, si, ii = display_list(data.rhs)
 
-               if not waiting_for_action(data):
-                  if st == dlsCancel:
-                     rv = Cancelled
-                  elif oid:
-                     switch data.mode:
-                        case iiGet:
-                           let rloc = data.rhs_locs[si]
+                  if not waiting_for_action(data):
+                     if st == dlsCancel:
+                        rv = Cancelled
+                     elif oid:
+                        switch data.mode:
+                           case iiGet:
+                              let rloc = data.rhs_locs[si]
 
-                           let ar, act = take_action(FakeTurnSpan, 0, 
-                                                     data.player, oid, rloc.obj)
-                           data.player_action = act
-                           data.player_action_result = ar
-                           if act:
-                              data.post_action_update = ListUpdate{
-                                 right_sect: si, 
-                                 right_item: ii
-                              }
+                              let ar, act = take_action(FakeTurnSpan, 0, 
+                                                        data.player, oid, rloc.obj)
+                              data.player_action = act
+                              data.player_action_result = ar
+                              if act:
+                                 data.post_action_update = ListUpdate{
+                                    right_sect: si, 
+                                    right_item: ii
+                                 }
 
-                        case iiPut:
-                           pass()
+                           case iiPut:
+                              pass()
 
-                        case iiEquip:
-                           let lsect = find(data.lhs_locs) x: x.slot == equip_slot(oid)
+                           case iiEquip:
+                              let lsect = find(data.lhs_locs) x: x.slot == equip_slot(oid)
 
-                           let ar, act = equip_action(FakeTurnSpan, 0, data.player, 
-                                                      oid)
+                              let ar, act = equip_action(FakeTurnSpan, 0, data.player, 
+                                                         oid)
 
-                           data.player_action = act
-                           data.player_action_result = ar
-                           if act:
-                              data.post_action_update = ListUpdate{
-                                 left_sect: lsect, 
-                                 right_sect: si, 
-                                 right_item: ii
-                              }
+                              data.player_action = act
+                              data.player_action_result = ar
+                              if act:
+                                 data.post_action_update = ListUpdate{
+                                    left_sect: lsect, 
+                                    right_sect: si, 
+                                    right_item: ii
+                                 }
+
+                           case iiExamine:
+                              pass()
 
          im_separator()
          im_spacing()
@@ -635,7 +770,7 @@ private def ii_handler(data: UserData?):
          im_separator()
          im_spacing()
 
-         im_columns(4, "buttons", false):
+         im_columns(5, "buttons", false):
             im_column():
                if im_button(mode_button_label(iiGet)) and data.mode != iiGet:
                   data.init_mode(iiGet)
@@ -647,6 +782,10 @@ private def ii_handler(data: UserData?):
             im_column():
                if im_button(mode_button_label(iiEquip)) and data.mode != iiEquip:
                   data.init_mode(iiEquip)
+
+            im_column():
+               if im_button(mode_button_label(iiExamine)) and data.mode != iiExamine:
+                  data.init_mode(iiExamine)
 
             im_column():
                if im_button("Dismiss [Esc]"):

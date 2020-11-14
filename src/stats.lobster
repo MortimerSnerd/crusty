@@ -25,12 +25,24 @@ class StatDesc:
    st: GameStats
    name: string
 
+let GameStatsPresent = ["strength", 
+                        "speed",
+                        "will", 
+                        "wit",
+                        "hp",
+                        "melee",
+                        "defence",
+                        "dodge"]
+private def mksd(s):
+   return StatDesc{s, capitalize(GameStatsPresent[s])}
+
 let AllAtts = [
-   StatDesc{GameStats_Str, "Strength"},
-   StatDesc{GameStats_Speed, "Speed"}, 
-   StatDesc{GameStats_Will, "Willpower"},
-   StatDesc{GameStats_Wit, "Wit"},
+   mksd(GameStats_Str),
+   mksd(GameStats_Speed),
+   mksd(GameStats_Will),
+   mksd(GameStats_Wit)
 ]
+
 
 private class DefVerb:
    skill: GameStats
@@ -194,6 +206,63 @@ def damage_roll_range(name: DmgRange) -> int:
          error(): "Unknown range name " + name
          return 1
 
+// Table of names for DmgType
+let DmgTypePresent = ["Slashing", "Stabbing", "Impact"]
+let ItemSlotPresent = ["none", "melee", "headgear", "chestpiece", "footwear"]
+
+// Make user presentable string for a damae range.
+def present(r: DamageRange) -> string:
+   let fst = switch r.range():
+      case DmgRange_Low2D6:
+         "least of 2d6"
+      case DmgRange_Hi2D6:
+         "highest of 2d6"
+
+      case DmgRange_D6:
+         "1d6"
+
+      default:
+         "oof"
+
+   let mod = r.plus()
+
+   if mod == 0:
+      return fst
+   elif mod < 0:
+      return fst + " - " + (-mod)
+   else:
+      return fst + " + " + mod
+
+def present(eb: EquipBonus) -> string:
+   return modifier_str(eb.modifier()) + " to " + GameStatsPresent[eb.skill()]
+
+// Removes an integral measure of tot/dv from tot, and
+// returns (amount left, measure)
+private def divmeas(tot: float, dv: float) -> float, int:
+   let m = floor(tot/dv)
+   let act = dv * m
+
+   return tot - act, m
+
+// Presents a weight in lb/oz/drams, 
+def present_weight(f: float) -> string:
+   let f0, stones = divmeas(f, 14)
+   let f1, lbs = divmeas(f0, 1)
+   let f2, oz  = divmeas(f1, 1.0/16.0)
+   let f3, dr  = divmeas(f2, 1.0/256.0)
+   let rv = []
+
+   if lbs:
+      push(rv, lbs + "lb")
+
+   if oz:
+      push(rv, oz + "oz")
+
+   if dr:
+      push(rv, dr + "dr")
+   
+   return sentence(comma_list(rv, false))
+
 // Roll for damage for the given damage range.  Damage clamped positive.
 def damage_roll(r: DamageRange?) -> int:
    assert r
@@ -240,11 +309,11 @@ def attack_duration(who: ObjId, now: float, stats: WeaponStats) -> float:
    //TODO add weapon stat, calc for real.
    let base = 0.5
    let st = object_stats(who)
-
+   
    if length(st) > 0:
-      let speed = value(st, now, GameStats_Speed)
+      let atk_speed = clamp_skill(value(st, now, GameStats_Speed) + stats.speed())
 
-      return base / speed_factor(speed) 
+      return base / speed_factor(atk_speed) 
    else:
       return base
 

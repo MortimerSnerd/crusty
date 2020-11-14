@@ -106,6 +106,7 @@ def game_init():
       play_animation(Player, "player_idle")
       gobjs_spawn(ObjectKind_Sword, spawn.pos + xy_i{1, 0}, North)
       maps_update_viz(spawn.pos, true)
+      gobjs_spawn(ObjectKind_Bullet, spawn.pos, North)
       //DEBUGGERY
       let pst = object_stats(Player)
       add_use_debuff(pst, GameStats_Str, 3, 4.0)

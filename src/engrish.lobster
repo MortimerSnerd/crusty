@@ -71,14 +71,34 @@ def plural(word: string, count: int) -> string:
    else:
       return word
 
+def capitalize(s: string) -> string:
+   return uppercase(substring(s, 0, 1)) + substring(s, 1, -1)
+
+// Private, because this isn't general.
+private def is_punct(b: string) -> bool:
+   return b == "," or b == "," or b == ";"
+
 // Put together words for a sentence, adding spaces if needed.
 def sentence(arr: [string]) -> string:
    let words = copy(arr)
 
    if length(words) > 0:
-      words[0] = uppercase(substring(words[0], 0, 1)) + substring(words[0], 1, -1)
+      words[0] = capitalize(words[0])
 
-   return (fold(words, "") a, b: a + " " + b) + "."
+   let s = fold(words, "") a, b: 
+      if is_punct(b): 
+         a + b
+      else:
+         a + " " + b
+
+   return s + "."
+
+// Converts a modified to a number so it will be "+3" or "-2".
+def modifier_str(x: int) -> string:
+   if x > 0:
+      return "+" + x
+   else:
+      return string(x)
 
 // Reference to another living thing.
 // Prevents referring to the player as "the player".
@@ -91,11 +111,13 @@ def otherliving(other: ObjId, use_article: bool = true) -> string:
       else:
          return object_spec(other).short_name
 
-def comma_list(args: [string]) -> [string]:
+def comma_list(args: [string], conjunction: bool = true) -> [string]:
    let rv = []
 
-   for(args) a:
-      if length(rv) > 0:
+   for(args) a, i:
+      if conjunction and length(args) > 1 and i == length(args)-1:
+         push(rv, ", and")
+      elif i > 0:
          push(rv, ",")
       push(rv, a)
 

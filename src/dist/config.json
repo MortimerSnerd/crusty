@@ -3,24 +3,29 @@
         {
             kind: Sword, 
             short_name: "Sword Of Ass", 
+            desc: "The legendary Sword of Ass, slayer of small unoffensive rodents.",
             static_tile: Sword, 
+            weight: 4.5, 
             weapon_stats: {
-                speed: 5, 
+                speed: -5, 
                 kind: Slashing, 
-                dmg: {range: Low2D6, plus: 0},
+                dmg: {range: Hi2D6, plus: 0},
                 hit_sound: "dist/yoink.wav",
                 miss_sound: "dist/ouch1.wav",
                 skill: Melee
             }, 
             slot: Melee,
             equip_bonuses: [
-                {skill: Speed, modifier: 2}
+                {skill: Speed, modifier: 2},
+                {skill: Melee, modifier: 1},
+                {skill: Wit, modifier: -1}
             ]
         },
         {
             kind: Player, 
             short_name: "Just Some Guy",
             desc: "The player. Smells of cabbage.",
+            weight: 160,
             static_tile: Fish,
             flags: "Living EmitsLight AnimTrail",
             right_rotation: 0,
@@ -31,6 +36,7 @@
             kind: Groundhog, 
             short_name: "Phuxatawny Phil",
             desc: "A cute groundhog.",
+            weight: 6, 
             static_tile: Groundhog, 
             flags: "Living AnimTrail",
             stat_base: Groundhog, 
@@ -43,6 +49,7 @@
         {
             kind: Bullet, 
             short_name: "Ugly Bullet",
+            weight: 0.7,
             desc: "what?",
             static_tile: Bullet,
             flags: EmitsLight,
@@ -51,6 +58,7 @@
         {
             kind: Dresser, 
             short_name: "oak dresser",
+            weight: 90,
             desc: "A worn, scuffed oak dresser.",
             static_tile: Dresser,
             right_rotation: -90,
@@ -60,6 +68,7 @@
         {
             kind: FalseTeeth,
             short_name: "false teeth", 
+            weight: 0.25,
             desc: "Your granny is probably looking for them.",
             static_tile: FalseTeeth,
             right_rotation: -90
@@ -67,6 +76,7 @@
         {
             kind: Cheese, 
             short_name: "cheese", 
+            weight: 1, 
             desc: "Hard cheese.  You could use it as a carriage wheel if you don't mind spooking the horses.",
             static_tile: Cheese, 
             right_rotation: -90
@@ -74,6 +84,7 @@
         {
             kind: Fez, 
             short_name: 'red fez',
+            weight: 0.125, 
             desc: "A red fez, possibly stolen from a Shriner.",
             static_tile: Fez,
             right_rotation: -90, 

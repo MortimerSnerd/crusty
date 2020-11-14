@@ -82,6 +82,18 @@ class ObjList:
 
       return nil
 
+   // Returns one of the grouped objects from the given location,
+   // or nil if there is none.
+   def get_object(sectno: int, itemno: int) -> ObjId?:
+      if sectno < length(sects):
+         let sect = sects[sectno]
+         let grp = sect.items[itemno]
+
+         if length(grp.grouped) > 0:
+            return grp.grouped[0]
+         
+      return nil
+
    def rename_section(sectno: int, name: string):
       sects[sectno].name = name
 
