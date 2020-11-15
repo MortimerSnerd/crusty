@@ -34,7 +34,8 @@ enum ActionResultKinds:
    arAlreadyEquipped, 
    arCanNotEquip, 
    arNotEquipped, 
-   arNoMeleeWeapon
+   arNoMeleeWeapon,
+   arNoSuicide
 
 class ActionResult:
    kind: ActionResultKinds
@@ -52,6 +53,9 @@ class ActionResult:
       switch kind:
          case arOk:
             return ""
+
+         case arNoSuicide:
+            return "Suicide is not an option."
 
          case arBlocked:
             return sentence([pronoun(who), "can not go that way."])
@@ -412,68 +416,71 @@ class MeleeAttackAction : ActionBase
 
 def melee_attack_action(span: TurnSpan, now: float, who: ObjId, what: ObjId,
                         calc: bool = true) -> ActionResult, MeleeAttackAction?:
-   let weapon = equipment_at(who, ItemSlot_Melee)
+   if who != what:
+      let weapon = equipment_at(who, ItemSlot_Melee)
 
-   if weapon:
-      let fa, atk_pos = pos(who)
-      let da, atk_dir = direction(who)
-      let fb, vic_pos = pos(what)
-      let wstats = object_spec(weapon).weapon_stats()
+      if weapon:
+         let fa, atk_pos = pos(who)
+         let da, atk_dir = direction(who)
+         let fb, vic_pos = pos(what)
+         let wstats = object_spec(weapon).weapon_stats()
 
-      if wstats:
-         if fa and fb:
-            let dist = gridDistance(atk_pos, vic_pos)
+         if wstats:
+            if fa and fb:
+               let dist = gridDistance(atk_pos, vic_pos)
 
-            if within_melee_range(wstats, dist):
-               if calc:
-                  let st_target = object_stats(what)
-                  let st_attacker = object_stats(who)
-                  let dir_mal = melee_facing_malus(atk_pos, atk_dir, vic_pos)
-                  let atk_skill = wstats.skill()
-                  let atk_val = value(st_attacker, now, atk_skill) + dir_mal
-                  let def_skill, def_val = find_largest_opposing_skill(st_target, 
-                                                                       atk_skill,
-                                                                       now)
-                  let roll = opposed_skill_check(atk_skill, atk_val, 
-                                                 def_skill, def_val)
+               if within_melee_range(wstats, dist):
+                  if calc:
+                     let st_target = object_stats(what)
+                     let st_attacker = object_stats(who)
+                     let dir_mal = melee_facing_malus(atk_pos, atk_dir, vic_pos)
+                     let atk_skill = wstats.skill()
+                     let atk_val = value(st_attacker, now, atk_skill) + dir_mal
+                     let def_skill, def_val = find_largest_opposing_skill(st_target, 
+                                                                          atk_skill,
+                                                                          now)
+                     let roll = opposed_skill_check(atk_skill, atk_val, 
+                                                    def_skill, def_val)
 
-                  //TODO facing check and bonus/malus
-                  //TODO armor calcs
-                  let hit = roll > 0
-                  let wdmg = damage_roll(wstats.dmg())  // Calc dmg, even when missed.
-                  let act_dmg = wdmg
+                     //TODO facing check and bonus/malus
+                     //TODO armor calcs
+                     let hit = roll > 0
+                     let wdmg = damage_roll(wstats.dmg())  // Calc dmg, even when missed.
+                     let act_dmg = wdmg
 
-                  return GoodResult, 
-                     MeleeAttackAction{who: who, time: now, 
-                                       target: what, weapon: weapon, 
-                                       hit: hit, 
-                                       act_dmg: act_dmg, total_dmg: wdmg,
-                                       defended: def_skill, 
-                                       duration: attack_duration(who, now, wstats)}
+                     return GoodResult, 
+                        MeleeAttackAction{who: who, time: now, 
+                                          target: what, weapon: weapon, 
+                                          hit: hit, 
+                                          act_dmg: act_dmg, total_dmg: wdmg,
+                                          defended: def_skill, 
+                                          duration: attack_duration(who, now, wstats)}
+                  else:
+                     // With calc=false, we just return a generic action.
+                     // The caller is probably the legal move checking for
+                     // the player, and this saves a lot of debugging noise
+                     // for calculating statistics.
+                     return GoodResult, 
+                        MeleeAttackAction{who: who, time: now, 
+                                          target: what, weapon: weapon, 
+                                          hit: false, 
+                                          act_dmg: 0, total_dmg: 0,
+                                          defended: GameStats_Defence, 
+                                          duration: attack_duration(who, now, wstats)}
+
+
                else:
-                  // With calc=false, we just return a generic action.
-                  // The caller is probably the legal move checking for
-                  // the player, and this saves a lot of debugging noise
-                  // for calculating statistics.
-                  return GoodResult, 
-                     MeleeAttackAction{who: who, time: now, 
-                                       target: what, weapon: weapon, 
-                                       hit: false, 
-                                       act_dmg: 0, total_dmg: 0,
-                                       defended: GameStats_Defence, 
-                                       duration: attack_duration(who, now, wstats)}
-
-
+                  return ActionResult{kind: arCanNotReach, other: what}, nil
             else:
                return ActionResult{kind: arCanNotReach, other: what}, nil
          else:
-            return ActionResult{kind: arCanNotReach, other: what}, nil
+            error(): "Weirdness: no weapon stats for " + object_spec(weapon).short_name
+            return ActionResult{kind: arNoMeleeWeapon}, nil         
       else:
-         error(): "Weirdness: no weapon stats for " + object_spec(weapon).short_name
+         //TODO no fisticuffs, must have weapon.
          return ActionResult{kind: arNoMeleeWeapon}, nil         
    else:
-      //TODO no fisticuffs, must have weapon.
-      return ActionResult{kind: arNoMeleeWeapon}, nil         
+      return ActionResult{kind: arNoSuicide}, nil
 
 enum_flags ActionCategory:
    acTurn, acMoveFwd, acMoveBkwd, acStrafe, acObjectInteractions
