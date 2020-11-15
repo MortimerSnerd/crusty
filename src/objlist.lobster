@@ -17,6 +17,8 @@ enum_flags ObjListOptions:
    olGroup = 1     // Group together objects with the same name in sections.
    olAddChoiceLetter // Prefix the displayed name with a letter choice.
    olHighlightGameobj // Put the choice letter next to the objects on screen.
+   olOnlyOne          // If there are multiple of the same object, only keep one
+                      // in the list.
 
 enum DisplayListStatus:
    dlsOk, 
@@ -131,12 +133,13 @@ class ObjList:
               ObjGroup{name: name, grouped: arr})
 
       atleast_one_section()
-      if olGroup & options:
+      if options.has(olGroup):
          let i = find_in_cur_section() g: g.name == name
 
          if i >= 0:
-            if obj:
-               push(sects[length(sects)-1].items[i].grouped, obj)
+            let gl = sects[length(sects)-1].items[i].grouped
+            if obj and (not options.has(olOnlyOne) or length(gl) == 0) :
+               push(gl, obj)
          else:
             add_it()
       else:

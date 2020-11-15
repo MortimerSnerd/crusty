@@ -378,7 +378,7 @@ private def rhs_options(m: IIModes):
           olGroup
 
       case iiEquip:
-         return olAddChoiceLetter|olGroup
+         return olAddChoiceLetter|olGroup|olOnlyOne
 
       case iiExamine:
          return olNone
@@ -497,13 +497,19 @@ class IIData : UserData
    def examine_item_ui():
       if examining:
          let spec = object_spec(examining)
+         let col_width = 200
 
          if last_window_width > 0:
             im_text_wrap(last_window_width - 40):
-               im_text("picsha")
-               im_text(pretty_name(examining, 1))
-               im_text("   " + spec.desc())
-               im_spacing()
+               aligned_row(0):
+                  aligned_col(80):
+                     im_text("picsha")
+
+                  aligned_col(col_width*2):
+                     im_text(pretty_name(examining, 1))
+                     im_text(spec.desc())
+
+               for(2): im_spacing()
                im_text("Weighs " + present_weight(spec.weight()))
 
                let ws = spec.weapon_stats()
@@ -511,7 +517,6 @@ class IIData : UserData
                if ws:
                   //TODO extract out this repeated crap for fake columns into
                   // a function.
-                  let col_width = 200
                   im_spacing()
                   im_text(capitalize(ItemSlotPresent[spec.slot()]) + " weapon")
 
@@ -527,7 +532,7 @@ class IIData : UserData
 
                   aligned_row(25):
                      aligned_col(col_width):   
-                        im_text("Speed")
+                        im_text("Weapon speed")
 
                      aligned_col(col_width):
                          im_text(string(ws.speed()))
