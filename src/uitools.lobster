@@ -139,7 +139,7 @@ def melee_opponents_in_range(who: ObjId, now: float) -> [ObjId]:
    let df, face = direction(who)
 
    if pf and df:
-      for([face, turned_left(face), turned_right(face)]) tfac:
+      for_attackable_directions(face) tfac:
          let front = p + all_dirs[tfac]
          let o = living_thing_at(front)
          

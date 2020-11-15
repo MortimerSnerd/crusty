@@ -487,6 +487,14 @@ def ends_with(what: string, suffix: string) -> bool:
    else:
       return false
 
+// Tests whether any flags in `test` are set in `flags`.
+def has_any(flags: int, test: int) -> bool:
+   return flags & test != 0
+
+// Tests whether all of the flags in `test` are set in `flags`.
+def has(flags: int, test: int) -> bool:
+   return flags & test == test
+
 
 def heapcheck():
    let hcmp = fn(a: int, b: int) -> bool:

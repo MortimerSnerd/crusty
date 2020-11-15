@@ -124,10 +124,9 @@ def game_init():
       gobjs_spawn(ObjectKind_FalseTeeth, dloc.pos, North)
 
    //maps_load_debug_level(MapTexture, ppos)
-   bind("space", "Decompose gracefully") player, now, prompt: 
+   bind("space", "Decompose gracefully") player, now, _, prompt: 
       let r, act = decompose_action(FakeTurnSpan, now, player)
       act
-
 
    //play_wav("dist/ouch1.wav")
 def draw_game_frame(now: float, windowsz: xy_f, view_rect: Rectf):
@@ -151,11 +150,7 @@ def num_live_groundhogs() -> int, int:
    return live, dead
 
 def living_at(p: xy_i) -> bool:
-   for_objects_at(p) o:
-      if o:
-         if object_spec(o).flags & ItemFlags_Living:
-            return true
-   return false
+   return living_thing_at(p) != nil
 
 def game_frame(do_debug) -> bool, Rectf:
    let wsz = gl_window_size()
@@ -166,8 +161,10 @@ def game_frame(do_debug) -> bool, Rectf:
    gobjs_update()
 
    if Player:
-      let rv = if PlayerDead: Good else: player_handle_input(Player)
       let view_rect = set_map_projection(anim_pos(Player, now), tile_size, fwsz)
+      let wmouse = world_mouse_pos(view_rect, tile_size)
+      let gmouse = xy_i{floor(wmouse.x), floor(wmouse.y)}
+      let rv = if PlayerDead: Good else: player_handle_input(Player, gmouse)
       
       //TODO player needs to be split too? Or part of the game module?
       switch rv:
@@ -224,10 +221,10 @@ def game_frame(do_debug) -> bool, Rectf:
                  im_set_next_item_open(true, im_cond_once)
                  im_treenode("Possible Moves"):
                     im_columns(3, "moves", false):
-                       for_player_actions(Player, now) key, desc, dur:
+                       for_player_actions(Player, now, gmouse) key, desc, dur:
                           im_column():
                              im_text(key+")")
-                             im_set_column_width(-1, im_get_cursor_pos().x + 5)
+                             im_set_column_width(-1, im_get_cursor_pos().x + 20)
                           im_column():
                              im_text(desc)
                           im_column():

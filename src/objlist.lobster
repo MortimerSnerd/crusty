@@ -84,6 +84,16 @@ class ObjList:
 
       return nil
 
+   // Call `body` with all items in the list.
+   // Body should return false to end iteration.
+   def for_all_items(body):
+      for(sects) s:
+         for(s.items) i:
+            for(i.grouped) o:
+               if o:
+                  if not body(o):
+                     return
+
    // Returns one of the grouped objects from the given location,
    // or nil if there is none.
    def get_object(sectno: int, itemno: int) -> ObjId?:

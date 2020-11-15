@@ -133,14 +133,14 @@ the player know they can hit 'o' to open the safe)
 - Fix light propagation to use shadow casting code, so lights don't pass
   through barriers.  
 
-- Mouse click attack?
-
 - Page for item information on interaction dialog.
 
 - texture handling for imgui
 
 - interaction dialog needs to be changed to have a fixed calculated size, and
   made resizable.  It jumps a bit between modes.
+
+- armor
 
 #Notes
 - measures used in book: rods, feet, pounds, pints, a gill of whiskey, miles, yards  

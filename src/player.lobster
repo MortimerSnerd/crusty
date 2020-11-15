@@ -39,7 +39,7 @@ private def perform_action(act):
 
 // `prompt` - if false, the action should pick an item to make an 
 //            action for.  Mainly used to check for valid player actions.
-def PlayerAction(player: ObjId, now: float, prompt: bool) -> ActionBase?
+def PlayerAction(player: ObjId, now: float, mouse_pos: xy_i, prompt: bool) -> ActionBase?
 
 class Binding:
    key: string
@@ -47,6 +47,7 @@ class Binding:
    afn: PlayerAction
 
 private let Bindings: [Binding] = []
+private let ContextActionDesc = "Context Action"
 
 def bind(key, desc, afn): push(Bindings, Binding{key: key, desc: desc, afn: afn})
 
@@ -64,7 +65,7 @@ def player_init():
       if not act:
          actionlog_present(present(player, act, ar))
 
-   bind("w", "Move forward") player, now, prompt:
+   bind("w", "Move forward") player, now, _, prompt:
       let f, p = pos(player)
       let f1, diri = direction(player)
       let r, act = move_action(FakeTurnSpan, GameTime, player, p, p + all_dirs[diri])
@@ -82,28 +83,85 @@ def player_init():
          if prompt: mumble(player,act,r)
          act
 
-   bind("s", "Move back") player, now, prompt:
+   bind("mouse1", ContextActionDesc) player, now, mouse_pos, prompt:
+      // Try context sensitive actions in priority order.
+      var act: ActionBase? = nil
+      
+      let lv = living_thing_at(mouse_pos) 
+      if lv:
+         let r, a = melee_attack_action(FakeTurnSpan, now, player, lv, prompt)
+         act = a
+
+      if not act:
+         let cc = closed_containers_at(mouse_pos)
+
+         for_all_items(cc) o:
+            let r, a = open_action(FakeTurnSpan, now, player, o)
+
+            if a:
+               act = a
+               false
+            else:
+               true
+
+      if not act:
+         let oc = opened_containers_at(mouse_pos)
+
+         for_all_items(oc) o:
+            let r, a = close_action(FakeTurnSpan, now, player, o)
+
+            if a:
+               act = a
+               false
+            else:
+               true
+
+      act
+
+   bind("s", "Move back") player, now, _, prompt:
       let f, p = pos(player)
       let f1, diri = direction(player)
       let r, act = move_action(FakeTurnSpan, GameTime, player, p, p + all_dirs[diri]*-1)
       if prompt: mumble(player,act,r)
       act
 
-   bind("a", "Turn left") player, now, prompt:
+   bind("a", "Turn left") player, now, _, prompt:
       let f, dir = direction(player)
       let diri = turned_left(dir)
       let r, act = turn_action(FakeTurnSpan, GameTime, player, dir, diri)
       if prompt: mumble(player,act,r)
       act
 
-   bind("d", "Turn right") player, now, prompt:
+   bind("d", "Turn right") player, now, _, prompt:
       let f, dir = direction(player)
       let diri = turned_right(dir)
       let r, act = turn_action(FakeTurnSpan, GameTime, player, dir, diri)
       if prompt: mumble(player,act,r)
       act
 
-   bind("z", "Attack") player, now, prompt:
+
+   bind("o", "Open") player, now, _, prompt:
+      let f, p = pos(player)
+      let cands = closed_containers_at(p)
+      var rv = nil
+
+      if count(cands) > 0:
+         if prompt:
+            prompt_for_object(player, "Open what?", cands, true) data:
+               if data is ObjPromptData and data.picked:
+                  let r, act = open_action(FakeTurnSpan, GameTime, data.player, 
+                                           data.picked)
+                  mumble(player,act,r)
+                  act
+               else:
+                  nil
+         else:
+            let r, act = open_action(FakeTurnSpan, GameTime, player, 
+                                     first(cands))
+            rv = act
+      rv
+
+   bind("z", "Attack") player, now, _, prompt:
       let cands = melee_opponents_in_range(player, GameTime)
       var rv = nil
 
@@ -131,28 +189,7 @@ def player_init():
             rv = aa
       rv
 
-   bind("o", "Open") player, now, prompt:
-      let f, p = pos(player)
-      let cands = closed_containers_at(p)
-      var rv = nil
-
-      if count(cands) > 0:
-         if prompt:
-            prompt_for_object(player, "Open what?", cands, true) data:
-               if data is ObjPromptData and data.picked:
-                  let r, act = open_action(FakeTurnSpan, GameTime, data.player, 
-                                           data.picked)
-                  mumble(player,act,r)
-                  act
-               else:
-                  nil
-         else:
-            let r, act = open_action(FakeTurnSpan, GameTime, player, 
-                                     first(cands))
-            rv = act
-      rv
-
-   bind("c", "Close") player, now, prompt:
+   bind("c", "Close") player, now, _, prompt:
       let f, p = pos(player)
       let cands = opened_containers_at(p)
       var rv = nil
@@ -173,7 +210,7 @@ def player_init():
             rv = act
       rv
 
-   bind("g", "Take") player, now, prompt:
+   bind("g", "Take") player, now, _, prompt:
       let f, p = pos(player)
       let cands = grabbable_objs_at(player, p)
       var rv = nil
@@ -190,7 +227,7 @@ def player_init():
 
       rv
 
-   bind("x", "Drop") player, now, prompt:
+   bind("x", "Drop") player, now, _, prompt:
       let cands = held_objects(player)
       var rv = nil
 
@@ -204,7 +241,7 @@ def player_init():
             rv = act
       rv
 
-   bind("e", "Equip") player, now, prompt:
+   bind("e", "Equip") player, now, _, prompt:
       let item = equippable_sample(player)
       var rv = nil
 
@@ -218,7 +255,7 @@ def player_init():
             rv = act
       rv
 
-   bind("r", "Remove") player, now, prompt:
+   bind("r", "Remove") player, now, _, prompt:
       let item = unequippable_sample(player)
       var rv = nil
 
@@ -232,9 +269,9 @@ def player_init():
             rv = act
       rv
 
-   bind("i", "Inventory") player, now, prompt: 
+   bind("i", "Inventory") player, now, _, prompt: 
       if prompt:
-         start_item_interaction(player, iiPut)
+         start_item_interaction(player, iiExamine)
       nil
 
    animations_turn_begin()
@@ -245,18 +282,21 @@ def player_init():
 // action to the possible key bindings.  (esp since
 // the actions are subclasses of ActionBase rather than
 // being a case object like in previous Nim impl.
-def for_player_actions(player: ObjId, now: float, body):
+def for_player_actions(player: ObjId, now: float, mouse_pos: xy_i, body):
    for(Bindings) b:
       let ff = b.afn
-      let act = ff(player, now, false)
+      let act = ff(player, now, mouse_pos, false)
 
       if act:
-         body(b.key, b.desc, act.duration)
+         if b.desc == ContextActionDesc:
+            body(b.key, act.short_desc(), act.duration)
+         else:
+            body(b.key, b.desc, act.duration)
 
 enum HandleInputResult:
    Good, GoodSteppingEnded, GoodTurnBegins, ExitMainLoop
 
-def player_handle_input(player: ObjId):
+def player_handle_input(player: ObjId, mouse_pos: xy_i):
    var rv = Good
 
    def check_prompted_action():
@@ -299,7 +339,7 @@ def player_handle_input(player: ObjId):
                for(Bindings) b:
                   if gl_button(b.key) == 1:
                      let mkact = b.afn
-                     let act = mkact(player, GameTime, true)
+                     let act = mkact(player, GameTime, mouse_pos, true)
                      if act:
                         perform_action(act)
                         rv = GoodTurnBegins

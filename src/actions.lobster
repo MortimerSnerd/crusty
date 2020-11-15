@@ -21,6 +21,10 @@ class ActionBase:
    def success_msg() -> string:
       return ""
 
+   // Short action description for the user.
+   def short_desc() -> string:
+      return "Doing Something"
+
 enum ActionResultKinds:
    arOk, 
    arBlocked, 
@@ -135,6 +139,10 @@ class MoveAction : ActionBase
    start: xy_i
    end: xy_i
 
+   def short_desc() -> string:
+      //TODO differentiate between moving fwds/bkwds and strafeing.
+      return "Move"
+
    def execute():
       notify_moving(who, time, time + duration, start, end)
 
@@ -154,6 +162,12 @@ class TurnAction : ActionBase
    start: Directions
    end: Directions
 
+   def short_desc() -> string:
+      if start.turned_left() == end:
+         return "Turn left"
+      else:
+         return "Turn right"
+
    def execute():
       notify_turning(who, time, time + duration, start, end)
 
@@ -166,6 +180,12 @@ def turn_action(span: TurnSpan, now: float, who: ObjId, start: Directions, end: 
 class OpenAction : ActionBase
    what: ObjId
    opening: bool
+
+   def short_desc() -> string:
+      if opening:
+         return "Open " + object_spec(what).short_name
+      else:
+         return "Close " + object_spec(what).short_name
 
    def success_msg() -> string:
       let v = if opening: "open" else: "close"
@@ -229,6 +249,12 @@ class TakeAction : ActionBase
    // this field holds it.
    where: ObjId? = nil
 
+   def short_desc() -> string:
+      if where:
+         return "Take " + pretty_name(what, 1) + " from " + pretty_name(where, 1)      
+      else:
+         return "Take " + pretty_name(what, 1) 
+
    def success_msg() -> string:
       if where:
          return sentence([pronoun(who), verb(who, "take"), article(who), 
@@ -269,6 +295,12 @@ class PutAction : ActionBase
    where: ObjId? = nil
    // Grid location if `where` is nil.
    loc: xy_i  = xy_i{0,0}  
+
+   def short_desc() -> string:
+      if where:
+         return "Put " + object_spec(what).short_name + " in " + object_spec(where).short_name
+      else:
+         return "Drop " + object_spec(what).short_name
 
    def success_msg() -> string:
       if where:
@@ -321,6 +353,14 @@ def put_action(span: TurnSpan, now: float, who: ObjId, what: ObjId, where: ObjId
 class WearEquipment : ActionBase
    what: ObjId
 
+   def short_desc() -> string:
+      let spec = object_spec(what)
+
+      if spec.weapon_stats():
+         return "Wield " + object_spec(what).short_name
+      else:
+         return "Wear " + object_spec(what).short_name
+         
    def success_msg() -> string:
       return sentence([pronoun(who), verb(who, equipverb(what)), 
          article(who), oname(what)])
@@ -349,6 +389,14 @@ def equip_action(span: TurnSpan, now: float, who: ObjId, what: ObjId) -> ActionR
 class RemoveEquipment : ActionBase
    what: ObjId
 
+   def short_desc() -> string:
+      let spec = object_spec(what)
+
+      if spec.weapon_stats():
+         return "Sheathe " + object_spec(what).short_name
+      else:
+         return "Remove " + object_spec(what).short_name
+
    def success_msg() -> string:
       return sentence([pronoun(who), verb(who, remove_verb(what)), 
          article(who), oname(what)])
@@ -375,6 +423,9 @@ class MeleeAttackAction : ActionBase
    total_dmg: int
    act_dmg: int
    defended: GameStats = GameStats_Hp  // Only valid if hit == false.
+
+   def short_desc() -> string:
+      return "Attack " + object_spec(target).short_name
 
    def success_msg() -> string:
       if hit:
@@ -414,6 +465,21 @@ class MeleeAttackAction : ActionBase
          add_use_debuff(st, defended, 3, 
                         time + use_debuff_dur(st, defended, total_dmg, time))
 
+// Calls `body` with each of the directions that someone facing 
+// `facing` can attack.
+def for_attackable_directions(facing: Directions, body):
+   body(facing)
+   body(facing.turned_left())
+   body(facing.turned_right())
+
+// Returns true if targ_pos is attackable by melee from targ_pos.
+def in_melee_attackable_pos(atk_pos, atk_dir, targ_pos):
+   for_attackable_directions(atk_dir) d:
+      if atk_pos + all_dirs[d] == targ_pos:
+         return true
+
+   return false
+
 def melee_attack_action(span: TurnSpan, now: float, who: ObjId, what: ObjId,
                         calc: bool = true) -> ActionResult, MeleeAttackAction?:
    if who != what:
@@ -429,7 +495,7 @@ def melee_attack_action(span: TurnSpan, now: float, who: ObjId, what: ObjId,
             if fa and fb:
                let dist = gridDistance(atk_pos, vic_pos)
 
-               if within_melee_range(wstats, dist):
+               if within_melee_range(wstats, dist) and in_melee_attackable_pos(atk_pos, atk_dir, vic_pos):
                   if calc:
                      let st_target = object_stats(what)
                      let st_attacker = object_stats(who)
