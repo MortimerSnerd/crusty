@@ -41,7 +41,7 @@ def withTexCoords(lu:: GridTiledTexture, i: int, f):
    let tly = i / gridDims.x
    let tl = xy{float(tlx) * (tileTxSz.x + spacingTx.x*2), 
                float(tly) * (tileTxSz.y + spacingTx.y*2)}
-   f(tl, tl + xy{tileTxSz.x, 0}, tl + tileTxSz, tl + xy{0.0, tileTxSz.y})
+   f(tl + spacingTx, tl + spacingTx + xy{tileTxSz.x, 0}, tl  + spacingTx+ tileTxSz, tl + spacingTx + xy{0.0, tileTxSz.y})
 
 // Creates a tiled texture where the texture is evently divided up into
 // a grid of tiles, where each tile's size is `tileDims`
