@@ -13,6 +13,10 @@ import vec
 class BusEndpoint:
    system: ObjectSystem
 
+   // Returns true if there is a wall at the given coordinate.
+   def is_wall_at_impl(pos: xy_i):
+      return false
+
    // Returns true if the given coordinate is both lit
    // and visible.
    def is_lit_and_visible_impl(pos: xy_i) -> bool:
@@ -108,6 +112,11 @@ class BusEndpoint:
    // none.
    def equipment_at_impl(who: ObjId, where: ItemSlot) -> ObjId?:
       return nil
+
+   // You can return false to make a position block light even 
+   // if there is no wall there.
+   def passes_light_impl(pos: xy_i) -> bool:
+      return true
 
    // Calls body(ObjId, ObjectSpec) for all lights that are on the
    // map and that are turned on.
@@ -460,3 +469,16 @@ def living_thing_at(pos: xy_i) -> ObjId?:
 // and visible.
 def is_lit_and_visible(pos: xy_i) -> bool:
    return Endpoints[MapSystem].is_lit_and_visible_impl(pos)
+
+// Returns true if there is a wall at the given coordinate.
+def is_wall_at(pos: xy_i):
+   return Endpoints[MapSystem].is_wall_at_impl(pos)
+
+// You can return false to make a position block light even 
+// if there is no wall there.
+def passes_light(pos: xy_i) -> bool:
+   for(Endpoints) ep:
+      if not ep.passes_light_impl(pos):
+         return false
+
+   return true

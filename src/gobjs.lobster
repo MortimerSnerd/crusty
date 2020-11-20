@@ -81,6 +81,8 @@ private def render_offset(os: ObjectSpec, facing: Directions) -> xyz_f:
    if os.flags & ItemFlags_AbutsWall:
       let fv = all_dirs_f[facing] * os.dir_offset
       return xyz_f{fv.x, fv.y, AboveWallZ - OnFloorZ}
+   elif os.flags.has(ItemFlags_Door):
+      return xyz_f{0, 0, AboveLivingZ - OnFloorZ}
    else:
       return xyz_0
 
@@ -161,9 +163,12 @@ def gobjs_draw(now: float, view: Rectf):
                      
                      renderSprite(ObjTx, ti, dpos, xy_1, sincos(a))
 
-def gobjs_spawn(okind: ObjectKind, pos: xy_i, dir: Directions, parent: ObjId? = nil) -> ObjId:
-   let found, ki = binary_search_by_key(OSpecs, int(okind)) a, b:
+private def find_ospec(kind: ObjectKind) -> bool, int:
+   return binary_search_by_key(OSpecs, int(kind)) a, b:
       int(a.kind) - b
+
+def gobjs_spawn(okind: ObjectKind, pos: xy_i, dir: Directions, parent: ObjId? = nil) -> ObjId:
+   let found, ki = find_ospec(okind)
 
    //TODO test to see if it can be placed at pos.
    if found:
@@ -186,6 +191,28 @@ def gobjs_spawn(okind: ObjectKind, pos: xy_i, dir: Directions, parent: ObjId? = 
    else:
       error(): "No OSpec for " + okind
       assert false
+
+def gobjs_spawn_door(okind: ObjectKind, pos: xy_i, dir: Directions, is_open: bool = false) -> ObjId?:
+   let found, ki = find_ospec(okind)
+
+   if found:
+      let spec = OSpecs[ki]
+
+      if spec.flags.has(ItemFlags_Door):
+         let rv = gobjs_spawn(okind, pos, dir, nil)
+         let anims = spec.animations()
+         if anims:
+            if is_open and rv is GOInst:
+               rv.state |= StateFlags_Open
+               play_animation(rv, anims.open)
+            else:
+               play_animation(rv, anims.close)
+
+         return rv
+      else:
+         return nil
+   else:
+      return nil
                             
 private def equip_set_item(who: ObjId, eq: MaybeEquip) -> void:
    let roll = rnd_float()
@@ -203,12 +230,27 @@ def gobjs_tests():
 private def mk_equip_id(equip: GOInst, bonus_index: int) -> int:
    return equip.id << 8 + bonus_index
 
+private def closed_door_at(pos: xy_i) -> bool:
+   // Check for closed doors.
+   for_objects_at(pos) obj:
+      if obj and obj is GOInst:
+         if OSpecs[obj.kind_idx].flags.has(ItemFlags_Door):
+            return obj.state.denies(StateFlags_Open)
+
+   return false
+
 // Bus endpoint implementation.
 class GobjEndpoint : BusEndpoint
    def for_all_enabled_lights_impl(body):
       for(GOInstances) o:
          if o and not o.parent and OSpecs[o.kind_idx].flags & ItemFlags_EmitsLight:
             body(o, OSpecs[o.kind_idx])
+
+   def move_is_allowed_impl(now: float, o: ObjId, destPos: xy_i) -> bool:
+      return not closed_door_at(destPos)
+
+   def passes_light_impl(pos: xy_i) -> bool:
+      return not closed_door_at(pos)
 
    def tile_impl(what: ObjId) -> int:
       if what is GOInst:

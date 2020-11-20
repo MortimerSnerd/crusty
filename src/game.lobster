@@ -115,6 +115,8 @@ def game_init():
    else:
       error(): "No spawn found."
 
+   // Mainly for testing, a more principled way should be used to 
+   // do this.
    for_map_features_named("Dresser") dloc:
       let d = gobjs_spawn(ObjectKind_Dresser, dloc.pos, dloc.orientation)
       gobjs_spawn(ObjectKind_FalseTeeth, xy_i{0, 0}, North, d)
@@ -122,6 +124,24 @@ def game_init():
    for_map_features_named("Cheese") dloc:
       gobjs_spawn(ObjectKind_Cheese, dloc.pos, North)
       gobjs_spawn(ObjectKind_FalseTeeth, dloc.pos, North)
+
+   for_map_features_named("ndoor") dloc:
+      gobjs_spawn_door(ObjectKind_GenHDoor, dloc.pos, North, false)
+   for_map_features_named("sdoor") dloc:
+      gobjs_spawn_door(ObjectKind_GenHDoor, dloc.pos, South, false)
+   for_map_features_named("edoor") dloc:
+      gobjs_spawn_door(ObjectKind_GenHDoor, dloc.pos, East, false)
+   for_map_features_named("wdoor") dloc:
+      gobjs_spawn_door(ObjectKind_GenHDoor, dloc.pos, West, false)
+   for_map_features_named("testhog") dloc:
+      let gh = GroundhogRec{graphic: gobjs_spawn(ObjectKind_Groundhog,
+                                                           dloc.pos, North),
+                            dead: false,
+                            system: SwerdFeeshSystem, 
+                            id: length(Groundhogs)}
+      push(Groundhogs, gh)
+      schedule_callback(gh, 0)
+      play_animation(gh.graphic, "groundhog_idle")
 
    //maps_load_debug_level(MapTexture, ppos)
    bind("space", "Decompose gracefully") player, now, _, prompt: 

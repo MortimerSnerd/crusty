@@ -61,7 +61,10 @@ def maybe_bump_attack(player: ObjId, ppos: xy_i, facing: Directions, orig_ar: Ac
       return orig_ar, nil
 
 def player_init():
-   def mumble(player, act, ar):
+   // Danger - don't reference the player parameter when 
+   // calling this from interactions, that won't be bound 
+   // once this goes out of scope.
+   def mumble(player: ObjId, act, ar):
       if not act:
          actionlog_present(present(player, act, ar))
 
@@ -93,7 +96,7 @@ def player_init():
          act = a
 
       if not act:
-         let cc = closed_containers_at(mouse_pos)
+         let cc = closed_containers_at(player, mouse_pos)
 
          for_all_items(cc) o:
             let r, a = open_action(FakeTurnSpan, now, player, o)
@@ -105,7 +108,7 @@ def player_init():
                true
 
       if not act:
-         let oc = opened_containers_at(mouse_pos)
+         let oc = opened_containers_at(player, mouse_pos)
 
          for_all_items(oc) o:
             let r, a = close_action(FakeTurnSpan, now, player, o)
@@ -142,16 +145,16 @@ def player_init():
 
    bind("o", "Open") player, now, _, prompt:
       let f, p = pos(player)
-      let cands = closed_containers_at(p)
+      let cands = closed_containers_at(player, p)
       var rv = nil
 
       if count(cands) > 0:
          if prompt:
             prompt_for_object(player, "Open what?", cands, true) data:
                if data is ObjPromptData and data.picked:
-                  let r, act = open_action(FakeTurnSpan, GameTime, data.player, 
+                  let r, act = open_action(FakeTurnSpan, GameTime, data.player,
                                            data.picked)
-                  mumble(player,act,r)
+                  mumble(data.player,act,r)
                   act
                else:
                   nil
@@ -191,7 +194,7 @@ def player_init():
 
    bind("c", "Close") player, now, _, prompt:
       let f, p = pos(player)
-      let cands = opened_containers_at(p)
+      let cands = opened_containers_at(player, p)
       var rv = nil
 
       if count(cands) > 0:
@@ -200,7 +203,7 @@ def player_init():
                if data is ObjPromptData and data.picked:
                   let r, act = close_action(FakeTurnSpan, GameTime, data.player, 
                                             data.picked)
-                  mumble(player,act,r)
+                  mumble(data.player,act,r)
                   act
                else:
                   nil
@@ -222,7 +225,7 @@ def player_init():
             let obj = first(cands)
             let r, act = take_action(FakeTurnSpan, GameTime, player, 
                                      obj, container_of(obj))
-
+            mumble(player,act,r)
             rv = act
 
       rv

@@ -49,6 +49,7 @@ enum ObjectKind:
     ObjectKind_FalseTeeth = 6
     ObjectKind_Cheese = 7
     ObjectKind_Fez = 8
+    ObjectKind_GenHDoor = 9
 
 enum TileName:
     TileName_None = 0
@@ -66,6 +67,8 @@ enum TileName:
     TileName_FalseTeeth = 12
     TileName_Cheese = 13
     TileName_Fez = 14
+    TileName_GenHDoorClosed = 15
+    TileName_GenHDoorOpen = 16
 
 enum ItemFlags:
     ItemFlags_Living = 1
@@ -75,6 +78,7 @@ enum ItemFlags:
     ItemFlags_AbutsWall = 16
     ItemFlags_Immobile = 32
     ItemFlags_Container = 64
+    ItemFlags_Door = 128
 
 enum StateFlags:
     StateFlags_Open = 1
@@ -104,6 +108,8 @@ class EquipBonus
 class SfxSpec
 
 class ObjectSounds
+
+class ObjectAnimations
 
 class WeaponStats
 
@@ -274,13 +280,19 @@ class ObjectSounds : flatbuffers_handle
     def surprise():
         let o = buf_.flatbuffers_field_table(pos_, 8)
         return if o: SfxSpec { buf_, o } else: nil
+    def open():
+        let o = buf_.flatbuffers_field_table(pos_, 10)
+        return if o: SfxSpec { buf_, o } else: nil
+    def close():
+        let o = buf_.flatbuffers_field_table(pos_, 12)
+        return if o: SfxSpec { buf_, o } else: nil
 
 def GetRootAsObjectSounds(buf:string): return ObjectSounds { buf, buf.flatbuffers_indirect(0) }
 
 struct ObjectSoundsBuilder:
     b_:flatbuffers_builder
     def start():
-        b_.StartObject(3)
+        b_.StartObject(5)
         return this
     def add_hurt(hurt:flatbuffers_offset):
         b_.PrependUOffsetTRelativeSlot(0, hurt)
@@ -291,6 +303,12 @@ struct ObjectSoundsBuilder:
     def add_surprise(surprise:flatbuffers_offset):
         b_.PrependUOffsetTRelativeSlot(2, surprise)
         return this
+    def add_open(open:flatbuffers_offset):
+        b_.PrependUOffsetTRelativeSlot(3, open)
+        return this
+    def add_close(close:flatbuffers_offset):
+        b_.PrependUOffsetTRelativeSlot(4, close)
+        return this
     def end():
         return b_.EndObject()
 
@@ -300,6 +318,28 @@ def ObjectSoundsCreateHurtVector(b_:flatbuffers_builder, v_:[flatbuffers_offset]
     b_.StartVector(4, v_.length, 4)
     reverse(v_) e_: b_.PrependUOffsetTRelative(e_)
     return b_.EndVector(v_.length)
+
+class ObjectAnimations : flatbuffers_handle
+    def open():
+        return buf_.flatbuffers_field_string(pos_, 4)
+    def close():
+        return buf_.flatbuffers_field_string(pos_, 6)
+
+def GetRootAsObjectAnimations(buf:string): return ObjectAnimations { buf, buf.flatbuffers_indirect(0) }
+
+struct ObjectAnimationsBuilder:
+    b_:flatbuffers_builder
+    def start():
+        b_.StartObject(2)
+        return this
+    def add_open(open:flatbuffers_offset):
+        b_.PrependUOffsetTRelativeSlot(0, open)
+        return this
+    def add_close(close:flatbuffers_offset):
+        b_.PrependUOffsetTRelativeSlot(1, close)
+        return this
+    def end():
+        return b_.EndObject()
 
 class WeaponStats : flatbuffers_handle
     def speed():
@@ -411,13 +451,16 @@ class ObjectSpec : flatbuffers_handle
         return MaybeEquip { buf_, buf_.flatbuffers_indirect(buf_.flatbuffers_field_vector(pos_, 40) + i * 4) }
     def equip_set_length():
         return buf_.flatbuffers_field_vector_len(pos_, 40)
+    def animations():
+        let o = buf_.flatbuffers_field_table(pos_, 42)
+        return if o: ObjectAnimations { buf_, o } else: nil
 
 def GetRootAsObjectSpec(buf:string): return ObjectSpec { buf, buf.flatbuffers_indirect(0) }
 
 struct ObjectSpecBuilder:
     b_:flatbuffers_builder
     def start():
-        b_.StartObject(19)
+        b_.StartObject(20)
         return this
     def add_kind(kind:ObjectKind):
         b_.PrependInt16Slot(0, kind, 0)
@@ -475,6 +518,9 @@ struct ObjectSpecBuilder:
         return this
     def add_equip_set(equip_set:flatbuffers_offset):
         b_.PrependUOffsetTRelativeSlot(18, equip_set)
+        return this
+    def add_animations(animations:flatbuffers_offset):
+        b_.PrependUOffsetTRelativeSlot(19, animations)
         return this
     def end():
         return b_.EndObject()

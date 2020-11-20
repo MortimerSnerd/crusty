@@ -157,7 +157,8 @@ def is_open_container(o: ObjId):
 def is_closed_container(o: ObjId):
    return object_spec(o).flags & ItemFlags_Container and not (object_state(o) & StateFlags_Open)
 
-def closed_containers_at(p: xy_i) -> ObjList:
+
+def closed_containers_at(who: ObjId, p: xy_i) -> ObjList:
    let rv = ObjList{options: olAddChoiceLetter}
 
    add_section(rv, "Containers")
@@ -167,16 +168,36 @@ def closed_containers_at(p: xy_i) -> ObjList:
       if o and is_closed_container(o):
          add_object(rv, o)
 
+   add_section(rv, "Doors")
+   let pf, whop = pos(who)
+   let df, facing = direction(who)
+
+   if pf and df:
+      for_forward_positions(whop, facing) fpos:
+         for_objects_at(fpos) obj:
+            if obj and is_closed_door(obj):
+               add_object(rv, obj)
+
    return rv
 
-def opened_containers_at(p: xy_i) -> ObjList:
+def opened_containers_at(who: ObjId, p: xy_i) -> ObjList:
    let rv = ObjList{options: olAddChoiceLetter}
 
    for_objects_at(p) o:
       //TODO instead of flag test, should we check with open action, so we always use the
       //    same criteria?
-      if o and is_open_container(o):
+      if o and is_open_container(o) and object_spec(o).flags.denies(ItemFlags_Living):
          add_object(rv, o)
+
+   add_section(rv, "Doors")
+   let pf, whop = pos(who)
+   let df, facing = direction(who)
+
+   if pf and df:
+      for_forward_positions(whop, facing) fpos:
+         for_objects_at(fpos) obj:
+            if obj and is_open_door(obj):
+               add_object(rv, obj)
 
    return rv
 
@@ -241,7 +262,8 @@ def all_ground_objects(p: xy_i) -> ObjList:
          let sp = object_spec(o)
          let fl = object_state(o)
 
-         if sp.flags & ItemFlags_Living == 0 or fl & StateFlags_Dead:
+         if not sp.flags.has(ItemFlags_Door) and (sp.flags & ItemFlags_Living == 0 or 
+                                                  fl & StateFlags_Dead):
             add_object(rv, o)            
 
    return rv

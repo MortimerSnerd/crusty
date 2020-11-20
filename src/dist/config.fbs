@@ -90,6 +90,13 @@ table ObjectSounds {
     hurt: [SfxSpec];
     death: SfxSpec;
     surprise: SfxSpec;
+    open: SfxSpec;
+    close: SfxSpec;
+}
+
+table ObjectAnimations {
+    open: string;
+    close: string;
 }
  
 table WeaponStats {
@@ -109,7 +116,8 @@ enum ObjectKind:short { Invalid = 0,
   Dresser, 
   FalseTeeth, 
   Cheese, 
-  Fez
+  Fez, 
+  GenHDoor
 }
 
 enum TileName:int32 {
@@ -127,7 +135,9 @@ enum TileName:int32 {
   DresserOpen = 11, 
   FalseTeeth = 12, 
   Cheese = 13, 
-  Fez = 14
+  Fez = 14, 
+  GenHDoorClosed = 15,
+  GenHDoorOpen = 16
 }
 
 enum ItemFlags : uint32 (bit_flags)
@@ -138,7 +148,8 @@ enum ItemFlags : uint32 (bit_flags)
     EmitsLight, 
     AbutsWall,
     Immobile, 
-    Container
+    Container,
+    Door
 }
 
 enum StateFlags : uint32 (bit_flags)
@@ -180,6 +191,7 @@ table ObjectSpec {
    wield_offset_y: float = 0.75;
    sounds: ObjectSounds;
    equip_set: [MaybeEquip];
+   animations: ObjectAnimations;
 } 
 
 enum AnimationKind : uint8

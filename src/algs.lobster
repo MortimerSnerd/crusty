@@ -495,6 +495,10 @@ def has_any(flags: int, test: int) -> bool:
 def has(flags: int, test: int) -> bool:
    return flags & test == test
 
+// Returns true if none of the flags in test
+// are set in `flags`.
+def denies(flags: int, test: int) -> bool:
+   return flags & test == 0
 
 def heapcheck():
    let hcmp = fn(a: int, b: int) -> bool:

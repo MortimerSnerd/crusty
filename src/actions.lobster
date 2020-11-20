@@ -39,7 +39,8 @@ enum ActionResultKinds:
    arCanNotEquip, 
    arNotEquipped, 
    arNoMeleeWeapon,
-   arNoSuicide
+   arNoSuicide, 
+   arDoorBlocked
 
 class ActionResult:
    kind: ActionResultKinds
@@ -57,6 +58,9 @@ class ActionResult:
       switch kind:
          case arOk:
             return ""
+
+         case arDoorBlocked:
+            return sentence(["The door is blocked by", othername()])
 
          case arNoSuicide:
             return "Suicide is not an option."
@@ -193,13 +197,23 @@ class OpenAction : ActionBase
                         object_spec(what).short_name])
 
    def execute():
+      let os = object_sounds(what)
+      let anims = object_spec(what).animations
+
       if opening:
          modify_object_state(what) st: st | StateFlags_Open
-         notify_animation(what, time, open_close_animation_name("open", what))
+         if anims and length(anims.open) > 0:
+            notify_animation(what, time, anims.open)
+
+         if os and os.open:
+            notify_sfx_spec(what, time, os.open)
       else:
          modify_object_state(what) st: st & ~StateFlags_Open
-         notify_animation(what, time, open_close_animation_name("close", what))
+         if anims and length(anims.close) > 0:
+            notify_animation(what, time, anims.close)
 
+         if os and os.close:
+            notify_sfx_spec(what, time, os.close)
 
 private def at_same_location(a: ObjId, b: ObjId) -> bool:
    let f0, p0 = pos(a)
@@ -207,19 +221,55 @@ private def at_same_location(a: ObjId, b: ObjId) -> bool:
 
    return f0 and f1 and p0 == p1
 
+// Straight ahead, one step to the left and one to the right.
+def for_forward_directions(facing: Directions, body):
+   body(facing)
+   body(facing.turned_left())
+   body(facing.turned_right())
+
+// Iterates through all of the positions that are considered forward
+// of `pos`
+def for_forward_positions(pos: xy_i, facing: Directions, body):
+   for_forward_directions(facing) d:
+      body(all_dirs[d] + pos)
+   
+// Returns true if `targ` is at a position forward to `pos/facing`.
+def is_forward_of_pos(pos: xy_i, facing: Directions, targ: xy_i) -> bool:
+   for_forward_positions(pos, facing) p:
+      if p == targ:
+         return true
+
+   return false
+
+def is_forward_of_pos(what: ObjId, who: ObjId) -> bool:
+   let wf, whopos = pos(who)
+   let wf2, whatpos = pos(what)
+   let df, facing = direction(who)
+   return df and wf and wf2 and is_forward_of_pos(whopos, facing, whatpos)
+
+def is_closed_door(obj: ObjId) -> bool:
+   return object_spec(obj).flags.has(ItemFlags_Door) and object_state(obj).denies(StateFlags_Open)
+
+def is_open_door(obj: ObjId) -> bool:
+   return object_spec(obj).flags.has(ItemFlags_Door) and object_state(obj).has(StateFlags_Open)
+
 def open_action(span: TurnSpan, now: float, who: ObjId, what: ObjId) -> ActionResult, OpenAction?:
+   def mkact():
+      let st = object_state(what)
+
+      if st & StateFlags_Open:
+         return ActionResult{kind: arAlreadyOpen, other: what}, nil
+      else:
+         //TODO base duration on something.
+         return GoodResult, OpenAction{who: who, time: now, what: what, duration: 0.1, 
+                                       opening: true}
    if at_same_location(who, what):
       if object_spec(what).flags & ItemFlags_Container:
-         let st = object_state(what)
-
-         if st & StateFlags_Open:
-            return ActionResult{kind: arAlreadyOpen, other: what}, nil
-         else:
-            return GoodResult, OpenAction{who: who, time: now, what: what, duration: 0.1, 
-                                          opening: true}
-
+         return mkact()
       else:
          return ActionResult{kind: arNotOpenable, other: what}, nil
+   elif is_closed_door(what) and what.is_forward_of_pos(who):
+         return mkact()
    else:
       return ActionResult{kind: arCanNotReach, other: what}, nil
 
@@ -236,6 +286,15 @@ def close_action(span: TurnSpan, now: float, who: ObjId, what: ObjId) -> ActionR
 
       else:
          return ActionResult{kind: arNotOpenable, other: what}, nil
+   elif is_open_door(what) and what.is_forward_of_pos(who):
+      let df, doorpos = pos(what)
+      let lv = living_thing_at(doorpos)
+
+      if df and lv:
+         return ActionResult{kind: arDoorBlocked, other: lv}, nil
+      else:
+         return GoodResult, OpenAction{who: who, time: now, what: what, duration: 0.1, 
+                                    opening: false}
    else:
       return ActionResult{kind: arCanNotReach, other: what}, nil
 
@@ -465,12 +524,11 @@ class MeleeAttackAction : ActionBase
          add_use_debuff(st, defended, 3, 
                         time + use_debuff_dur(st, defended, total_dmg, time))
 
+
 // Calls `body` with each of the directions that someone facing 
 // `facing` can attack.
 def for_attackable_directions(facing: Directions, body):
-   body(facing)
-   body(facing.turned_left())
-   body(facing.turned_right())
+   for_forward_directions(facing, body)
 
 // Returns true if targ_pos is attackable by melee from targ_pos.
 def in_melee_attackable_pos(atk_pos, atk_dir, targ_pos):

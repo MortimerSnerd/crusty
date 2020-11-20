@@ -152,12 +152,10 @@ def anim_play_one_shots(now: float):
    for(Lanes) l:
       switch l.kind:
          case anSound:
-            debug(): "time " + now + " vs " + l.animStartTime + " triggered=" + l.oneShotTriggered + " " + l.oneShotName
+            debug(): "time " + now + " vs " + l.animStartTime + " triggered=" + l.oneShotTriggered + " " + l.oneShotName + " vol: " + l.soundVol
             if now >= l.animStartTime and not l.oneShotTriggered:
-               let ch = play_wav(l.oneShotName)
-               if ch >= 0:
-                  sound_volume(ch, l.soundVol)
-                  //TODO modify based on position eventually
+               sound_volume(play_wav(l.oneShotName), l.soundVol)
+               //TODO modify based on position eventually
                l.oneShotTriggered = true
 
          case anPlayAnimation:
@@ -166,7 +164,7 @@ def anim_play_one_shots(now: float):
                l.oneShotTriggered = true
 
          case anMove, anTurn, anTileChange:
-            noop()
+            pass()
 
 private let DrawingTrails = true
 

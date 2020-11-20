@@ -45,6 +45,10 @@ private var TileTags: [int] = []
 enum_flags TileFlags:
    tfBlocksLight, tfBlocksMovement, tfFloor
 
+private def wall_blocks_move(pos: xy_i) -> bool:
+   let t = get(WallLayer, pos)
+   return TileTags[t] & tfBlocksMovement != 0
+
 class MapEndpoint : BusEndpoint
    def move_is_allowed_impl(now: float, o: ObjId, destPos: xy_i) -> bool:
       if not FloorLayer.contains(destPos):
@@ -151,9 +155,8 @@ class MapEndpoint : BusEndpoint
       else:
          return true
 
-private def wall_blocks_move(pos: xy_i) -> bool:
-   let t = get(WallLayer, pos)
-   return TileTags[t] & tfBlocksMovement != 0
+   def is_wall_at_impl(pos: xy_i):
+      return wall_blocks_move(pos) 
 
 // Returns true if moving start -> end cuts across a wall
 // diagonally.  Assumes start and end are only one step away.
@@ -223,7 +226,7 @@ def maps_update_viz(player_pos: xy_i, clear_viz: bool):
          walk_visible_tiles(player_pos, Rect{xy_i{0,0}, FloorLayer.dims-xy_i{1,1}}) pos:
             // Is opaque at pos?
             let tnum = get(WallLayer, pos)
-            TileTags[tnum] & tfBlocksLight != 0
+            TileTags[tnum] & tfBlocksLight != 0 or not passes_light(pos)
          fn(pos):
             var flags = vfVisible
             

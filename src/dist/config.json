@@ -63,7 +63,15 @@
             static_tile: Dresser,
             right_rotation: -90,
             flags: "AbutsWall Immobile Container", 
-            dir_offset: 0.7
+            dir_offset: 0.7, 
+            sounds: {
+                open: {sfx: "dist/dresser_open.wav", vol: 1}, 
+                close: {sfx: "dist/dresser_open.wav", vol: 1}
+            },
+            animations: {
+                open: "open_dresser",
+                close: "close_dresser"
+            }
         },
         {
             kind: FalseTeeth,
@@ -92,10 +100,38 @@
             equip_bonuses: [
                 {skill: Wit, modifier: 2}
             ]
+        },
+        {
+            kind: GenHDoor,
+            short_name: 'door',
+            desc: 'A door.',
+            static_tile: GenHDoorClosed, 
+            flags: "Immobile Door", 
+            right_rotation: -90, 
+            sounds: {
+                open: {sfx: "dist/genhdoor_open.wav", vol: 1}, 
+                close: {sfx: "dist/genhdoor_close.wav", vol: 1}
+            },
+            animations: {
+                open: "genhdoor_open", 
+                close: "genhdoor_close"
+            }
         }
      ],
 
     "animations": [
+        {
+            name: "genhdoor_close", 
+            frames: [
+                {frame: GenHDoorClosed, duration: 1}
+             ]
+        },
+        {
+            name: "genhdoor_open", 
+            frames: [
+                {frame: GenHDoorOpen, duration: 1}
+             ]
+        },
         {
             name: "player_idle", 
             frames: [{frame: Fish, duration: 0.4}, 
@@ -116,12 +152,12 @@
             ]
         }, 
         {
-            name: "open_ObjectKind_Dresser", 
+            name: "open_dresser", 
             kind: OneShot, 
             frames: [ {frame: DresserOpen, duration: 1} ]
         },
         {
-            name: "close_ObjectKind_Dresser", 
+            name: "close_dresser", 
             kind: OneShot, 
             frames: [ {frame: Dresser, duration: 1} ]
         } 
