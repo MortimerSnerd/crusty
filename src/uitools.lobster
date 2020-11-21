@@ -157,6 +157,10 @@ def is_open_container(o: ObjId):
 def is_closed_container(o: ObjId):
    return object_spec(o).flags & ItemFlags_Container and not (object_state(o) & StateFlags_Open)
 
+def with_closed_door_at(p: xy_i, body):
+   for_objects_at(p) obj:
+      if obj and is_closed_door(obj):
+         body(obj)
 
 def closed_containers_at(who: ObjId, p: xy_i) -> ObjList:
    let rv = ObjList{options: olAddChoiceLetter}
@@ -174,9 +178,8 @@ def closed_containers_at(who: ObjId, p: xy_i) -> ObjList:
 
    if pf and df:
       for_forward_positions(whop, facing) fpos:
-         for_objects_at(fpos) obj:
-            if obj and is_closed_door(obj):
-               add_object(rv, obj)
+         with_closed_door_at(fpos) obj:
+            add_object(rv, obj)
 
    return rv
 

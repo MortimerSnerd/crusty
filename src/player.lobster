@@ -72,19 +72,25 @@ def player_init():
       let f, p = pos(player)
       let f1, diri = direction(player)
       let r, act = move_action(FakeTurnSpan, GameTime, player, p, p + all_dirs[diri])
-      
-      if not act:
+      var finact: ActionBase? = act 
+       
+      if not finact:
          let atk_r, atk_act = maybe_bump_attack(player, p, diri, r)
 
          if atk_act:
             if prompt: mumble(player, atk_act, atk_r)
-            atk_act
+            finact = atk_act
          else:
-            if prompt: mumble(player,act,r)
-            act
+            with_closed_door_at(p + all_dirs[diri]) door:
+               let r_o, act_o = open_action(FakeTurnSpan, now, player, door)
+               if prompt: mumble(player,act,r)
+               finact = act_o
       else:
          if prompt: mumble(player,act,r)
-         act
+
+      finact
+
+         
 
    bind("mouse1", ContextActionDesc) player, now, mouse_pos, prompt:
       // Try context sensitive actions in priority order.
