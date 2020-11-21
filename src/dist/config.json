@@ -44,7 +44,8 @@
                hurt: [{sfx: "dist/pdead.wav"}],
                death: {sfx: "dist/ouch3.wav"}
             }, 
-            equip_set: [{kind: Fez, chance: 0.5}]
+            equip_set: [{kind: Fez, chance: 0.5}],
+            armor: [{dmg: Slashing, dt: {range: NoDie, plus: 1}}]
         },
         {
             kind: Bullet, 

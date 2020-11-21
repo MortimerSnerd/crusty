@@ -4,6 +4,7 @@ import from "../../../src/crusty/src/"
 import bus
 import config
 import config_generated
+import engrish
 import objutils
 import logging
 
@@ -90,6 +91,51 @@ private def calc_synergies_dv(stats, stat, now) -> int:
 
    return dv
 
+// Location that can receive damage.
+class BodyLoc:
+   // Subset of ItemSlot for armor pieces.
+   slot: ItemSlot
+   dmg_factor: float = 1.0
+
+def pick_random_body_part(obj: ObjId) -> BodyLoc:
+   //TODO actually pick.
+   return BodyLoc{ItemSlot_Chest}
+
+def dt_for(arm: ArmorValue?, dmg_type: DmgType) -> int:
+   if arm:
+      if arm.dmg() == dmg_type:
+         return range_roll(arm.dt())
+      else:
+         return 0
+   else:
+      return 0
+
+// Calculates the damage reduction and body part bonuses, and applies them 
+// to the damage.
+def apply_armor_to_dmg(target: ObjId, loc: BodyLoc, dmg_type: DmgType, dmg: int) -> int:
+   var eff_dt = 0
+   let spec = object_spec(target)
+
+   // Get innate armor.
+   for(spec.armor_length()) i:
+      eff_dt += dt_for(spec.armor(i), dmg_type)
+
+   // Get any armor for that body part.
+   let part_armor = equipment_at(target, loc.slot)
+
+   if part_armor:
+      let aspec = object_spec(part_armor)
+
+      for(aspec.armor_length()) i:
+         eff_dt += dt_for(aspec.armor(i), dmg_type)
+
+   statlog(): to_string(target) + " dt at " + loc + " = " + eff_dt
+   let remaining_dmg = max(0, dmg - eff_dt)
+
+   // Apply the body part factor to any damage that made it
+   // through.
+   return int(remaining_dmg * loc.dmg_factor)
+   
 // Calculates a value for a particular stat.
 // Will remove any expired conditions in passing.
 def value(stats: [StatEnt], now: float, stat: GameStats, apply_syns: bool = true) -> int:
@@ -271,7 +317,7 @@ def present_weight(f: float) -> string:
    return sentence(comma_list(rv, false))
 
 // Roll for damage for the given damage range.  Damage clamped positive.
-def damage_roll(r: DieRange?) -> int:
+def range_roll(r: DieRange?) -> int:
    assert r
    let dd = max(0, damage_roll_range(r.range()) + r.plus())
 

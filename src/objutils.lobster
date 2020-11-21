@@ -16,6 +16,9 @@ class ObjId:
    system: ObjectSystem
    id: int = 0 
 
+   def to_string() -> string:
+      return string(system) + ":" + id
+
 // Sentinel for no object.
 let InvalidObject: ObjId? = nil
 

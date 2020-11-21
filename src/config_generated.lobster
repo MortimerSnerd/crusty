@@ -109,6 +109,8 @@ class CfgSkillSynergy
 
 class EquipBonus
 
+class ArmorValue
+
 class SfxSpec
 
 class ObjectSounds
@@ -247,6 +249,29 @@ struct EquipBonusBuilder:
         return this
     def add_modifier(modifier:int):
         b_.PrependInt32Slot(1, modifier, 0)
+        return this
+    def end():
+        return b_.EndObject()
+
+class ArmorValue : flatbuffers_handle
+    def dmg():
+        return DmgType(buf_.flatbuffers_field_int8(pos_, 4, 0))
+    def dt():
+        let o = buf_.flatbuffers_field_struct(pos_, 6)
+        return if o: DieRange { buf_, o } else: nil
+
+def GetRootAsArmorValue(buf:string): return ArmorValue { buf, buf.flatbuffers_indirect(0) }
+
+struct ArmorValueBuilder:
+    b_:flatbuffers_builder
+    def start():
+        b_.StartObject(2)
+        return this
+    def add_dmg(dmg:DmgType):
+        b_.PrependUint8Slot(0, dmg, 0)
+        return this
+    def add_dt(dt:flatbuffers_offset):
+        b_.PrependStructSlot(1, dt)
         return this
     def end():
         return b_.EndObject()
@@ -458,13 +483,20 @@ class ObjectSpec : flatbuffers_handle
     def animations():
         let o = buf_.flatbuffers_field_table(pos_, 42)
         return if o: ObjectAnimations { buf_, o } else: nil
+    def armor(i:int):
+        return ArmorValue { buf_, buf_.flatbuffers_indirect(buf_.flatbuffers_field_vector(pos_, 44) + i * 4) }
+    def armor_length():
+        return buf_.flatbuffers_field_vector_len(pos_, 44)
+    def innate_armor():
+        let o = buf_.flatbuffers_field_table(pos_, 46)
+        return if o: ArmorValue { buf_, o } else: nil
 
 def GetRootAsObjectSpec(buf:string): return ObjectSpec { buf, buf.flatbuffers_indirect(0) }
 
 struct ObjectSpecBuilder:
     b_:flatbuffers_builder
     def start():
-        b_.StartObject(20)
+        b_.StartObject(22)
         return this
     def add_kind(kind:ObjectKind):
         b_.PrependInt16Slot(0, kind, 0)
@@ -526,6 +558,12 @@ struct ObjectSpecBuilder:
     def add_animations(animations:flatbuffers_offset):
         b_.PrependUOffsetTRelativeSlot(19, animations)
         return this
+    def add_armor(armor:flatbuffers_offset):
+        b_.PrependUOffsetTRelativeSlot(20, armor)
+        return this
+    def add_innate_armor(innate_armor:flatbuffers_offset):
+        b_.PrependUOffsetTRelativeSlot(21, innate_armor)
+        return this
     def end():
         return b_.EndObject()
 
@@ -539,6 +577,13 @@ def ObjectSpecCreateEquipBonusesVector(b_:flatbuffers_builder, v_:[flatbuffers_o
 def ObjectSpecStartEquipSetVector(b_:flatbuffers_builder, n_:int):
     b_.StartVector(4, n_, 4)
 def ObjectSpecCreateEquipSetVector(b_:flatbuffers_builder, v_:[flatbuffers_offset]):
+    b_.StartVector(4, v_.length, 4)
+    reverse(v_) e_: b_.PrependUOffsetTRelative(e_)
+    return b_.EndVector(v_.length)
+
+def ObjectSpecStartArmorVector(b_:flatbuffers_builder, n_:int):
+    b_.StartVector(4, n_, 4)
+def ObjectSpecCreateArmorVector(b_:flatbuffers_builder, v_:[flatbuffers_offset]):
     b_.StartVector(4, v_.length, 4)
     reverse(v_) e_: b_.PrependUOffsetTRelative(e_)
     return b_.EndVector(v_.length)

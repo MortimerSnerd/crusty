@@ -292,15 +292,16 @@ def player_init():
 // the actions are subclasses of ActionBase rather than
 // being a case object like in previous Nim impl.
 def for_player_actions(player: ObjId, now: float, mouse_pos: xy_i, body):
-   for(Bindings) b:
-      let ff = b.afn
-      let act = ff(player, now, mouse_pos, false)
+   inhibiting_log(StatLogs):
+      for(Bindings) b:
+         let ff = b.afn
+         let act = ff(player, now, mouse_pos, false)
 
-      if act:
-         if b.desc == ContextActionDesc:
-            body(b.key, act.short_desc(), act.duration)
-         else:
-            body(b.key, b.desc, act.duration)
+         if act:
+            if b.desc == ContextActionDesc:
+               body(b.key, act.short_desc(), act.duration)
+            else:
+               body(b.key, b.desc, act.duration)
 
 enum HandleInputResult:
    Good, GoodSteppingEnded, GoodTurnBegins, ExitMainLoop

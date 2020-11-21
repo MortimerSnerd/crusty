@@ -145,5 +145,8 @@ the player know they can hit 'o' to open the safe)
 - Defence should only be applied for faced threats.  No defence against
   back attacks.
 
+- Living can have list of body parts weighted by chance to hit, 
+  and damage factor to multiply or reduce damage.
+
 #Notes
 - measures used in book: rods, feet, pounds, pints, a gill of whiskey, miles, yards  

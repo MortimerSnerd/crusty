@@ -29,3 +29,12 @@ def timing(f):
 def statlog(f):
    if LoggingLevel & StatLogs:
       print("STAT: " + f())
+
+// Temporarily turn off some logging levels
+// for a scope.
+def inhibiting_log(mask: int, body):
+   let orig = LoggingLevel
+   LoggingLevel = LoggingLevel & ~mask
+   body()
+   LoggingLevel = orig
+

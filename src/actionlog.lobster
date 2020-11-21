@@ -7,7 +7,7 @@ private class LogMsg:
    count: int = 1
    msg: string
 
-private def to_string(lm:: LogMsg):
+def to_string(lm:: LogMsg):
    if count > 1:
       return "(x" + count + ") " + msg
    else:

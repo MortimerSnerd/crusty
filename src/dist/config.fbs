@@ -73,6 +73,7 @@ table CfgSkillSynergy {
     denominator: int = 1;
 }
 
+
 table EquipBonus {
     skill: GameStats;
     modifier: int;
@@ -80,6 +81,11 @@ table EquipBonus {
 
 enum DmgType : uint8 {
     Slashing, Stabbing, Impact
+}
+
+table ArmorValue {
+    dmg: DmgType;
+    dt: DieRange;
 }
 
 table SfxSpec {
@@ -183,7 +189,8 @@ table ObjectSpec {
    flags: ItemFlags;
    right_rotation: float = 0;
    light_radius: int = 0;
-   dir_offset: float = 0.0;  // For AbutsWall, amount of offset in the direction the object is facing. 1 == 1 grid.
+   // For AbutsWall, amount of offset in the direction the object is facing. 1 == 1 grid.
+   dir_offset: float = 0.0;  
    initial_state: StateFlags = 0;
    stat_base: StatTemplateName = NoStats;
    weapon_stats: WeaponStats;
@@ -196,6 +203,11 @@ table ObjectSpec {
    sounds: ObjectSounds;
    equip_set: [MaybeEquip];
    animations: ObjectAnimations;
+   // For equipment: Armor values applied when this is worn.  For 
+   // living things, this is the innate armor that comes from a tough
+   // hide, etc...
+   armor: [ArmorValue];   
+                          
 } 
 
 enum AnimationKind : uint8

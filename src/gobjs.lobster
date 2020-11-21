@@ -13,6 +13,8 @@ import std
 import texture
 import tileing
 
+private let OSpecs : [ObjectSpec] = []
+
 class GOInst : ObjId
    kind_idx: int // index into OSpecs for ObjectKind
    pos: xy_i // Grid position.
@@ -25,6 +27,9 @@ class GOInst : ObjId
    state: int = 0
    stats: [StatEnt] = []  // Not all objects can have stats, but we take the small cost anyway.
 
+   def to_string() -> string:
+      return super to_string() + ":" + OSpecs[kind_idx].kind
+
 struct GOFrame:
    frame: TileName
    duration: float
@@ -35,7 +40,6 @@ class GOAnim:
    frames: [GOFrame]
 
 // For now we just use the flatbuffer instance.  Hooray laziness.
-private let OSpecs : [ObjectSpec] = []
 private var ObjTx : GridTiledTexture? = nil
 private let Animations: [GOAnim] = []
 

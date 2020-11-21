@@ -479,6 +479,7 @@ class MeleeAttackAction : ActionBase
    target: ObjId
    weapon: ObjId
    hit: bool
+   loc: BodyLoc
    total_dmg: int
    act_dmg: int
    defended: GameStats = GameStats_Hp  // Only valid if hit == false.
@@ -569,13 +570,17 @@ def melee_attack_action(span: TurnSpan, now: float, who: ObjId, what: ObjId,
                      //TODO facing check and bonus/malus
                      //TODO armor calcs
                      let hit = roll > 0
-                     let wdmg = damage_roll(wstats.dmg())  // Calc dmg, even when missed.
-                     let act_dmg = wdmg
+                     let wdmg = range_roll(wstats.dmg())  // Calc dmg, even when missed.
+                     let part = pick_random_body_part(what)
+                     let act_dmg = apply_armor_to_dmg(what, part, 
+                                                      wstats.kind(), wdmg)
 
+                     statlog(): "atk hit " + hit + " initial dmg " + wdmg + ", act " + act_dmg
                      return GoodResult, 
                         MeleeAttackAction{who: who, time: now, 
                                           target: what, weapon: weapon, 
                                           hit: hit, 
+                                          loc: part, 
                                           act_dmg: act_dmg, total_dmg: wdmg,
                                           defended: def_skill, 
                                           duration: attack_duration(who, now, wstats)}
@@ -588,6 +593,7 @@ def melee_attack_action(span: TurnSpan, now: float, who: ObjId, what: ObjId,
                         MeleeAttackAction{who: who, time: now, 
                                           target: what, weapon: weapon, 
                                           hit: false, 
+                                          loc: pick_random_body_part(what),
                                           act_dmg: 0, total_dmg: 0,
                                           defended: GameStats_Defence, 
                                           duration: attack_duration(who, now, wstats)}
