@@ -491,11 +491,12 @@ class MeleeAttackAction : ActionBase
       if hit:
          if act_dmg == 0:
             return sentence([pronoun(who), verb(who, weaponverb(weapon)),
-                             otherliving(target), 
+                             possesive_otherliving(target), present(loc),
                              "but it does no damage"])
          else:
             var s = [pronoun(who), verb(who, weaponverb(weapon)), 
-                     otherliving(target), "for", string(act_dmg)]
+                     possesive_otherliving(target), present(loc), "for", 
+                     string(act_dmg)]
 
             if act_dmg < total_dmg:
                s = append(s, ["(", string(total_dmg - act_dmg), "absorbed )"])

@@ -61,6 +61,14 @@ def article(actor: ObjId) -> string:
       //indefinite
       return "a"
 
+def definite_article(actor: ObjId) -> string:
+   if Ctx and Ctx.player == actor:
+      //definite
+      return "your"
+   else:
+      //indefinite
+      return "the"
+
 def plural(word: string, count: int) -> string:
    if count > 1:
       //TODO special cases missing
@@ -111,9 +119,17 @@ def otherliving(other: ObjId, use_article: bool = true) -> string:
       else:
          return object_spec(other).short_name
 
+// Posessive for another living thing.
+// ie:  posessive_otherliving(x) -> "the wombat's"
+def possesive_otherliving(other: ObjId) -> string:
+   if Ctx and Ctx.player == other:
+      return "your"
+   else:
+      return definite_article(other) + " " + object_spec(other).short_name + "\'s"
+
+
 def comma_list(args: [string], conjunction: bool = true) -> [string]:
    let rv = []
-
    for(args) a, i:
       if conjunction and length(args) > 1 and i == length(args)-1:
          push(rv, ", and")

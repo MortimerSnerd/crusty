@@ -97,6 +97,21 @@ class BodyLoc:
    slot: ItemSlot
    dmg_factor: float = 1.0
 
+// Return a body part name.
+def present(loc: BodyLoc) -> string:
+   switch loc.slot:
+      case ItemSlot_Head:
+         return "head"
+      case ItemSlot_Chest:
+         return "chest"
+      case ItemSlot_Feet:
+         return "foot"
+      case ItemSlot_None, ItemSlot_Melee:
+         return "body"
+
+   error(): "Unknown body loc " + loc.slot
+   return "body"
+
 def pick_random_body_part(obj: ObjId) -> BodyLoc:
    //TODO actually pick.
    return BodyLoc{ItemSlot_Chest}
