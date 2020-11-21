@@ -30,7 +30,8 @@
             flags: "Living EmitsLight AnimTrail",
             right_rotation: 0,
             light_radius: 4, 
-            stat_base: Human
+            stat_base: Human,
+            equip_set: [{kind: Fez, chance: 1}],
         }, 
         {
             kind: Groundhog, 
@@ -100,7 +101,9 @@
             slot: Head,
             equip_bonuses: [
                 {skill: Wit, modifier: 2}
-            ]
+            ], 
+            armor: [{dmg: Slashing, dt: {range: NoDie, plus: 1}}, 
+                    {dmg: Stabbing, dt: {range: NoDie, plus: 2}}]
         },
         {
             kind: GenHDoor,

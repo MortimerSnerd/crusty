@@ -540,8 +540,6 @@ class IIData : UserData
                let ws = spec.weapon_stats()
 
                if ws:
-                  //TODO extract out this repeated crap for fake columns into
-                  // a function.
                   im_spacing()
                   im_text(capitalize(ItemSlotPresent[spec.slot()]) + " weapon")
 
@@ -563,6 +561,21 @@ class IIData : UserData
                          im_text(string(ws.speed()))
 
                if spec.slot() != ItemSlot_None:
+                  if not ws:
+                     im_text("Equippable on " + present(BodyLoc{spec.slot()}))
+                  
+                  im_spacing()
+                  if spec.armor_length() > 0:
+                     im_text("AV:")
+                     for(spec.armor_length()) j:
+                        let ar = spec.armor(j)
+                        let dspec = ar.dt()
+
+                        if dspec:
+                           aligned_row(25):
+                              aligned_col(col_width):
+                                 im_text(DmgTypePresent[ar.dmg()] + "/" + present(dspec))
+
                   let bon = []
 
                   for(spec.equip_bonuses_length()) i:

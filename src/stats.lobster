@@ -297,9 +297,9 @@ def present(r: DieRange) -> string:
    if mod == 0:
       return fst
    elif mod < 0:
-      return fst + " - " + (-mod)
+      return fst + "-" + (-mod)
    else:
-      return fst + " + " + mod
+      return fst + "+" + mod
 
 def present(eb: EquipBonus) -> string:
    return modifier_str(eb.modifier()) + " to " + GameStatsPresent[eb.skill()]
