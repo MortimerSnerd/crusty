@@ -142,6 +142,8 @@ the player know they can hit 'o' to open the safe)
 
 - armor
 
+- Defence should only be applied for faced threats.  No defence against
+  back attacks.
 
 #Notes
 - measures used in book: rods, feet, pounds, pints, a gill of whiskey, miles, yards  

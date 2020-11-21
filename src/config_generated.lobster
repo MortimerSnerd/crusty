@@ -29,10 +29,10 @@ enum StatTemplateName:
     StatTemplateName_Groundhog = 2
     StatTemplateName_COUNT = 3
 
-enum DmgRange:
-    DmgRange_Low2D6 = 0
-    DmgRange_Hi2D6 = 1
-    DmgRange_D6 = 2
+enum DieSpec:
+    DieSpec_Low2D6 = 0
+    DieSpec_Hi2D6 = 1
+    DieSpec_D6 = 2
 
 enum DmgType:
     DmgType_Slashing = 0
@@ -100,7 +100,7 @@ class StatPair
 
 class StatTemplate
 
-class DamageRange
+class DieRange
 
 class CfgSkillPair
 
@@ -166,13 +166,13 @@ struct StatTemplateBuilder:
 def StatTemplateStartStatsVector(b_:flatbuffers_builder, n_:int):
     b_.StartVector(8, n_, 4)
 
-class DamageRange : flatbuffers_handle
+class DieRange : flatbuffers_handle
     def range():
-        return DmgRange(buf_.read_int8_le(pos_ + 0))
+        return DieSpec(buf_.read_int8_le(pos_ + 0))
     def plus():
         return buf_.read_int32_le(pos_ + 4)
 
-def CreateDamageRange(b_:flatbuffers_builder, range:DmgRange, plus:int):
+def CreateDieRange(b_:flatbuffers_builder, range:DieSpec, plus:int):
     b_.Prep(4, 8)
     b_.PrependInt32(plus)
     b_.Pad(3)
@@ -351,7 +351,7 @@ class WeaponStats : flatbuffers_handle
         return DmgType(buf_.flatbuffers_field_int8(pos_, 6, 0))
     def dmg():
         let o = buf_.flatbuffers_field_struct(pos_, 8)
-        return if o: DamageRange { buf_, o } else: nil
+        return if o: DieRange { buf_, o } else: nil
     def miss_sound():
         return buf_.flatbuffers_field_string(pos_, 10)
     def hit_sound():

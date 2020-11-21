@@ -191,15 +191,15 @@ def opposed_skill_check(askill: GameStats, a: int, bskill: GameStats, b: int) ->
    statlog(): "Check " + askill + ":" + a + " vs " + bskill + ":" + b + " = " + rv
    return rv
 
-def damage_roll_range(name: DmgRange) -> int:
+def damage_roll_range(name: DieSpec) -> int:
    switch name:
-      case DmgRange_Low2D6:
+      case DieSpec_Low2D6:
          return min(rnd(6) + 1, rnd(6) + 1)
 
-      case DmgRange_Hi2D6:
+      case DieSpec_Hi2D6:
          return max(rnd(6) + 1, rnd(6) + 1)
 
-      case DmgRange_D6:
+      case DieSpec_D6:
          return rnd(6)
 
       default:
@@ -211,14 +211,14 @@ let DmgTypePresent = ["Slashing", "Stabbing", "Impact"]
 let ItemSlotPresent = ["none", "melee", "headgear", "chestpiece", "footwear"]
 
 // Make user presentable string for a damae range.
-def present(r: DamageRange) -> string:
+def present(r: DieRange) -> string:
    let fst = switch r.range():
-      case DmgRange_Low2D6:
+      case DieSpec_Low2D6:
          "least of 2d6"
-      case DmgRange_Hi2D6:
+      case DieSpec_Hi2D6:
          "highest of 2d6"
 
-      case DmgRange_D6:
+      case DieSpec_D6:
          "1d6"
 
       default:
@@ -264,7 +264,7 @@ def present_weight(f: float) -> string:
    return sentence(comma_list(rv, false))
 
 // Roll for damage for the given damage range.  Damage clamped positive.
-def damage_roll(r: DamageRange?) -> int:
+def damage_roll(r: DieRange?) -> int:
    assert r
    let dd = max(0, damage_roll_range(r.range()) + r.plus())
 

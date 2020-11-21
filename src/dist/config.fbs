@@ -40,10 +40,10 @@ table StatTemplate {
     stats: [StatPair];
 }
 
-enum DmgRange : uint8 {
+enum DieSpec : uint8 {
    Low2D6,        // Mean towards 3 with occasional high excursions.
    Hi2D6,         // Opposite of Low2D6
-   D6             // Flat damage range.
+   D6             // Flat range.
 }    
 
 // Support limited damage roll types so we can 
@@ -51,8 +51,8 @@ enum DmgRange : uint8 {
 // from the documentation without the work of keeping
 // them in a more complicated expression form that can 
 // be executed.
-struct DamageRange {
-   range: DmgRange;
+struct DieRange {
+   range: DieSpec;
    plus: int = 0;
 }
 
@@ -102,7 +102,7 @@ table ObjectAnimations {
 table WeaponStats {
     speed: int;
     kind: DmgType;
-    dmg: DamageRange;
+    dmg: DieRange;
     miss_sound: string;
     hit_sound: string;
     skill: GameStats = Melee;
