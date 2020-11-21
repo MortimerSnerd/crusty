@@ -41,6 +41,7 @@ table StatTemplate {
 }
 
 enum DieSpec : uint8 {
+   NoDie,         // Always rolls zero.  (For constant DieRange)
    Low2D6,        // Mean towards 3 with occasional high excursions.
    Hi2D6,         // Opposite of Low2D6
    D6             // Flat range.

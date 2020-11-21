@@ -202,28 +202,35 @@ def damage_roll_range(name: DieSpec) -> int:
       case DieSpec_D6:
          return rnd(6)
 
-      default:
-         error(): "Unknown range name " + name
-         return 1
+      case DieSpec_NoDie:
+         return 0
+
+   error(): "Unknown range name " + name
+   return 1
 
 // Table of names for DmgType
 let DmgTypePresent = ["Slashing", "Stabbing", "Impact"]
 let ItemSlotPresent = ["none", "melee", "headgear", "chestpiece", "footwear"]
 
-// Make user presentable string for a damae range.
-def present(r: DieRange) -> string:
-   let fst = switch r.range():
+private def die_present_string(d: DieSpec) -> string:
+   switch d:
       case DieSpec_Low2D6:
-         "least of 2d6"
+         return "least of 2d6"
+
       case DieSpec_Hi2D6:
-         "highest of 2d6"
+         return "highest of 2d6"
 
       case DieSpec_D6:
-         "1d6"
+         return "1d6"
 
-      default:
-         "oof"
+      case DieSpec_NoDie:
+         return ""
 
+   return "oof"
+
+// Make user presentable string for a damae range.
+def present(r: DieRange) -> string:
+   let fst = die_present_string(r.range())
    let mod = r.plus()
 
    if mod == 0:

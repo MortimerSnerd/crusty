@@ -30,9 +30,10 @@ enum StatTemplateName:
     StatTemplateName_COUNT = 3
 
 enum DieSpec:
-    DieSpec_Low2D6 = 0
-    DieSpec_Hi2D6 = 1
-    DieSpec_D6 = 2
+    DieSpec_NoDie = 0
+    DieSpec_Low2D6 = 1
+    DieSpec_Hi2D6 = 2
+    DieSpec_D6 = 3
 
 enum DmgType:
     DmgType_Slashing = 0
