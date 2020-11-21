@@ -504,3 +504,6 @@ def gobjs_init():
 
 def gobjs_shutdown():
    pass()
+
+def gobjs_get_texture() -> GridTiledTexture?:
+   return ObjTx

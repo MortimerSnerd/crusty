@@ -47,7 +47,7 @@
                 RunFromDir="%rw"
                 CaptureOutputWith="ProcessBuffer"
                 ClearProcessBuffer="1">
-                <Exec CmdLine="lobster-debug %rwsrc/crusty.lobster --"/>
+                <Exec CmdLine="lobster-release %rwsrc/crusty.lobster --"/>
             </Target>
         </Menu>
     </Config>

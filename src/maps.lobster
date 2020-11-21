@@ -214,26 +214,63 @@ def maps_init():
    StippleTexture = gl_load_texture("dist/stipple.png", 
                                     texture_format_nearest_mag or texture_format_nearest_min)
 
+private def opaque_test(pos: xy_i) -> bool:
+   // Is opaque at pos?
+   let tnum = get(WallLayer, pos)
+   return TileTags[tnum] & tfBlocksLight != 0 or not passes_light(pos)
+
+// Updates light information for the viz set.
+def update_lights(clear_viz: bool = false):
+   def playersees(p: xy_i): return test(PlayerViz, p, vfVisible)
+
+   def lightit(p: xy_i):
+      var flags = vfLit
+      if playersees(p):
+         flags |= vfSeen
+      mark(PlayerViz, p, flags)
+
+   let t = stopwatch():
+      for_all_enabled_lights() obj, spec:
+         let r = spec.light_radius()
+         let r2 = r * r
+         let f, ps = pos(obj)
+
+         if f:
+            // The light position is always lit.
+            lightit(ps)
+
+            let area = Rect{ps - xy_i{r,r}, ps + xy_i{r, r}}
+            walk_visible_tiles(ps, area, fn(x): opaque_test(x)) pos, opaque:
+               let d = mag_squared(ps - pos)
+               if d <= r2:
+                  if opaque and playersees(pos) and not playersees(pos.step_towards(ps)):
+                     // Light is on the other side of a wall that
+                     // the player can see, so don't let light leak through it.
+                     pass()
+                  else:
+                     lightit(pos)
+
+   timing(): "update_lights: " + t
+
 // Should be called before a turn starts animating, 
 // to update off the latest game state.
 def maps_update_viz(player_pos: xy_i, clear_viz: bool):
    if PlayerViz:
-      update_lights(PlayerViz, clear_viz)
+      if clear_viz:
+         clear(PlayerViz)
 
       let t = stopwatch():
          // Can always see yourself.
          mark(PlayerViz, player_pos, vfVisible | vfSeen)
-         walk_visible_tiles(player_pos, Rect{xy_i{0,0}, FloorLayer.dims-xy_i{1,1}}) pos:
-            // Is opaque at pos?
-            let tnum = get(WallLayer, pos)
-            TileTags[tnum] & tfBlocksLight != 0 or not passes_light(pos)
-         fn(pos):
-            var flags = vfVisible
-            
-            if has(PlayerViz, pos, vfLit):
-               flags |= vfSeen
 
-            mark(PlayerViz, pos, flags)
+         // Walk tiles visible from player first.  The light update code needs
+         // to test player visibility to handle some corner cases, so having
+         // this first simplifies processing.
+         walk_visible_tiles(player_pos, Rect{xy_i{0,0}, FloorLayer.dims-xy_i{1,1}}, 
+                            fn(x): opaque_test(x)) pos, opaque:
+            mark(PlayerViz, pos, vfVisible)
+
+         update_lights(clear_viz)
 
       timing(): "update viz: " + t
 
@@ -494,5 +531,8 @@ def for_map_features_named(name: string, body):
    for(Features) f:
       if f.name == name:
          body(f)
+
+def maps_get_viz() -> VizSet?:
+   return PlayerViz
 
 //notify_moving

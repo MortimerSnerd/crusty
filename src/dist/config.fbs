@@ -137,7 +137,10 @@ enum TileName:int32 {
   Cheese = 13, 
   Fez = 14, 
   GenHDoorClosed = 15,
-  GenHDoorOpen = 16
+  GenHDoorOpen = 16, 
+  DebugVisible = 17, 
+  DebugLit = 18, 
+  DebugSeen = 19
 }
 
 enum ItemFlags : uint32 (bit_flags)

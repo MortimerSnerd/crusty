@@ -262,35 +262,6 @@ class VizSet:
       else:
          return 0
 
-   // Updates light information for the viz set.
-   def update_lights(clear_viz: bool = false):
-      let t = stopwatch():
-         if clear_viz:
-            clear()
-
-         for_all_enabled_lights() obj, spec:
-            let r = spec.light_radius()
-            let r2 = r * r
-            let f, ps = pos(obj)
-
-            if f:
-               var y = ps.y - r
-               let br = xy_i{ps.x + r, ps.y + r}
-
-               while y <= br.y:
-                  var x = ps.x - r
-
-                  while x <= br.x:
-                     let dx = x - ps.x
-                     let dy = y - ps.y
-
-                     if (dx*dx + dy*dy) < r2:
-                        mark(xy_i{x, y}, vfLit)
-                     ++x
-                  ++y
-
-      timing(): "update_lights: " + t
-
 // Creates a set for recording visibility for a grid.
 def mk_viz_set(dim: xy_i) -> VizSet:
    assert dim.x > 0 and dim.y > 0

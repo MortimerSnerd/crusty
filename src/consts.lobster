@@ -1,4 +1,5 @@
 // Constants shared over several modules.
+let DebugZ = 1.1  // Debug layer above map masks
 let MaskZ = 1.0
 let AboveLivingZ = 0.9
 let LivingZ = 0.8

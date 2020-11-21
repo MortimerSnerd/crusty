@@ -91,6 +91,13 @@ def approx_dir(a: xy_i, b: xy_i) -> Directions:
    assert idx >= 0
    return Directions(idx)
 
+// Returns the point that is a single integral step
+// from a in the direction of b.
+def step_towards(a: xy_i, b: xy_i) -> xy_i:
+   let d = approx_dir(a, b)
+
+   return a + all_dirs[d]
+
 def turned_right_90deg(v: xy_i) -> xy_i:
    return xy_i{-v.y, v.x} 
 
@@ -572,6 +579,9 @@ def eassign(arr, idx, val, defval):
 
    arr[idx] = val
 
+def mag_squared(p: xy_i) -> int:
+   return p.x*p.x + p.y*p.y
+
 def mag(t:: TurnSpan) -> float:
    assert t.end >= t.start
    return end - start
@@ -739,7 +749,7 @@ private def add(sl:: ShadowLine, new_shadow: Shadow):
          insert(shadows, idx, new_shadow)
 
 private def is_full_shadow(sl:: ShadowLine):
-   return length(shadows) == 1 and shadows[0].start ==0 and shadows[0].end == 1
+   return length(shadows) == 1 and shadows[0].start <= 0 and shadows[0].end >= 1
 
 private def refresh_octant(start_pos: xy_i, octant: int, bounds: Rect, block_test, body):
    let line = ShadowLine{shadows: []}
@@ -757,14 +767,15 @@ private def refresh_octant(start_pos: xy_i, octant: int, bounds: Rect, block_tes
          let proj = project_tile(row, col)
          let visible = not line.is_in_shadow(proj)
          if visible: 
-            body(pos)
-            if block_test(pos):
+            let opaque = block_test(pos)
+            body(pos, opaque)
+            if opaque:
                line.add(proj)
                if line.is_full_shadow(): return
          ++col
       ++row
 
-// Calls body(pos) for all visible tiles from `start_pos`
+// Calls body(pos, opaquebool) for all visible tiles from `start_pos`
 // block_test should be a functon that takes a grid position and
 // returns true if light is blocked at that position.
 def walk_visible_tiles(start_pos: xy_i, bounds: Rect, block_test, body):

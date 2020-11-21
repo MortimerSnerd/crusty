@@ -18,6 +18,7 @@ import uitools
 import vec
 
 let tile_size = 64
+let debugging_viz = false
 
 var Player = InvalidObject
 var PlayerAboutToDie = false
@@ -100,13 +101,14 @@ def game_init():
 
    let spawn = map_feature_named("spawn")
 
+   var pl_pos = xy_i{0,0}
+
    if spawn:
       Player = gobjs_spawn(ObjectKind_Player, spawn.pos, East)
       engrish_init(Player)
       play_animation(Player, "player_idle")
       gobjs_spawn(ObjectKind_Sword, spawn.pos + xy_i{1, 0}, North)
-      maps_update_viz(spawn.pos, true)
-      gobjs_spawn(ObjectKind_Bullet, spawn.pos, North)
+      pl_pos = spawn.pos
       //DEBUGGERY
       let pst = object_stats(Player)
       add_use_debuff(pst, GameStats_Str, 3, 4.0)
@@ -142,19 +144,48 @@ def game_init():
       push(Groundhogs, gh)
       schedule_callback(gh, 0)
       play_animation(gh.graphic, "groundhog_idle")
+      gobjs_spawn(ObjectKind_Bullet, dloc.pos, North)
 
    //maps_load_debug_level(MapTexture, ppos)
    bind("space", "Decompose gracefully") player, now, _, prompt: 
       let r, act = decompose_action(FakeTurnSpan, now, player)
       act
 
-   //play_wav("dist/ouch1.wav")
+   // Delay updating the viz until after all of the map 
+   // objects are spawned, since some of them can block light.
+   maps_update_viz(pl_pos, true)
+
+def render_viz_debug(set: VizSet, tiledTx):
+   gl_set_shader("textured_alpha_cut")
+   gl_set_primitive_texture(0, tiledTx.texture)
+   gl_blend(blend_alpha)
+   for(set.dims.y) y:
+      for(set.dims.x) x:
+         let flags = get(set, xy_i{x, y})
+         let xf = float(x) + 0.5
+         let yf = float(y) + 0.5
+
+         if flags.has(vfVisible):
+            renderSprite(tiledTx, TileName_DebugVisible, xyz_f{xf, yf, DebugZ}, xy_1)
+
+         if flags.has(vfLit):
+            renderSprite(tiledTx, TileName_DebugLit, xyz_f{xf, yf, DebugZ}, xy_1)
+
+         if flags.has(vfSeen):
+            renderSprite(tiledTx, TileName_DebugSeen, xyz_f{xf, yf, DebugZ}, xy_1)
+
 def draw_game_frame(now: float, windowsz: xy_f, view_rect: Rectf):
    gl_set_shader("textured_alpha_cut")
    anim_render_move_lines(now)
    map_render(view_rect) 
    gobjs_draw(now, view_rect)
 
+   if debugging_viz:
+      let viz = maps_get_viz()
+      let tx = gobjs_get_texture()
+
+      if viz and tx:
+         render_viz_debug(viz, tx)
 
 def num_live_groundhogs() -> int, int:
    var live = 0
@@ -171,6 +202,7 @@ def num_live_groundhogs() -> int, int:
 
 def living_at(p: xy_i) -> bool:
    return living_thing_at(p) != nil
+
 
 def game_frame(do_debug) -> bool, Rectf:
    let wsz = gl_window_size()

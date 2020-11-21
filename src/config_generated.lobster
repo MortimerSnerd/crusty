@@ -69,6 +69,9 @@ enum TileName:
     TileName_Fez = 14
     TileName_GenHDoorClosed = 15
     TileName_GenHDoorOpen = 16
+    TileName_DebugVisible = 17
+    TileName_DebugLit = 18
+    TileName_DebugSeen = 19
 
 enum ItemFlags:
     ItemFlags_Living = 1
