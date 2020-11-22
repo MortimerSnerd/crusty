@@ -11,6 +11,7 @@ import logging
 private struct SkillPair:
    atk: GameStats
    defend: GameStats
+   requirements: int   // Mask of SkillRequirement flags.
 
 private struct SkillSyn:
    skill: GameStats
@@ -60,7 +61,8 @@ def stats_init():
    for(root.opposing_length()) i:
       let op = root.opposing(i)
 
-      push(Oppose, SkillPair{atk: op.atk(), defend: op.defend()})
+      push(Oppose, SkillPair{atk: op.atk(), defend: op.defend(), 
+                             requirements: op.requirements()})
 
    for(root.synergies_length()) i:
       let s = root.synergies(i)
@@ -68,6 +70,64 @@ def stats_init():
       push(Synergies, SkillSyn{skill: s.skill(), modified_by: s.modified_by(),
                                plus: s.plus(),  num: s.numerator(), 
                                denom: s.denominator()})
+
+// Straight ahead, one step to the left and one to the right.
+def for_forward_directions(facing: Directions, body):
+   body(facing)
+   body(facing.turned_left())
+   body(facing.turned_right())
+
+// Iterates through all of the positions that are considered forward
+// of `pos`
+def for_forward_positions(pos: xy_i, facing: Directions, body):
+   for_forward_directions(facing) d:
+      body(all_dirs[d] + pos)
+   
+// Returns true if `targ` is at a position forward to `pos/facing`.
+def is_forward_of_pos(pos: xy_i, facing: Directions, targ: xy_i) -> bool:
+   for_forward_positions(pos, facing) p:
+      if p == targ:
+         return true
+
+   return false
+
+def is_forward_of(what: ObjId, who: ObjId) -> bool:
+   let wf, whopos = pos(who)
+   let wf2, whatpos = pos(what)
+   let df, facing = direction(who)
+   return df and wf and wf2 and is_forward_of_pos(whopos, facing, whatpos)
+
+// Iterate through all positions that are in the
+// forward 180 arc around `dir`.
+def for_forward_directions_180(dir: Directions, body):
+   let lw = dir.turned_left()
+   let rw = dir.turned_right()
+
+   body(dir)
+   body(lw)
+   body(rw)
+   body(lw.turned_left())
+   body(rw.turned_right())
+
+// Iterate through all grid positions that are forward of
+// `pos` in a 180 degree arc.
+def for_forward_positions_180(pos: xy_i, dir: Directions, body):
+   for_forward_directions_180(dir) d:
+      body(pos + all_dirs[d])
+
+def is_forward_180_position(view_pos: xy_i, view_dir: Directions, test_pos: xy_i) -> bool:
+   for_forward_positions_180(view_pos, view_dir) tp:
+      if tp == test_pos:
+         return true
+
+   return false
+
+def is_forward_180_position(viewer: ObjId, target: ObjId) -> bool:
+   let pf, p = pos(viewer)
+   let df, dir = direction(viewer)
+   let tpf, tp = pos(target)
+
+   return is_forward_180_position(p, dir, tp)
 
 // Returns a + or - bonus, with 10 being the 
 // midpoint with a bonus of 0.
@@ -385,26 +445,45 @@ def attack_duration(who: ObjId, now: float, stats: WeaponStats) -> float:
    else:
       return base
 
+private def meets_requirements(sp: SkillPair, atk: ObjId, defend: ObjId) -> bool:
+   def reqtest(x, tst):
+      if sp.requirements.has(x):
+         let rv = tst()
+
+         if not rv:
+            statlog(): to_string(defend) + " fails " + x + " for " + sp.defend
+            return false from meets_requirements
+
+   reqtest(SkillRequirement_FacingThreat):
+      atk.is_forward_of(defend)
+
+   reqtest(SkillRequirement_FacingThreat180):
+      is_forward_180_position(defend, atk)
+
+   return true
+
 // Finds the largest opposing skill for attack skill atk_skill, and returns
 // (skill name, skill value)
-def find_largest_opposing_skill(target_stats: [StatEnt], atk_skill: GameStats, now: float) -> GameStats, int:
+def find_largest_opposing_skill(atk: ObjId, defend: ObjId, target_stats: [StatEnt], atk_skill: GameStats, now: float) -> GameStats, int:
    var largest = GameStats_Hp
    var largest_val = -1
+   var largest_but_failed_prereqs = GameStats_Hp
 
    for(Oppose) op:
       if op.atk == atk_skill:
          let v = value(target_stats, now, op.defend)
 
          if v > largest_val:
-            largest = op.defend
-            largest_val = v
+            if meets_requirements(op, atk, defend):
+               largest = op.defend
+               largest_val = v
+            else:
+               largest_but_failed_prereqs = op.defend
 
    if largest_val >= 0:
       return largest, largest_val
    else:
-      error(): "No skill configured to oppose " + atk_skill
-      assert false
-      return GameStats_Hp, 0
+      return largest_but_failed_prereqs, 0
 
 // Returns a verb for a defense action.
 def defence_verb(st: GameStats) -> string:

@@ -130,20 +130,10 @@ the player know they can hit 'o' to open the safe)
   of a dialog.
     IMGUI_API void          PushStyleColor(ImGuiCol idx, ImU32 col);
 
-- Fix light propagation to use shadow casting code, so lights don't pass
-  through barriers.  
-
-- Page for item information on interaction dialog.
-
 - texture handling for imgui
 
 - interaction dialog needs to be changed to have a fixed calculated size, and
   made resizable.  It jumps a bit between modes.
-
-- armor
-
-- Defence should only be applied for faced threats.  No defence against
-  back attacks.
 
 - Living can have list of body parts weighted by chance to hit, 
   and damage factor to multiply or reduce damage.

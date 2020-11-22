@@ -57,9 +57,19 @@ struct DieRange {
    plus: int = 0;
 }
 
+// Requirements for skills to be opposed or used.
+// stats.meets_requirements() needs to be updated with
+// tests for any new flags.
+enum SkillRequirement : uint8 (bit_flags) {
+    None = 0, 
+    FacingThreat180 = 1,     // attacker must be in 180 degree arc in front of defender.
+    FacingThreat             // attacker must be in the 135 degree arc in front of the defender.
+}
+
 struct CfgSkillPair {
     atk: GameStats;
     defend: GameStats;
+    requirements: SkillRequirement;
 }
 
 // Bonuses or maluses can be applied to skills

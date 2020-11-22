@@ -35,6 +35,11 @@ enum DieSpec:
     DieSpec_Hi2D6 = 2
     DieSpec_D6 = 3
 
+enum SkillRequirement:
+    SkillRequirement_None = 1
+    SkillRequirement_FacingThreat180 = 2
+    SkillRequirement_FacingThreat = 4
+
 enum DmgType:
     DmgType_Slashing = 0
     DmgType_Stabbing = 1
@@ -187,9 +192,12 @@ class CfgSkillPair : flatbuffers_handle
         return GameStats(buf_.read_int8_le(pos_ + 0))
     def defend():
         return GameStats(buf_.read_int8_le(pos_ + 1))
+    def requirements():
+        return SkillRequirement(buf_.read_int8_le(pos_ + 2))
 
-def CreateCfgSkillPair(b_:flatbuffers_builder, atk:GameStats, defend:GameStats):
-    b_.Prep(1, 2)
+def CreateCfgSkillPair(b_:flatbuffers_builder, atk:GameStats, defend:GameStats, requirements:SkillRequirement):
+    b_.Prep(1, 3)
+    b_.PrependUint8(requirements)
     b_.PrependUint8(defend)
     b_.PrependUint8(atk)
     return b_.Offset()
@@ -487,16 +495,13 @@ class ObjectSpec : flatbuffers_handle
         return ArmorValue { buf_, buf_.flatbuffers_indirect(buf_.flatbuffers_field_vector(pos_, 44) + i * 4) }
     def armor_length():
         return buf_.flatbuffers_field_vector_len(pos_, 44)
-    def innate_armor():
-        let o = buf_.flatbuffers_field_table(pos_, 46)
-        return if o: ArmorValue { buf_, o } else: nil
 
 def GetRootAsObjectSpec(buf:string): return ObjectSpec { buf, buf.flatbuffers_indirect(0) }
 
 struct ObjectSpecBuilder:
     b_:flatbuffers_builder
     def start():
-        b_.StartObject(22)
+        b_.StartObject(21)
         return this
     def add_kind(kind:ObjectKind):
         b_.PrependInt16Slot(0, kind, 0)
@@ -560,9 +565,6 @@ struct ObjectSpecBuilder:
         return this
     def add_armor(armor:flatbuffers_offset):
         b_.PrependUOffsetTRelativeSlot(20, armor)
-        return this
-    def add_innate_armor(innate_armor:flatbuffers_offset):
-        b_.PrependUOffsetTRelativeSlot(21, innate_armor)
         return this
     def end():
         return b_.EndObject()
@@ -660,7 +662,7 @@ class ConfigRoot : flatbuffers_handle
     def stat_templates_length():
         return buf_.flatbuffers_field_vector_len(pos_, 8)
     def opposing(i:int):
-        return CfgSkillPair { buf_, buf_.flatbuffers_field_vector(pos_, 10) + i * 2 }
+        return CfgSkillPair { buf_, buf_.flatbuffers_field_vector(pos_, 10) + i * 3 }
     def opposing_length():
         return buf_.flatbuffers_field_vector_len(pos_, 10)
     def synergies(i:int):
@@ -715,7 +717,7 @@ def ConfigRootCreateStatTemplatesVector(b_:flatbuffers_builder, v_:[flatbuffers_
     return b_.EndVector(v_.length)
 
 def ConfigRootStartOpposingVector(b_:flatbuffers_builder, n_:int):
-    b_.StartVector(2, n_, 1)
+    b_.StartVector(3, n_, 1)
 
 def ConfigRootStartSynergiesVector(b_:flatbuffers_builder, n_:int):
     b_.StartVector(4, n_, 4)

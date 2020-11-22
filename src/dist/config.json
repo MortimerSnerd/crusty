@@ -190,15 +190,15 @@
                 {name: Wit, val: 1},
                 {name: Hp, val: 0},
                 {name: Melee, val: 3}, 
-                {name: Defence, val: 3}, 
-                {name: Dodge, val: 6}
+                {name: Defence, val: 10}, 
+                {name: Dodge, val: 10}
             ],
         }
     ], 
 
     opposing: [
-        {atk: Melee, defend: Defence},
-        {atk: Melee, defend: Dodge}
+        {atk: Melee, defend: Defence, requirements: FacingThreat180},
+        {atk: Melee, defend: Dodge, requirements: FacingThreat180}
     ],
 
     synergies: [

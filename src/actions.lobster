@@ -221,31 +221,6 @@ private def at_same_location(a: ObjId, b: ObjId) -> bool:
 
    return f0 and f1 and p0 == p1
 
-// Straight ahead, one step to the left and one to the right.
-def for_forward_directions(facing: Directions, body):
-   body(facing)
-   body(facing.turned_left())
-   body(facing.turned_right())
-
-// Iterates through all of the positions that are considered forward
-// of `pos`
-def for_forward_positions(pos: xy_i, facing: Directions, body):
-   for_forward_directions(facing) d:
-      body(all_dirs[d] + pos)
-   
-// Returns true if `targ` is at a position forward to `pos/facing`.
-def is_forward_of_pos(pos: xy_i, facing: Directions, targ: xy_i) -> bool:
-   for_forward_positions(pos, facing) p:
-      if p == targ:
-         return true
-
-   return false
-
-def is_forward_of_pos(what: ObjId, who: ObjId) -> bool:
-   let wf, whopos = pos(who)
-   let wf2, whatpos = pos(what)
-   let df, facing = direction(who)
-   return df and wf and wf2 and is_forward_of_pos(whopos, facing, whatpos)
 
 def is_closed_door(obj: ObjId) -> bool:
    return object_spec(obj).flags.has(ItemFlags_Door) and object_state(obj).denies(StateFlags_Open)
@@ -268,7 +243,7 @@ def open_action(span: TurnSpan, now: float, who: ObjId, what: ObjId) -> ActionRe
          return mkact()
       else:
          return ActionResult{kind: arNotOpenable, other: what}, nil
-   elif is_closed_door(what) and what.is_forward_of_pos(who):
+   elif is_closed_door(what) and what.is_forward_of(who):
          return mkact()
    else:
       return ActionResult{kind: arCanNotReach, other: what}, nil
@@ -286,7 +261,7 @@ def close_action(span: TurnSpan, now: float, who: ObjId, what: ObjId) -> ActionR
 
       else:
          return ActionResult{kind: arNotOpenable, other: what}, nil
-   elif is_open_door(what) and what.is_forward_of_pos(who):
+   elif is_open_door(what) and what.is_forward_of(who):
       let df, doorpos = pos(what)
       let lv = living_thing_at(doorpos)
 
@@ -562,7 +537,9 @@ def melee_attack_action(span: TurnSpan, now: float, who: ObjId, what: ObjId,
                      let dir_mal = melee_facing_malus(atk_pos, atk_dir, vic_pos)
                      let atk_skill = wstats.skill()
                      let atk_val = value(st_attacker, now, atk_skill) + dir_mal
-                     let def_skill, def_val = find_largest_opposing_skill(st_target, 
+                     let def_skill, def_val = find_largest_opposing_skill(who, 
+                                                                          what,
+                                                                          st_target, 
                                                                           atk_skill,
                                                                           now)
                      let roll = opposed_skill_check(atk_skill, atk_val, 
