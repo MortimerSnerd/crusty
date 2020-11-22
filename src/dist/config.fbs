@@ -23,6 +23,27 @@ enum ItemSlot : uint8 {
     Feet 
 }
 
+enum BodyTemplateName : uint8 {
+    Humanoid, 
+    Groundhog,
+
+    COUNT
+}
+
+// Used to apportion body parts chances to be hit
+// for attacks
+table BodyPartDesc {
+    slot: ItemSlot;
+    name: string;
+    tohit_chance: float;
+    dmg_factor: float = 1.0;
+}
+
+table BodyDesc {
+    name: BodyTemplateName;
+    parts: [BodyPartDesc];
+}
+
 // Base stats that can be referenced by a living object.
 enum StatTemplateName : uint16 {
     NoStats, Human, Groundhog, 
@@ -217,6 +238,7 @@ table ObjectSpec {
    // living things, this is the innate armor that comes from a tough
    // hide, etc...
    armor: [ArmorValue];   
+   body: BodyTemplateName = Humanoid;
                           
 } 
 
@@ -243,6 +265,7 @@ table ConfigRoot {
    stat_templates: [StatTemplate];
    opposing: [CfgSkillPair];   // Map skills that oppose other skills.
    synergies: [CfgSkillSynergy];
+   body_templates: [BodyDesc];
 }
     
 root_type ConfigRoot;

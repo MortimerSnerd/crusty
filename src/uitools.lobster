@@ -562,7 +562,7 @@ class IIData : UserData
 
                if spec.slot() != ItemSlot_None:
                   if not ws:
-                     im_text("Equippable on " + present(BodyLoc{spec.slot()}))
+                     im_text("Equippable on " + present(BodyLoc{spec.slot(), "", 1}))
                   
                   im_spacing()
                   if spec.armor_length() > 0:

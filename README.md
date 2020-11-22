@@ -135,8 +135,5 @@ the player know they can hit 'o' to open the safe)
 - interaction dialog needs to be changed to have a fixed calculated size, and
   made resizable.  It jumps a bit between modes.
 
-- Living can have list of body parts weighted by chance to hit, 
-  and damage factor to multiply or reduce damage.
-
 #Notes
 - measures used in book: rods, feet, pounds, pints, a gill of whiskey, miles, yards  

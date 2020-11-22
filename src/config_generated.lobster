@@ -23,6 +23,11 @@ enum ItemSlot:
     ItemSlot_Chest = 3
     ItemSlot_Feet = 4
 
+enum BodyTemplateName:
+    BodyTemplateName_Humanoid = 0
+    BodyTemplateName_Groundhog = 1
+    BodyTemplateName_COUNT = 2
+
 enum StatTemplateName:
     StatTemplateName_NoStats = 0
     StatTemplateName_Human = 1
@@ -102,6 +107,10 @@ enum AnimationKind:
     AnimationKind_OneShot = 0
     AnimationKind_Loop = 1
 
+class BodyPartDesc
+
+class BodyDesc
+
 class StatPair
 
 class StatTemplate
@@ -133,6 +142,69 @@ class Frame
 class SpriteAnim
 
 class ConfigRoot
+
+class BodyPartDesc : flatbuffers_handle
+    def slot():
+        return ItemSlot(buf_.flatbuffers_field_int8(pos_, 4, 0))
+    def name():
+        return buf_.flatbuffers_field_string(pos_, 6)
+    def tohit_chance():
+        return buf_.flatbuffers_field_float32(pos_, 8, 0.0)
+    def dmg_factor():
+        return buf_.flatbuffers_field_float32(pos_, 10, 1.0)
+
+def GetRootAsBodyPartDesc(buf:string): return BodyPartDesc { buf, buf.flatbuffers_indirect(0) }
+
+struct BodyPartDescBuilder:
+    b_:flatbuffers_builder
+    def start():
+        b_.StartObject(4)
+        return this
+    def add_slot(slot:ItemSlot):
+        b_.PrependUint8Slot(0, slot, 0)
+        return this
+    def add_name(name:flatbuffers_offset):
+        b_.PrependUOffsetTRelativeSlot(1, name)
+        return this
+    def add_tohit_chance(tohit_chance:float):
+        b_.PrependFloat32Slot(2, tohit_chance, 0.0)
+        return this
+    def add_dmg_factor(dmg_factor:float):
+        b_.PrependFloat32Slot(3, dmg_factor, 1.0)
+        return this
+    def end():
+        return b_.EndObject()
+
+class BodyDesc : flatbuffers_handle
+    def name():
+        return BodyTemplateName(buf_.flatbuffers_field_int8(pos_, 4, 0))
+    def parts(i:int):
+        return BodyPartDesc { buf_, buf_.flatbuffers_indirect(buf_.flatbuffers_field_vector(pos_, 6) + i * 4) }
+    def parts_length():
+        return buf_.flatbuffers_field_vector_len(pos_, 6)
+
+def GetRootAsBodyDesc(buf:string): return BodyDesc { buf, buf.flatbuffers_indirect(0) }
+
+struct BodyDescBuilder:
+    b_:flatbuffers_builder
+    def start():
+        b_.StartObject(2)
+        return this
+    def add_name(name:BodyTemplateName):
+        b_.PrependUint8Slot(0, name, 0)
+        return this
+    def add_parts(parts:flatbuffers_offset):
+        b_.PrependUOffsetTRelativeSlot(1, parts)
+        return this
+    def end():
+        return b_.EndObject()
+
+def BodyDescStartPartsVector(b_:flatbuffers_builder, n_:int):
+    b_.StartVector(4, n_, 4)
+def BodyDescCreatePartsVector(b_:flatbuffers_builder, v_:[flatbuffers_offset]):
+    b_.StartVector(4, v_.length, 4)
+    reverse(v_) e_: b_.PrependUOffsetTRelative(e_)
+    return b_.EndVector(v_.length)
 
 class StatPair : flatbuffers_handle
     def name():
@@ -495,13 +567,15 @@ class ObjectSpec : flatbuffers_handle
         return ArmorValue { buf_, buf_.flatbuffers_indirect(buf_.flatbuffers_field_vector(pos_, 44) + i * 4) }
     def armor_length():
         return buf_.flatbuffers_field_vector_len(pos_, 44)
+    def body():
+        return BodyTemplateName(buf_.flatbuffers_field_int8(pos_, 46, 0))
 
 def GetRootAsObjectSpec(buf:string): return ObjectSpec { buf, buf.flatbuffers_indirect(0) }
 
 struct ObjectSpecBuilder:
     b_:flatbuffers_builder
     def start():
-        b_.StartObject(21)
+        b_.StartObject(22)
         return this
     def add_kind(kind:ObjectKind):
         b_.PrependInt16Slot(0, kind, 0)
@@ -565,6 +639,9 @@ struct ObjectSpecBuilder:
         return this
     def add_armor(armor:flatbuffers_offset):
         b_.PrependUOffsetTRelativeSlot(20, armor)
+        return this
+    def add_body(body:BodyTemplateName):
+        b_.PrependUint8Slot(21, body, 0)
         return this
     def end():
         return b_.EndObject()
@@ -669,13 +746,17 @@ class ConfigRoot : flatbuffers_handle
         return CfgSkillSynergy { buf_, buf_.flatbuffers_indirect(buf_.flatbuffers_field_vector(pos_, 12) + i * 4) }
     def synergies_length():
         return buf_.flatbuffers_field_vector_len(pos_, 12)
+    def body_templates(i:int):
+        return BodyDesc { buf_, buf_.flatbuffers_indirect(buf_.flatbuffers_field_vector(pos_, 14) + i * 4) }
+    def body_templates_length():
+        return buf_.flatbuffers_field_vector_len(pos_, 14)
 
 def GetRootAsConfigRoot(buf:string): return ConfigRoot { buf, buf.flatbuffers_indirect(0) }
 
 struct ConfigRootBuilder:
     b_:flatbuffers_builder
     def start():
-        b_.StartObject(5)
+        b_.StartObject(6)
         return this
     def add_objtypes(objtypes:flatbuffers_offset):
         b_.PrependUOffsetTRelativeSlot(0, objtypes)
@@ -691,6 +772,9 @@ struct ConfigRootBuilder:
         return this
     def add_synergies(synergies:flatbuffers_offset):
         b_.PrependUOffsetTRelativeSlot(4, synergies)
+        return this
+    def add_body_templates(body_templates:flatbuffers_offset):
+        b_.PrependUOffsetTRelativeSlot(5, body_templates)
         return this
     def end():
         return b_.EndObject()
@@ -722,6 +806,13 @@ def ConfigRootStartOpposingVector(b_:flatbuffers_builder, n_:int):
 def ConfigRootStartSynergiesVector(b_:flatbuffers_builder, n_:int):
     b_.StartVector(4, n_, 4)
 def ConfigRootCreateSynergiesVector(b_:flatbuffers_builder, v_:[flatbuffers_offset]):
+    b_.StartVector(4, v_.length, 4)
+    reverse(v_) e_: b_.PrependUOffsetTRelative(e_)
+    return b_.EndVector(v_.length)
+
+def ConfigRootStartBodyTemplatesVector(b_:flatbuffers_builder, n_:int):
+    b_.StartVector(4, n_, 4)
+def ConfigRootCreateBodyTemplatesVector(b_:flatbuffers_builder, v_:[flatbuffers_offset]):
     b_.StartVector(4, v_.length, 4)
     reverse(v_) e_: b_.PrependUOffsetTRelative(e_)
     return b_.EndVector(v_.length)

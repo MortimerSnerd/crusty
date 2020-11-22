@@ -46,7 +46,8 @@
                death: {sfx: "dist/ouch3.wav"}
             }, 
             equip_set: [{kind: Fez, chance: 0.5}],
-            armor: [{dmg: Slashing, dt: {range: NoDie, plus: 1}}]
+            armor: [{dmg: Slashing, dt: {range: NoDie, plus: 1}}], 
+            body: Groundhog
         },
         {
             kind: Bullet, 
@@ -206,5 +207,25 @@
         {skill: Hp, modified_by: Will, denominator: 2},
         {skill: Dodge, modified_by: Speed, plus: -10, numerator: 2, denominator: 3},
         {skill: Defence, modified_by: Str, plus: -10, denominator: 2}
+    ], 
+    
+    body_templates: [
+        {
+         name: Humanoid, 
+         parts: [
+             {slot: Head, name: "head", tohit_chance: 0.15, dmg_factor: 1.5},
+             {slot: Chest, name: "chest", tohit_chance: 0.75, dmg_factor: 1.0},
+             {slot: Feet, name: "foot", tohit_chance: 0.10, dmg_factor: 1.0}
+             ]
+         }, 
+
+        {
+         name: Groundhog, 
+         parts: [
+            {slot: Head, name: "noggin", tohit_chance: 0.20, dmg_factor: 1.5},
+            {slot: Chest, name: "body", tohit_chance: 0.75, dmg_factor: 1.0},
+            {slot: Feet, name: "leg", tohit_chance: 0.05, dmg_factor: 1.0}
+            ]
+        }, 
     ]
 }

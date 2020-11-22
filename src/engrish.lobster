@@ -125,8 +125,11 @@ def possesive_otherliving(other: ObjId) -> string:
    if Ctx and Ctx.player == other:
       return "your"
    else:
-      return definite_article(other) + " " + object_spec(other).short_name + "\'s"
-
+      let spec = object_spec(other)
+      if is_proper_name(spec.short_name):
+         return spec.short_name + "\'s"
+      else:
+         return definite_article(other) + " " + spec.short_name + "\'s"
 
 def comma_list(args: [string], conjunction: bool = true) -> [string]:
    let rv = []

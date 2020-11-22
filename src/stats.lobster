@@ -55,6 +55,23 @@ private let DefenceVerbs = [
    DefVerb{GameStats_Dodge, "dodge"}
 ]
 
+// Location that can receive damage.
+class BodyLoc:
+   // Subset of ItemSlot for armor pieces.
+   slot: ItemSlot
+   // Presentable name.
+   name: string
+   tohit_chance: float
+   dmg_factor: float = 1.0
+
+// Description of a body's parts, used for attack targets.
+class BodyTemplate:
+   name: BodyTemplateName
+   parts: [BodyLoc]
+
+// Populated from config.
+private let BodyTemplates: [BodyTemplate] = []
+
 def stats_init():
    let root = cur_config()
 
@@ -70,6 +87,25 @@ def stats_init():
       push(Synergies, SkillSyn{skill: s.skill(), modified_by: s.modified_by(),
                                plus: s.plus(),  num: s.numerator(), 
                                denom: s.denominator()})
+
+   for(root.body_templates_length()) i:
+       let cbt = root.body_templates(i)
+       let bt = BodyTemplate{name: cbt.name(), parts: []}
+       var tot_tohit = 0.0
+
+       for(cbt.parts_length()) j:
+          let cpt = cbt.parts(j)
+
+          tot_tohit += cpt.tohit_chance()
+          push(bt.parts, 
+               BodyLoc{slot: cpt.slot(), 
+                       name: cpt.name(), 
+                       tohit_chance: cpt.tohit_chance(),
+                       dmg_factor: cpt.dmg_factor()})
+
+       assert tot_tohit >= 0.999 and tot_tohit <= 1.0001 
+       push(BodyTemplates, bt)
+
 
 // Straight ahead, one step to the left and one to the right.
 def for_forward_directions(facing: Directions, body):
@@ -151,30 +187,39 @@ private def calc_synergies_dv(stats, stat, now) -> int:
 
    return dv
 
-// Location that can receive damage.
-class BodyLoc:
-   // Subset of ItemSlot for armor pieces.
-   slot: ItemSlot
-   dmg_factor: float = 1.0
-
 // Return a body part name.
 def present(loc: BodyLoc) -> string:
-   switch loc.slot:
-      case ItemSlot_Head:
-         return "head"
-      case ItemSlot_Chest:
-         return "chest"
-      case ItemSlot_Feet:
-         return "foot"
-      case ItemSlot_None, ItemSlot_Melee:
-         return "body"
+   if length(loc.name) > 0:
+      return loc.name
+   else:
+      // Name might not be defined for dummy BodyLoc 
+      // objects created for item panels.
+      switch loc.slot:
+         case ItemSlot_Head:
+            return "head"
 
-   error(): "Unknown body loc " + loc.slot
-   return "body"
+         case ItemSlot_Chest:
+            return "chest"
+
+         case ItemSlot_Feet:
+            return "feet"
+
+         case ItemSlot_None, ItemSlot_Melee:
+            return "wot"
+
+      error(): "Unrecognized body part " + loc.slot
+      return "wot"
 
 def pick_random_body_part(obj: ObjId) -> BodyLoc:
-   //TODO actually pick.
-   return BodyLoc{ItemSlot_Chest}
+   let tname = object_spec(obj).body()
+   let tmp = find(BodyTemplates) x: x.name == tname
+
+   if tmp >= 0:
+      return weighted_pick<float>(BodyTemplates[tmp].parts) p: p.tohit_chance
+   else:
+      error(): "No body template found for " + obj.to_string()
+      return BodyLoc{slot: ItemSlot_Chest, name: "chest", 
+                     tohit_chance: 1.0}
 
 def dt_for(arm: ArmorValue?, dmg_type: DmgType) -> int:
    if arm:
